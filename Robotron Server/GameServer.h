@@ -6,21 +6,21 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Source.cpp
-* Description : Sets up the Window for the Program and processes all the messages
+* File Name : GameServer.h
+* Description : Declaration file for the main game functions of the server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 #pragma once
 
-#ifndef __GAME_H__
-#define __GAME_H__
+#ifndef __GAMESERVER_H__
+#define __GAMESERVER_H__
 
 // Library Includes
 #include <Windows.h>
 
-class CGame
+class CGameServer
 {
 public:
 	// Constructors / Destructors
@@ -29,7 +29,7 @@ public:
 	* ~Game: Default Destructor for Game class
 	* @author: Callan Moore
 	********************/
-	~CGame();
+	~CGameServer();
 
 	// Singleton Methods
 
@@ -38,7 +38,7 @@ public:
 	* @author: Callan Moore
 	* @return: CGame&: The current instance of the game
 	********************/
-	static CGame& GetInstance();
+	static CGameServer& GetInstance();
 
 	/***********************
 	* DestroyInstance: Deletes the instance of the game.
@@ -93,13 +93,13 @@ public:
 
 private:
 	//Disallowing copies and extra constructions
-	CGame();
-	CGame(const CGame& _kr);
-	CGame& operator= (const CGame& _kr);
+	CGameServer();
+	CGameServer(const CGameServer& _kr);
+	CGameServer& operator= (const CGameServer& _kr);
 
 private:
 	// Singleton Instance
-	static CGame* s_pGame;
+	static CGameServer* s_pGame;
 
 	// Window Variables
 	HWND m_hWnd;
@@ -109,4 +109,4 @@ private:
 	
 };
 
-#endif //__GAME_H__
+#endif //__GAMESERVER_H__

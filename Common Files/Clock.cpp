@@ -7,7 +7,7 @@
 * (c) 2005 - 2015 Media Design School
 *
 * File Name : Clock.cpp
-* Description : Implementation for the functions of the Vertex class
+* Description : Keeps track of time using delta ticks
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */

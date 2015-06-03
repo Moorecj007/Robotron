@@ -6,20 +6,18 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Source.cpp
-* Description : Sets up the Window for the Program and processes all the messages
+* File Name : SourceClient.cpp
+* Description : Source file to begin Robotron Server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
-#define WIN32_LEAN_AND_MEAN
+
 
 #pragma comment(lib, "Winmm.lib")
-#pragma comment(lib, "d3d9.lib")
-#pragma comment(lib, "d3dx9.lib")
 
 // Library Includes
-#include <windows.h>		// Include all the windows headers.
+//#include <windows.h>		// Include all the windows headers.
 #include <windowsx.h>		// Include useful macros.
 
 // Visual Leak Detector to be run only if in DEBUG mode
@@ -29,9 +27,10 @@
 #endif // _DEBUG
 
 // Local Includes
-#include "Game.h"
+#include "GameClient.h"
 
 // Defines and Macros
+#define WIN32_LEAN_AND_MEAN
 #define WINDOW_CLASS_NAME L"ROBOTRON"
 
 // Prototypes
@@ -129,7 +128,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 
 	hWnd = CreateWindowEx(	NULL,								// Extended style.
 							WINDOW_CLASS_NAME,					// Class.
-							L"Terrain HeightMap",				// Title.
+							L"Robotron Client",						// Title.
 							WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU,// Windowed Mode
 							0, 0,								// Initial x,y position for the top left corner of the window
 							kiScreenWidth, kiScreenHeight,		// Initial width, height of the window
@@ -145,7 +144,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	}
 
 	// Create the Game Object
-	CGame& rGameInstance = CGame::GetInstance();
+	CGameClient& rGameInstance = CGameClient::GetInstance();
 	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight);
 
 	// Enter main event loop.

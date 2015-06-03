@@ -7,7 +7,7 @@
 * (c) 2005 - 2015 Media Design School
 *
 * File Name : Clock.h
-* Description : Declarations for the functions of the Clock class
+* Description : Declaration file for the time keeping clock class
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
