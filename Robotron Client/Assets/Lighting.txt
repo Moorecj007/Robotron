@@ -1,0 +1,144 @@
+-- DOCUMENT FORMATTING ( 0 = DEFAULT)------------ GUIDELINES ---------------------------------
+Enabled     : True or False                    Write One                                           
+Ambient     : #.#, #.#, #.#, #.#               Generally 0.0 - 1.0 values, separated by commas     
+Attenuation0: #.#                              Positive Number                                     
+Attenuation1: #.#                              Positive Number                                     
+Attenuation2: #.#                              Positive Number                                     
+Diffuse     : #.#, #.#, #.#, #.#               Generally 0.0 - 1.0 values, separated by commas     
+Direction   : #.#, #.#, #.#                    X, Y, Z Coordinates                                 
+Falloff     : #.#                              Typically set to 1.0                                
+Phi         : #.#                              Positive Number in Degrees                          
+Position    : #.#, #.#, #.#                    X, Y, Z Coordinates                                 
+Range       : #.#                              Above 0 Value                                       
+Specular    : #.#, #.#, #.#, #.#               Generally 0.0 - 1.0 values, separated by commas     
+Theta       : #.#                              Positive Number in Degrees                          
+Type        : Directional / Spot / Point       Write One                                           
+
+Light ID    : 0
+Enabled     : True
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0
+Attenuation2: 0
+Diffuse     : 1.0, 1.0, 1.0, 1.0
+Direction   : 1.0, -1.0, 0.0
+Falloff     : 0
+Phi         : 0
+Position    : 0
+Range       : 0
+Specular    : 0
+Theta       : 0
+Type        : Directional
+
+Light ID    : 1
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0.008
+Attenuation2: 0.00001
+Diffuse     : 1.0, 1.0, 0.0, 1.0
+Direction   : 0
+Falloff     : 0
+Phi         : 0
+Position    : -200, 300, -200
+Range       : 600
+Specular    : 1.0, 1.0, 0.0, 0.0
+Theta       : 0
+Type        : Point
+
+Light ID    : 2
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0.002
+Attenuation2: 0
+Diffuse     : 1.0, 1.0, 1.0, 1.0
+Direction   : 1.0, -0.5, 0.0
+Falloff     : 1
+Phi         : 40
+Position    : -1000, 400, 1000
+Range       : 2000
+Specular    : 200.0, 0.0, 0.0, 0.0
+Theta       : 25
+Type        : Spot
+
+Light ID    : 3
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0.05
+Attenuation2: 0
+Diffuse     : -10.0, -10.0, -10.0, 0.0
+Direction   : 0
+Falloff     : 0
+Phi         : 0
+Position    : 800, 200, -700
+Range       : 300
+Specular    : 0
+Theta       : 0
+Type        : Point
+
+Light ID    : 4
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0
+Attenuation2: 0
+Diffuse     : 0
+Direction   : 0
+Falloff     : 0
+Phi         : 0
+Position    : 0
+Range       : 0
+Specular    : 0
+Theta       : 0
+Type        : 0
+
+Light ID    : 5
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0
+Attenuation2: 0
+Diffuse     : 0
+Direction   : 0
+Falloff     : 0
+Phi         : 0
+Position    : 0
+Range       : 0
+Specular    : 0
+Theta       : 0
+Type        : 0
+
+Light ID    : 6
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0
+Attenuation2: 0
+Diffuse     : 0
+Direction   : 0
+Falloff     : 0
+Phi         : 0
+Position    : 0
+Range       : 0
+Specular    : 0
+Theta       : 0
+Type        : 0
+
+Light ID    : 7
+Enabled     : False
+Ambient     : 0
+Attenuation0: 0
+Attenuation1: 0
+Attenuation2: 0
+Diffuse     : 0
+Direction   : 0
+Falloff     : 0
+Phi         : 0
+Position    : 0
+Range       : 0
+Specular    : 0
+Theta       : 0
+Type        : 0
+
