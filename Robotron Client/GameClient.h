@@ -6,25 +6,25 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameServer.h
-* Description : Declaration file for the main game functions of the server
+* File Name : GameClient.h
+* Description : Declaration file for the main game functions of the client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 #pragma once
 
-#ifndef __GAMESERVER_H__
-#define __GAMESERVER_H__
+#ifndef __GAMECLIENT_H__
+#define __GAMECLIENT_H__
 
 // Library Includes
 #include <thread>
 
 // Local Includes
-#include "Server.h"
+#include "Client.h"
 #include "../Common Files/Clock.h"
 
-class CGameServer
+class CGameClient
 {
 public:
 	// Constructors / Destructors
@@ -33,7 +33,7 @@ public:
 	* ~Game: Default Destructor for Game class
 	* @author: Callan Moore
 	********************/
-	~CGameServer();
+	~CGameClient();
 
 	// Singleton Methods
 
@@ -42,7 +42,7 @@ public:
 	* @author: Callan Moore
 	* @return: CGame&: The current instance of the game
 	********************/
-	static CGameServer& GetInstance();
+	static CGameClient& GetInstance();
 
 	/***********************
 	* DestroyInstance: Deletes the instance of the game.
@@ -58,15 +58,15 @@ public:
 	// Prototypes
 
 	/***********************
-	* Initialize: Initialise the Game Object for Use
+	* Initialise: Initialise the Game Object for Use
 	* @author: Callan Moore
 	* @parameters: _hWnd: Handle to The creating window
 	* @parameters: _iScreenWidth: The Height of the Screen
 	* @parameters: _iScreenHeight: The Width of the Screen
-	* @return: bool: Successful Initialisation or not
+	* @return: bool: Successful initialisation or not
 	********************/
 	bool Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight);
-	
+
 	/***********************
 	* RenderOneFrame: Renders one frame
 	* @author: Callan Moore
@@ -117,31 +117,31 @@ public:
 	* @parameter: _pReceiveData: Struct property to receive Data from the Network
 	* @return: void
 	********************/
-	void ReceiveDataFromNetwork(ClientToServer* _pReceiveData);
+	void ReceiveDataFromNetwork(ServerToClient* _pReceiveData);
 
 private:
 	//Disallowing copies and extra constructions
-	CGameServer();
-	CGameServer(const CGameServer& _kr);
-	CGameServer& operator= (const CGameServer& _kr);
+	CGameClient();
+	CGameClient(const CGameClient& _kr);
+	CGameClient& operator= (const CGameClient& _kr);
 
 private:
 	// Singleton Instance
-	static CGameServer* s_pGame;
+	static CGameClient* s_pGame;
 
 	// Window Variables
 	HWND m_hWnd;
 	int m_iScreenWidth;
 	int m_iScreenHeight;
 
-	// Server Network Variables
+	// Client Network Variables
 	bool m_bNetworkOnline;
-	CServer* m_pServerNetwork;
+	CClient* m_pClientNetwork;
 	ClientToServer* m_pClientToServer;
 	ServerToClient* m_pServerToClient;
 	std::thread m_ReceiveThread;
 
-	
+
 };
 
-#endif //__GAMESERVER_H__
+#endif //__GAMECLIENT_H__

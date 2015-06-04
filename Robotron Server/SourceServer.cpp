@@ -6,11 +6,13 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : SourceClient.cpp
+* File Name : SourceServer.cpp
 * Description : Source file to begin Robotron Server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
+
+#define WIN32_LEAN_AND_MEAN
 
 #pragma comment(lib, "Winmm.lib")
 
@@ -20,13 +22,10 @@
 //#include <windowsx.h>		// Include useful macros.
 
 // Local Includes
-#include "GameClient.h"
+#include "GameServer.h"
 
 // Defines and Macros
-#define WIN32_LEAN_AND_MEAN
 #define WINDOW_CLASS_NAME L"ROBOTRON"
-
-
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
 	//#include "vld.h"
@@ -53,35 +52,35 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 	// Switch case dependent on the message sent
 	switch (_uiMsg)
 	{
-		case WM_CREATE:
-		{	
-			return (0);
-		}
+	case WM_CREATE:
+	{
+		return (0);
+	}
 		break;
-		case WM_PAINT:
-		{
-			hDC = BeginPaint(_hWnd, &paintStruct);	// Prepares the window for painting
-			EndPaint(_hWnd, &paintStruct);			// Marks the ending of the window being painted
+	case WM_PAINT:
+	{
+		hDC = BeginPaint(_hWnd, &paintStruct);	// Prepares the window for painting
+		EndPaint(_hWnd, &paintStruct);			// Marks the ending of the window being painted
 
-			return (0);
-		}
+		return (0);
+	}
 		break;
-		case WM_DESTROY:
-		{
-			// Kill the application, this sends a WM_QUIT message.
-			PostQuitMessage(0);
-			return (0);
-		}
+	case WM_DESTROY:
+	{
+		// Kill the application, this sends a WM_QUIT message.
+		PostQuitMessage(0);
+		return (0);
+	}
 		break;
-		case WM_KEYDOWN:
-		{
-		}
+	case WM_KEYDOWN:
+	{
+	}
 		break;
-		case WM_KEYUP:
-		{
-			
-		}
-		default: break;
+	case WM_KEYUP:
+	{
+
+	}
+	default: break;
 	} // End switch.
 
 	// Process any messages left to process
@@ -126,16 +125,16 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		return (0);
 	}
 
-	hWnd = CreateWindowEx(	NULL,								// Extended style.
-							WINDOW_CLASS_NAME,					// Class.
-							L"Robotron Client",						// Title.
-							WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU,// Windowed Mode
-							0, 0,								// Initial x,y position for the top left corner of the window
-							kiScreenWidth, kiScreenHeight,		// Initial width, height of the window
-							NULL,								// Handle to parent.
-							NULL,								// Handle to menu.
-							_hInstance,							// Instance of this application.
-							NULL);								// Extra creation parameters.
+	hWnd = CreateWindowEx(NULL,								// Extended style.
+		WINDOW_CLASS_NAME,					// Class.
+		L"Robotron Server",						// Title.
+		WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU,// Windowed Mode
+		0, 0,								// Initial x,y position for the top left corner of the window
+		kiScreenWidth, kiScreenHeight,		// Initial width, height of the window
+		NULL,								// Handle to parent.
+		NULL,								// Handle to menu.
+		_hInstance,							// Instance of this application.
+		NULL);								// Extra creation parameters.
 
 	// Check the window was created successfully.
 	if (!hWnd)
@@ -144,7 +143,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	}
 
 	// Create the Game Object
-	CGameClient& rGameInstance = CGameClient::GetInstance();
+	CGameServer& rGameInstance = CGameServer::GetInstance();
 	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight);
 
 	// Enter main event loop.

@@ -20,30 +20,35 @@
 // Library Includes
 #pragma comment(lib, "Winmm.lib")
 #pragma comment(lib, "Ws2_32.lib")
+#include <string>
 #include <winsock2.h>
-//#include <WS2tcpip.h>
+#include <WS2tcpip.h>
 
 // Defines
 #define VALIDATE(a) if (!a) return (false)
 
 namespace network
 {
-	unsigned const DEFAULT_SERVER_PORT = 60000; 
-	unsigned const DEFAULT_CLIENT_PORT = 60001;
-	unsigned const MAX_CLIENT_PORT = 61000;
-	unsigned const MAX_CLIENTS = 16;
+	unsigned const	DEFAULT_SERVER_PORT		= 60000; 
+	unsigned const	DEFAULT_CLIENT_PORT		= 60001;
+	unsigned const	MAX_CLIENT_PORT			= 61000;
+	unsigned const	MAX_CLIENTS				= 16;
+	const char		cUDPAddr[128]			= "127.0.0.1";
+	unsigned const	MAX_CHAR_LENGTH			= 100;
 }
 
 // Structs
 
 struct ClientToServer
 {
-	
+	bool bCommand;
+	char cCommand[network::MAX_CHAR_LENGTH];
 };
 
 struct ServerToClient
 {
-
+	bool bCommand;
+	char cCommand[network::MAX_CHAR_LENGTH];
 };
 
 #endif //__NETWORKDEFINES_H__

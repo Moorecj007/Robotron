@@ -1,4 +1,4 @@
-/*
+/* 
 * Bachelor of Software Engineering
 * Media Design School
 * Auckland
@@ -16,6 +16,9 @@
 
 #ifndef __CLOCK_H__
 #define __CLOCK_H__
+
+// Library Includes
+#include <windows.h>
 
 class CClock
 {

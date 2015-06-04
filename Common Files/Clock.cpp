@@ -12,9 +12,6 @@
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
-// Library Includes
-#include <windows.h>
-
 // Local Includes
 #include "Clock.h"
 
