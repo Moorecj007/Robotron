@@ -15,16 +15,14 @@
 // Local Includes
 #include "D3D9Renderer.h"
 
-/***********************
-* CD3D9Renderer: Default Constructor for D3D9Renderer
-* @author: Callan Moore
-********************/
 CD3D9Renderer::CD3D9Renderer()
 {
 	m_pDirect3D = 0;
 	m_pDevice = 0;
 	m_pVecBuffers = 0;
-	m_pFont = 0;
+	m_pScreenFont = 0;
+	m_pTitleFont = 0;
+	m_pMenuFont = 0;
 
 	// Map of Surfaces Setup
 	m_pMapSurfaces = 0;
@@ -33,15 +31,8 @@ CD3D9Renderer::CD3D9Renderer()
 	// Map of materials Setup
 	m_pMapMaterials = 0;
 	m_iNextMaterialKey = 0;
-
-	m_pLighting = 0;
-	m_pVecLights = 0;
 }
 
-/***********************
-* ~CD3D9Renderer: Default Destructor for D3D9Renderer
-* @author: Callan Moore
-********************/
 CD3D9Renderer::~CD3D9Renderer()
 {
 	// Release all the Graphics devices
@@ -49,8 +40,14 @@ CD3D9Renderer::~CD3D9Renderer()
 	m_pDevice = 0;
 	m_pDirect3D->Release();
 	m_pDirect3D = 0;
-	m_pFont->Release();
-	m_pFont = 0;
+	m_pScreenFont->Release();
+	m_pScreenFont = 0;
+	m_pTitleFont->Release();
+	m_pTitleFont = 0;
+	m_pMenuFont->Release();
+	m_pMenuFont = 0;
+	m_pSubtitleFont->Release();
+	m_pSubtitleFont = 0;
 
 	// Delete all surfaces
 	if (m_pMapSurfaces != 0)
@@ -96,34 +93,8 @@ CD3D9Renderer::~CD3D9Renderer()
 		delete m_pVecBuffers;
 		m_pVecBuffers = 0;
 	}
-
-	// Delete the Lights
-	if (m_pVecLights != 0)
-	{
-		while (m_pVecLights->empty() == false)
-		{
-			delete m_pVecLights->back();
-			m_pVecLights->back() = 0;
-			m_pVecLights->pop_back();
-		}
-		delete m_pVecLights;
-		m_pVecLights = 0;
-	}
-
-	// Delete the Lighting handler
-	delete m_pLighting;
-	m_pLighting = 0;
 }
 
-/***********************
-* Initialise: Initialise the D3D9 Renderer for use
-* @author: Callan Moore
-* @parameter: _iWidth: The width of the screen
-* @parameter: _iHeight: The height of the screen
-* @parameter: _hWindow: Handle to the Window
-* @parameter: _bFullscreen: Whether the screen is fullscreen or not
-* @return: bool: Successful Initialisation or not
-********************/
 bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _bFullscreen)
 {
 	// Assign member variables
@@ -164,8 +135,8 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	// Create the device
 	m_pDirect3D->CreateDevice(iAdapter, m_devType, m_hWindow, dwVertProcessing, &d3dpp, &m_pDevice);
 
-	//Set the Clear Color to black
-	SetClearColour(1, 20.0f / 255.0f, 147.0f / 255.0f);
+	//Set the Clear Color to Yellow
+	SetClearColour(1, 1, 0);
 
 	// Create Containers
 	m_pVecBuffers = new std::vector < CStaticBuffer* > ;
@@ -174,31 +145,10 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 
 	// Create a font
 	CreateScreenFont();
+	CreateTitleFont();
+	CreateMenuFont();
+	CreateSubtitleFont();
 
-	// Set up Lighting Vector
-	m_pVecLights = new std::vector < D3DLIGHT9* > ;
-	for (int i = 0; i < 8; i++)
-	{
-		D3DLIGHT9* tempLight = new D3DLIGHT9;
-		ZeroMemory(tempLight, sizeof(tempLight));
-		m_pVecLights->push_back(tempLight);
-
-	}
-	// Create a Lighting Handler
-	m_pLighting = new CDX9Lighting();
-	m_pLighting->Initialise(this, m_pVecLights);
-	ReadLightingData();
-
-	for (unsigned int i = 0; i < m_pVecLights->size(); i++)
-	{
-		if ((*m_pVecLights)[i]->Type == D3DLIGHT_DIRECTIONAL
-			|| (*m_pVecLights)[i]->Type == D3DLIGHT_POINT
-			|| (*m_pVecLights)[i]->Type == D3DLIGHT_SPOT)
-		{
-			m_pDevice->SetLight(i, (*m_pVecLights)[i]);
-		}
-	}
-	
 	// Setup the Device to handle lighting
 	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL);
 	m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
@@ -217,11 +167,6 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	return true;
 }
 
-/***********************
-* Shutdown: Shuts down the Renderer
-* @author: Callan Moore
-* @return: bool: Successful Shutdown or not
-********************/
 bool CD3D9Renderer::Shutdown()
 {
 	// Iterate through the Static buffer container and delete them
@@ -245,13 +190,6 @@ bool CD3D9Renderer::Shutdown()
 	return true;
 }
 
-/***********************
-* PopulatePresentParams: Populates the Present Parameters struct for thew device
-* @author: Callan Moore
-* @return: _rd3dpp: Structure to hold (return) the generated Present Parameters
-* @return: _displayMode: The current display mode for the current adapter
-* @return: void
-********************/
 bool CD3D9Renderer::PopulatePresentParams(D3DPRESENT_PARAMETERS& _rd3dpp, D3DDISPLAYMODE& _displayMode)
 {
 	// Fill out the D3D Present Parameters structure
@@ -318,11 +256,6 @@ bool CD3D9Renderer::PopulatePresentParams(D3DPRESENT_PARAMETERS& _rd3dpp, D3DDIS
 	return true;
 }
 
-/***********************
-* CreateScreenFont: Creates a font for drawing onto the screen
-* @author: Callan Moore
-* @return: void
-********************/
 void CD3D9Renderer::CreateScreenFont()
 {
 	// Creating a font to draw text to screen
@@ -339,30 +272,14 @@ void CD3D9Renderer::CreateScreenFont()
 	fontDesc.PitchAndFamily = 0;
 	strcpy_s(fontDesc.FaceName, "Times New Roman");
 
-	D3DXCreateFontIndirectA(m_pDevice, &fontDesc, &m_pFont);
+	D3DXCreateFontIndirectA(m_pDevice, &fontDesc, &m_pScreenFont);
 }
 
-/***********************
-* Shutdown: Shuts down the Renderer
-* @author: Callan Moore
-* @return: _fRed: The red component for the clear color
-* @return: _fGreen: The green component for the clear color
-* @return: _fBlue: The blue component for the clear color
-* @return: void
-********************/
 void CD3D9Renderer::SetClearColour(float _fRed, float _fGreen, float _fBlue)
 {
 	m_ClearColor = D3DCOLOR_COLORVALUE(_fRed, _fGreen, _fBlue, 1.0f);
 }
 
-/***********************
-* Clear: Clear the Back Buffer
-* @author: Callan Moore
-* @parameter: _bTarget: Variable to determine whether to clear a Render Target
-* @parameter: _bDepth: Variable to determine whether to clear the Depth Buffer
-* @parameter: _bStencil: Variable to determine whether to clear the Stencil Buffer
-* @return: void:
-********************/
 void CD3D9Renderer::Clear(bool _bTarget, bool _bDepth, bool _bStencil)
 {
 	DWORD dwClearFlags = 0;
@@ -388,39 +305,18 @@ void CD3D9Renderer::Clear(bool _bTarget, bool _bDepth, bool _bStencil)
 	}
 }
 
-/***********************
-* StartRender: Sets the Device up to begin Rendering
-* @author: Callan Moore
-* @parameter: _bTarget: Variable to determine whether to clear a Render Target
-* @parameter: _bDepth: Variable to determine whether to clear the Depth Buffer
-* @parameter: _bStencil: Variable to determine whether to clear the Stencil Buffer
-* @return: void:
-********************/
 void CD3D9Renderer::StartRender(bool _bTarget, bool _bDepth, bool _bStencil)
 {
 	Clear(_bTarget, _bDepth, _bStencil);
 	m_pDevice->BeginScene();
 }
 
-/***********************
-* EndRender: Ends the Rendering sequence and presents the Back Buffer
-* @author: Callan Moore
-* @return: void:
-********************/
 void CD3D9Renderer::EndRender()
 {
 	m_pDevice->EndScene();
 	m_pDevice->Present(NULL, NULL, NULL, NULL);
 }
 
-/***********************
-* CreateViewMatrix: Creates a View Matrix and sets the Device to use this View Matrix
-* @author: Callan Moore
-* @parameters: _vPosition: The Camera Position
-* @parameters: _vLookAt: Model space coodinate the camera is looking
-* @parameters: _vUp: Which direction is up
-* @return: void:
-********************/
 void CD3D9Renderer::CreateViewMatrix(D3DXVECTOR3 _vPosition, D3DXVECTOR3 _vLookAt, D3DXVECTOR3 _vUp)
 {
 	// Populate the View Matrix
@@ -430,14 +326,6 @@ void CD3D9Renderer::CreateViewMatrix(D3DXVECTOR3 _vPosition, D3DXVECTOR3 _vLookA
 	m_pDevice->SetTransform(D3DTS_VIEW, &m_matView);
 }
 
-/***********************
-* CalculateProjectionMatrix: Calculates the the Projection Matrix
-* @author: Callan Moore
-* @parameter: _fFOV: The Field of View in radians
-* @parameter: _fNear: Closest Point for Projecting Images
-* @parameter: _fFar: Farthest Point for Projecting Images
-* @return: void:
-********************/
 void CD3D9Renderer::CalculateProjectionMatrix(float _fFOV, float _fNear, float _fFar)
 {
 	// Calculate the Aspect ratio
@@ -453,13 +341,7 @@ void CD3D9Renderer::CalculateProjectionMatrix(float _fFOV, float _fNear, float _
 	// Set the Projection Matrix for the D3D Device
 	m_pDevice->SetTransform(D3DTS_PROJECTION, &m_matProjection);
 }
-/***********************
-* CalculateOrthogonalMatrix: Calculates the the Orthogonal Projection Matrix
-* @author: Callan Moore
-* @parameter: _fNear: The closest the projection can be
-* @parameter: _fFar: The Furtherest the projection can be
-* @return: void:
-********************/
+
 void CD3D9Renderer::CalculateOrthogonalMatrix(float _fNear, float _fFar)
 {
 	// Calculate the Othogonal Projection Matrix for the Device
@@ -469,19 +351,6 @@ void CD3D9Renderer::CalculateOrthogonalMatrix(float _fNear, float _fFar)
 	m_pDevice->SetTransform(D3DTS_PROJECTION, &m_matProjection);
 }
 
-/***********************
-* CreateStaticBuffer: Create a Static Buffer
-* @author: Callan Moore
-* parameter: _VertexType: Long number to define the Vertex Type
-* @parameter: _ePrimitiveType: The Primitive Type used
-* @parameter: _uiTotalVerts: The Total number of Verts in the Buffer
-* @parameter: _uiTotalIndices: The Total number of Indices in the Buffer
-* @parameter: _iStride: The size of the Vertex
-* parameter: _pData: Pointer to data to be assigned to the Vertex Buffer
-* @parameter: _eIndexType: Index type used
-* parameter: _pIndices: Pointer to data to be assigned to the Index Buffer
-* @return: int: ID of the newly created Static Buffer
-********************/
 int CD3D9Renderer::CreateStaticBuffer(	VertexType _VertexType,
 										eIGPrimitiveType _ePrimitiveType,
 										unsigned int _uiTotalVerts,
@@ -521,23 +390,11 @@ int CD3D9Renderer::CreateStaticBuffer(	VertexType _VertexType,
 	return iID;
 }
 
-/***********************
-* SetWorldMatrix: Sets the Renderers World Matrix
-* @author: Callan Moore
-* @parameter: _uiStaticId: ID number of the Static Buffer to Render
-* @return: void
-********************/
 void CD3D9Renderer::Render(unsigned int _uiStaticId)
 {
 	(*m_pVecBuffers)[_uiStaticId]->Render(m_pDevice);
 }
 
-/***********************
-* CreateSurface: Creates a Offscreen Surface using the Device
-* @author: Callan Moore
-* @parameter: _strFileName: Path and File name of an image
-* @return: void
-********************/
 int CD3D9Renderer::CreateOffscreenSurface(std::string _strFileName, D3DXIMAGE_INFO& _pImageInfo)
 {
 	// Create a DX9 Surface pointer
@@ -560,15 +417,6 @@ int CD3D9Renderer::CreateOffscreenSurface(std::string _strFileName, D3DXIMAGE_IN
 	return m_iNextSurfaceKey;
 }
 
-/***********************
-* RetrieveVertices: Retrieve the Vertices of the Surface of the ID given
-* @author: Callan Moore
-* @parameter: _pVertices: Vector to hold the Retrieved Vertices
-* @parameter: _iSurfaceID: ID of the Surface to render 
-* @parameter: _pImageInfo: Struture to hold the retrieved Image Info
-* @parameter: _VertexScalar: Scalar for the Vertices for the Surface
-* @return: void
-********************/
 void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, int _iSurfaceID, D3DXIMAGE_INFO& _pImageInfo, VertexScalar _VertexScalar)
 {
 
@@ -761,190 +609,37 @@ void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, in
 	pSurface->UnlockRect();
 }
 
-/***********************
-* RenderDebugOutput: Render Text to the screen for debug purposes
-* @author: Callan Moore
-* @parameter: _strInfo: String of text to be rendered on screen
-* @parameter: _iYPos: Y Postion of the text in screen coordinates
-* @parameter: _color: Color to make the Text
-* @return: void
-********************/
-void CD3D9Renderer::RenderDebugOutput(std::string _strInfo, int _iYPos, D3DCOLOR _color)
-{
-	// Retrieve the Font Description
-	D3DXFONT_DESCA fontDesc;
-	m_pFont->GetDescA(&fontDesc);
-	
-	// Create a rectangle based on the string length and character sizes
-	RECT rect = { 0, _iYPos, _strInfo.length() * (fontDesc.Width + 1), (_iYPos + fontDesc.Height) };
-		
-	m_pFont->DrawTextA(	NULL,				// Not used
-						_strInfo.c_str(),	// The String to draw to the screen
-						-1,					// Representation to state the the string is null terminated
-						&rect,				// Rectangle to draw the text into
-						DT_TOP | DT_LEFT,	// Justifies the Text to the Top and Aligns Text to the Left
-						_color);			// The Color to make the text
-}
-
-/***********************
-* RenderDebugOutput: Render Text to the screen for debug purposes
-* @author: Callan Moore
-* @parameter: _iYPos: Y Postion of the text in screen coordinates
-* @parameter: _iIncrement: Increment Number for each line
-* @return: void
-********************/
-void CD3D9Renderer::RenderLightingOutput(int _iYPos, int _iIncrement)
-{
-	// TO DO - Comment
-	for (unsigned int i = 0; i < m_pVecLights->size(); i++)
-	{
-		std::string strLightInfo = "";
-		strLightInfo.append("Light ID: " + std::to_string(i));
-
-		BOOL bLightEnabled;
-		m_pDevice->GetLightEnable(i, &bLightEnabled);
-		if (bLightEnabled > 0)
-		{
-			strLightInfo.append(": Enabled:  True");
-		}
-		else
-		{
-			strLightInfo.append(": Enabled: False");
-		}
-
-		if ((*m_pVecLights)[i]->Type == D3DLIGHT_DIRECTIONAL)
-		{
-			strLightInfo.append(": Type: Directional");
-		}
-		else if ((*m_pVecLights)[i]->Type == D3DLIGHT_SPOT)
-		{
-			strLightInfo.append(": Type: Spot");
-		}
-		else if ((*m_pVecLights)[i]->Type == D3DLIGHT_POINT)
-		{
-			strLightInfo.append(": Type: Point");
-		}
-		else
-		{
-			strLightInfo.append(": Type: Undefined");
-		}
-
-		RenderDebugOutput(strLightInfo, _iYPos, 0xffffff00);
-		_iYPos += _iIncrement;
-	}
-}
-
-/***********************
-* SetWorldMatrix: Sets the Renderers World Matrix
-* @author: Callan Moore
-* @parameter: _rWorld: Memory address holding a World Matrix
-* @return: void
-********************/
 void CD3D9Renderer::SetWorldMatrix(D3DXMATRIX& _rWorld)
 {
 	m_matWorld = _rWorld;
 	m_pDevice->SetTransform(D3DTS_WORLD, &m_matWorld);
 }
 
-/***********************
-* GetProjectionMatrix: Retrieves the location of the Projection Matrix stored in memory
-* @author: Callan Moore
-* @return: D3DXMATRIX&: Memory address of the Devices Projection Matrix
-********************/
 D3DXMATRIX& CD3D9Renderer::GetProjectionMatrix()
 {
 	return m_matProjection;
 }
 
-/***********************
-* GetViewMatrix: Retrieves the location of the View Matrix stored in memory
-* @author: Callan Moore
-* @return: D3DXMATRIX&: Memory address of the Devices View Matrix
-********************/
 D3DXMATRIX& CD3D9Renderer::GetViewMatrix()
 {
 	return m_matView;
 }
 
-/***********************
-* GetWorldMatrix: Retrieves the location of the World Matrix stored in memory
-* @author: Callan Moore
-* @return: D3DXMATRIX&: Memory address of the Devices World Matrix
-********************/
 D3DXMATRIX& CD3D9Renderer::GetWorldMatrix()
 {
 	return m_matWorld;
 }
 
-/***********************
-* ReadLightingData: Reads the Lighting Data from file and loads the data to the Renderer
-* @author: Callan Moore
-* @return: void
-********************/
-void CD3D9Renderer::ReadLightingData()
-{
-	if (m_pLighting->ReadLightingData() == true)	// True that the file is corrupt
-	{
-		int iMsgReturn = MessageBoxA(m_hWindow, "Your Lighting File has become corrupted. would you like to reset to default values?", "Corrupted Data", MB_YESNO | MB_ICONEXCLAMATION);
-
-		switch (iMsgReturn)
-		{
-			case IDYES:
-			{
-				m_pLighting->CreateDefaultLightingFile();
-				ReadLightingData();
-			}
-			break;
-			case IDNO:
-			{
-
-			}
-			default: break;
-		}	// End Switch
-	}
-	else
-	{
-		for (int i = 0; i < 8; i++)
-		{
-			SetLight(i);
-		}
-	}
-}
-
-/***********************
-* SetLight: Sets a Light Lighting structure to the device
-* @author: Callan Moore
-* @parameter: _iLightID: ID of the Light to Set
-* @return: void
-********************/
 void CD3D9Renderer::SetLight(int _iLightID)
 {
-	if (	(*m_pVecLights)[_iLightID]->Type == D3DLIGHT_DIRECTIONAL
-		||	(*m_pVecLights)[_iLightID]->Type == D3DLIGHT_POINT
-		||	(*m_pVecLights)[_iLightID]->Type == D3DLIGHT_SPOT)
-	{
-		m_pDevice->SetLight(_iLightID, (*m_pVecLights)[_iLightID]);
-	}
+	
 }
 
-/***********************
-* LightEnable: Turns a light on or off
-* @author: Callan Moore
-* @parameter: _iLightID: ID of the Light to turn on/off
-* @parameter: bOn: On of off indication
-* @return: void
-********************/
 void CD3D9Renderer::LightEnable(int _iLightID, bool bOn)
 {
 	m_pDevice->LightEnable(_iLightID, bOn);
 }
 
-/***********************
-* CreateMaterial: Creates a Material and stores it witht the Renderer
-* @author: Callan Moore
-* @parameter: _MaterialComponents: Struct holding all necessary values to create a DX9 Material
-* @return: int: ID value for the map where the material is stored
-********************/
 int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 {
 	D3DXCOLOR ambient = D3DXCOLOR(	_MaterialComponents.fAmbientRed,
@@ -984,12 +679,76 @@ int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 	return m_iNextMaterialKey;
 }
 
-/***********************
-* SetMaterial: Set the Material on the Device
-* @author: Callan Moore
-* @parameter: _iMaterialID: The ID key for the Material
-* @return: void
-********************/
+eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color)
+{
+	ID3DXFont* pFont;
+	eMenuSelection selection = NO_SELECTION;
+
+	// Get pointer to the correct font
+	switch (_font)
+	{
+		case TITLE_FONT:
+		{
+			pFont = m_pTitleFont;
+			break;
+		}
+		case MENU_FONT:
+		{
+			pFont = m_pMenuFont;
+			break;
+		}
+		case SUBTITLE_FONT:
+		{
+			pFont = m_pSubtitleFont;
+			break;
+		}
+		case SCREEN_FONT:
+		{
+			pFont = m_pScreenFont;
+			break;
+		}
+		default:
+		{
+			pFont = m_pScreenFont;
+			break;
+		}
+	}
+	// Create a rect based on the string and font type in relation to the Y position
+	RECT rect = RectfromString(_iYpos, _str, pFont);
+	
+	// If the Menu font is selected
+	if (_font == MENU_FONT)
+	{
+		// Check if the mouse position is within the Text Rect
+		if (_iMouseY + 15 >= rect.top && _iMouseY + 15 <= rect.bottom)
+		{
+			// Highlight the Text to a differect color to show selection is available
+			_color = 0xff0000ff;
+			// Save the menuSelection type
+			selection = _eSelection;
+		}
+
+	}
+	
+	// Draw the Text
+	pFont->DrawTextA(	NULL,
+						_str.c_str(),
+						-1,
+						&rect,
+						DT_CENTER | DT_SINGLELINE | DT_VCENTER,
+						_color);
+
+	return selection;
+}
+
+void CD3D9Renderer::RenderColor(D3DXCOLOR _color)
+{
+	// Color the Backbuffer
+	IDirect3DSurface9* pBackBuffer;
+	m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+	m_pDevice->ColorFill(pBackBuffer, 0, _color);
+}
+
 void CD3D9Renderer::SetMaterial(int _iMaterialID)
 {
 	std::map<int, D3DMATERIAL9*>::iterator iterMaterial = m_pMapMaterials->find(_iMaterialID);
@@ -998,13 +757,80 @@ void CD3D9Renderer::SetMaterial(int _iMaterialID)
 	m_pDevice->SetMaterial(pMaterial);
 }
 
-/***********************
-* ExtractRed: Extract the Red channel from a color
-* @author: Callan Moore
-* @parameter: _color: Color to take the red channel from
-* @return: int: 0 - 255 value of the red channel
-********************/
 int CD3D9Renderer::ExtractRed(D3DCOLOR _color)
 {
 	return ((_color >> 16) & 255);
+}
+
+void CD3D9Renderer::CreateTitleFont()
+{
+	// Creating a font to draw text to screen
+	D3DXFONT_DESCA fontDesc;
+	ZeroMemory(&fontDesc, sizeof(D3DXFONT_DESCA));
+	fontDesc.Height = 150;
+	fontDesc.Width = 75;
+	fontDesc.Weight = 1;
+	fontDesc.MipLevels = D3DX_DEFAULT;
+	fontDesc.Italic = false;
+	fontDesc.CharSet = 0;
+	fontDesc.OutputPrecision = 100;
+	fontDesc.Quality = 100;
+	fontDesc.PitchAndFamily = 0;
+	strcpy_s(fontDesc.FaceName, "Verdana");
+
+	D3DXCreateFontIndirectA(m_pDevice, &fontDesc, &m_pTitleFont);
+}
+
+void CD3D9Renderer::CreateMenuFont()
+{
+	// Creating a font to draw text to screen
+	D3DXFONT_DESCA fontDesc;
+	ZeroMemory(&fontDesc, sizeof(D3DXFONT_DESCA));
+	fontDesc.Height = 60;
+	fontDesc.Width = 30;
+	fontDesc.Weight = 1;
+	fontDesc.MipLevels = D3DX_DEFAULT;
+	fontDesc.Italic = false;
+	fontDesc.CharSet = 0;
+	fontDesc.OutputPrecision = 100;
+	fontDesc.Quality = 100;
+	fontDesc.PitchAndFamily = 0;
+	strcpy_s(fontDesc.FaceName, "Verdana");
+
+	D3DXCreateFontIndirectA(m_pDevice, &fontDesc, &m_pMenuFont);
+}
+
+void CD3D9Renderer::CreateSubtitleFont()
+{
+	// Creating a font to draw text to screen
+	D3DXFONT_DESCA fontDesc;
+	ZeroMemory(&fontDesc, sizeof(D3DXFONT_DESCA));
+	fontDesc.Height = 80;
+	fontDesc.Width = 40;
+	fontDesc.Weight = 1;
+	fontDesc.MipLevels = D3DX_DEFAULT;
+	fontDesc.Italic = false;
+	fontDesc.CharSet = 0;
+	fontDesc.OutputPrecision = 100;
+	fontDesc.Quality = 100;
+	fontDesc.PitchAndFamily = 0;
+	strcpy_s(fontDesc.FaceName, "Verdana");
+
+	D3DXCreateFontIndirectA(m_pDevice, &fontDesc, &m_pSubtitleFont);
+}
+
+RECT CD3D9Renderer::RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFont)
+{
+	D3DXFONT_DESCA fontDesc;
+	_pFont->GetDescA(&fontDesc);
+	float fWidthCenter = (float)(m_iScreenWidth / 2);
+	RECT rect;
+
+	rect.top = (LONG)_iYPos;
+	rect.bottom = (LONG)(_iYPos + fontDesc.Height);
+	rect.left = 0;
+	rect.right = m_iScreenWidth;
+
+
+	return rect;
 }

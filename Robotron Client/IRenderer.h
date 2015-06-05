@@ -7,7 +7,7 @@
 * (c) 2005 - 2015 Media Design School
 *
 * File Name : IRenderer.h
-* Description : Declaration file for IRenderer class
+* Description : Interface for Renderer
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
@@ -22,17 +22,17 @@
 #include <vector>
 
 // Local Includes
-#include "defines.h"
+#include "../Common Files/Graphics_Defines.h"
 
 class CVertex;
-class CIRenderer
+class IRenderer
 {
 public:
 	// Constructors / Destructors
-	CIRenderer()
+	IRenderer()
 	{
 	}
-	virtual ~CIRenderer()
+	virtual ~IRenderer()
 	{
 	}
 
@@ -66,15 +66,14 @@ public:
 	virtual int CreateOffscreenSurface(std::string _strFileName, D3DXIMAGE_INFO& _pImageInfo) = 0;
 	virtual void RetrieveSurfaceVertices(std::vector<CVertex>*, int _iSurfaceID, D3DXIMAGE_INFO& _pImageInfo, VertexScalar _VertexScalar) = 0;
 
-	virtual void RenderDebugOutput(std::string, int _iYPos, D3DCOLOR _color) = 0;
-	virtual void RenderLightingOutput(int _iYPos, int _iIncrement) = 0;
-
-	virtual void ReadLightingData() = 0;
 	virtual void SetLight(int _iLightID) = 0;
 	virtual void LightEnable(int _iLightID, bool bOn) = 0;
 
 	virtual int CreateMaterial(MaterialComponents _MaterialComponents) = 0;
 	virtual void SetMaterial(int _iMaterialID) = 0;
+
+	virtual eMenuSelection RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color) = 0;
+	virtual void RenderColor(D3DXCOLOR _color) = 0;
 
 	// Setters
 	virtual void SetWorldMatrix(D3DXMATRIX& _rWorld) = 0;
@@ -86,8 +85,8 @@ public:
 
 private:
 	// Disallowing copies
-	CIRenderer(const CIRenderer& _kr);
-	CIRenderer& operator= (const CIRenderer& _kr);
+	IRenderer(const IRenderer& _kr);
+	IRenderer& operator= (const IRenderer& _kr);
 };
 
 #endif //__RENDERER_H__

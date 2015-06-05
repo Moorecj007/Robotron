@@ -17,7 +17,7 @@
 // Library Includes
 #include <winsock2.h>
 //#include <windows.h>		// Include all the windows headers.
-//#include <windowsx.h>		// Include useful macros.
+#include <windowsx.h>		// Include useful macros.
 
 // Local Includes
 #include "GameClient.h"
@@ -73,14 +73,27 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 			return (0);
 		}
 		break;
-		case WM_KEYDOWN:
+		case WM_MOUSEMOVE:
 		{
+			// Get the position of the mouse when it moves
+			int iXpos = GET_X_LPARAM(_lParam);
+			int iYpos = GET_Y_LPARAM(_lParam);
+			CGameClient::GetInstance().SetMousePos(iXpos, iYpos);	
 		}
 		break;
-		case WM_KEYUP:
+		case WM_LBUTTONDOWN:
 		{
-			
+			// Tells the game the Left Mouse Button is currently down
+			CGameClient::GetInstance().SetLeftMouseClick(true);
 		}
+		break;
+		case WM_LBUTTONUP:
+		{
+			// Tells the game the Left Mouse Button is no longer down
+			CGameClient::GetInstance().SetLeftMouseClick(false);
+			CGameClient::GetInstance().ChangeMenuSelection();
+		}
+		break;
 		default: break;
 	} // End switch.
 
@@ -160,6 +173,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		{
 			break;
 		}
+
 		rGameInstance.RenderOneFrame();
 	}
 

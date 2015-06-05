@@ -19,10 +19,14 @@
 
 // Library Includes
 #include <thread>
+#include <queue>
 
 // Local Includes
 #include "Client.h"
+#include "IRenderer.h"
+#include "D3D9Renderer.h"
 #include "../Common Files/Clock.h"
+#include "../Common Files/MySemaphore.h"
 
 class CGameClient
 {
@@ -54,6 +58,23 @@ public:
 	// Getters
 
 	// Setters
+
+	/***********************
+	* SetMousePos: Sets the Mouse coordinates
+	* @author: Callan Moore
+	* @parameter: _iX: New Mouse position on the X axis
+	* @parameter: _iY: New Mouse position on the Y axis
+	* @return: void
+	********************/
+	void SetMousePos(int _iX, int _iY);
+
+	/***********************
+	* SetMouseDown: Sets the Mouse Down variable
+	* @author: Callan Moore
+	* @parameter: _b: Boolean state for the Mouse down variable
+	* @return: void
+	********************/
+	void SetLeftMouseClick(bool _b) { m_bLeftMouseClick = _b; }
 
 	// Prototypes
 
@@ -89,11 +110,18 @@ public:
 	void Draw();
 
 	/***********************
-	* MainMenu: Displays the Games Main Menu
+	* DisplayMainMenu: Displays the Games Main Menu
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void MainMenu();
+	void DisplayMainMenu();
+
+	/***********************
+	* DisplayPlayMenu: Displays the Games Play Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplayPlayMenu();
 
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
@@ -119,20 +147,51 @@ public:
 	********************/
 	void ReceiveDataFromNetwork(ServerToClient* _pReceiveData);
 
+	/***********************
+	* ChangeMenuSelection: Change the Menu Selection to the current Temp Menu Selection
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ChangeMenuSelection();
+
+	/***********************
+	* CreateCommandPacket: Create a Packet that sends a command
+	* @author: Callan Moore
+	* @parameter: _strCommand: The command as a string
+	* @return: bool: Successful creation of Data Packet (or not)
+	********************/
+	bool CreateCommandPacket(std::string _strCommand);
+
+
 private:
 	//Disallowing copies and extra constructions
 	CGameClient();
 	CGameClient(const CGameClient& _kr);
 	CGameClient& operator= (const CGameClient& _kr);
 
+public:
+	// Static Variables
+	static CMySemaphore* m_pClientMutex;
+	bool* m_pbKeyDown;
+
 private:
 	// Singleton Instance
 	static CGameClient* s_pGame;
+
+	// Game Variables
+	CClock* m_pClock;
+	eScreenState m_eScreenState;
+	eMenuSelection m_eMenuSelection;
+	eMenuSelection m_eMenuTempSelection;
+	bool m_bHost;
 
 	// Window Variables
 	HWND m_hWnd;
 	int m_iScreenWidth;
 	int m_iScreenHeight;
+	int m_iMouseX;
+	int m_iMouseY;
+	bool m_bLeftMouseClick;
 
 	// Client Network Variables
 	bool m_bNetworkOnline;
@@ -140,7 +199,11 @@ private:
 	ClientToServer* m_pClientToServer;
 	ServerToClient* m_pServerToClient;
 	std::thread m_ReceiveThread;
+	std::queue<ServerToClient>* m_pWorkQueue;
 
+	// Graphics Variables
+	IRenderer* m_pRenderer;
+	
 
 };
 

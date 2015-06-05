@@ -105,6 +105,12 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 	char* cReceiveData = new char[sizeof(ClientToServer) + 1];
 	int iBytesReceived = sizeof(ClientToServer) + 1;
 
+	// Time out Value
+	struct timeval timeValue;
+	timeValue.tv_sec = 1;
+	timeValue.tv_usec = 0;
+	setsockopt(m_ServerSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeValue, sizeof(timeValue));
+
 	// Receive the Data
 	int iNumBytesReceived = recvfrom(m_ServerSocket,
 		cReceiveData,

@@ -28,6 +28,41 @@
 typedef long VertexType;
 
 // Enumerators
+enum eScreenState
+{
+	STATE_MAIN_MENU,
+
+	// Main Menu
+	STATE_PLAY_MENU,
+
+	// Play Menu
+	STATE_HOST_GAME,
+
+	STATE_GAME_PLAY
+};
+
+enum eFontType
+{
+	TITLE_FONT,
+	SUBTITLE_FONT,
+	MENU_FONT,
+	SCREEN_FONT
+};
+
+enum eMenuSelection
+{
+	NO_SELECTION,
+
+	// Main Menu
+	PLAY_GAME,
+	OPTIONS,
+	EXIT_GAME,
+
+	// Play Game Menu
+	HOST_GAME,
+	JOIN_GAME
+};
+
 enum eIGPrimitiveType
 {
 	INVALID_IGPT,

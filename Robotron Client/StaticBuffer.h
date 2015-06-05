@@ -22,8 +22,9 @@
 #include <vector>
 
 // Local Includes
-#include "Defines.h"
+#include "../Common Files/Graphics_Defines.h"
 #include "Vertex.h"
+
 
 // Constants
 const int g_kiInvalidStaticBuffer = -1;

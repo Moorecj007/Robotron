@@ -17,6 +17,7 @@
 
 // Static Variables
 CGameServer* CGameServer::s_pGame = 0;
+CMySemaphore* CGameServer::m_pServerMutex = new CMySemaphore(1);
 
 CGameServer::CGameServer()
 {
@@ -25,6 +26,7 @@ CGameServer::CGameServer()
 CGameServer::~CGameServer()
 {
 	m_bNetworkOnline = false;
+	m_ReceiveThread.join();
 
 	// Delete Client Network
 	delete m_pServerNetwork;
@@ -35,6 +37,14 @@ CGameServer::~CGameServer()
 	m_pClientToServer = 0;
 	delete m_pServerToClient;
 	m_pServerToClient = 0;
+
+	// Delete the ServerMutex
+	delete m_pServerMutex;
+	m_pServerMutex = 0;
+
+	// Delete the WorkQueue
+	delete m_pWorkQueue;
+	m_pWorkQueue = 0;
 }
 
 CGameServer& CGameServer::GetInstance()
@@ -70,6 +80,9 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 
 	// Create a thread to receive data from the Server
 	m_ReceiveThread = std::thread(&CGameServer::ReceiveDataFromNetwork, (this), m_pClientToServer);
+
+	// Create the WorkQueue
+	m_pWorkQueue = new std::queue<ClientToServer>;
 
 	return true;
 }
@@ -122,8 +135,15 @@ void CGameServer::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
 	{
 		if (m_pServerNetwork->ReceivePacket(_pReceiveData))
 		{
+			// Add the Received Packet to the Work Queue
+			m_pServerMutex->Wait();
+			m_pWorkQueue->push(*_pReceiveData);
+			m_pServerMutex->Signal();
+
+			// TO DO - Remove
 			CreateDataPacket();
 			m_pServerNetwork->SendPacket(m_pServerToClient);
+			int i = 0;
 		}
 	}
 }

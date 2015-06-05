@@ -19,10 +19,12 @@
 
 // Library Includes
 #include <thread>
+#include <queue>
 
 // Local Includes
 #include "Server.h"
 #include "../Common Files/Clock.h"
+#include "../Common Files/MySemaphore.h"
 
 class CGameServer
 {
@@ -125,9 +127,14 @@ private:
 	CGameServer(const CGameServer& _kr);
 	CGameServer& operator= (const CGameServer& _kr);
 
+public:
+	// Static Variables
+	static CMySemaphore* m_pServerMutex;
+
 private:
 	// Singleton Instance
 	static CGameServer* s_pGame;
+
 
 	// Window Variables
 	HWND m_hWnd;
@@ -140,6 +147,7 @@ private:
 	ClientToServer* m_pClientToServer;
 	ServerToClient* m_pServerToClient;
 	std::thread m_ReceiveThread;
+	std::queue<ClientToServer>* m_pWorkQueue;
 
 	
 };
