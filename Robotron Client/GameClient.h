@@ -91,10 +91,11 @@ public:
 	/***********************
 	* RenderOneFrame: Renders one frame
 	* @author: Callan Moore
-	* @return: void
+	* @return: bool: False if the network is offline
 	********************/
-	void RenderOneFrame();
+	bool RenderOneFrame();
 
+	// #Processes
 	/***********************
 	* Process: Processes the Game for the Delta tick
 	* @author: Callan Moore
@@ -103,11 +104,69 @@ public:
 	void Process();
 
 	/***********************
+	* ProcessPacket: Process a packet from the work queue
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessPacket();
+
+	/***********************
+	* ProcessScreenState: Determine which process to run dependent on the current screen state
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessScreenState();
+
+	/***********************
+	* ProcessMainMenu: Process information from the Main Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessMainMenu();
+
+	/***********************
+	* ProcessSingleMenu: Process information from the Single Player Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessSingleMenu();
+
+	/***********************
+	* ProcessMultiMenu: Process information from the Multi Player Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessMultiMenu();
+
+	/***********************
+	* ProcessInstructionsMenu: Process information from the Instructions Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessInstructionsMenu();
+
+	/***********************
+	* ProcessOptionsMenu: Process information from the Options Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessOptionsMenu();
+
+	/***********************
 	* Draw: Draws all the game world
 	* @author: Callan Moore
 	* @return: void
 	********************/
 	void Draw();
+
+	// #DisplayMenus
+	/***********************
+	* CreateUserName: Allos the User to Create a username
+	* @author: Callan Moore
+	* @parameter: _bHost: variable to tell the function where to return oonce username is complete
+	* @return: void
+	********************/
+	void CGameClient::CreateUserName(bool _bHost);
 
 	/***********************
 	* DisplayMainMenu: Displays the Games Main Menu
@@ -117,18 +176,41 @@ public:
 	void DisplayMainMenu();
 
 	/***********************
-	* DisplayPlayMenu: Displays the Games Play Menu
+	* DisplayMultiplayerMenu: Displays the Games Multiplayer Menu
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void DisplayPlayMenu();
+	void DisplayMultiplayerMenu();
 
+	/***********************
+	* DisplayInstructionsMenu: Displays the Games Instructions Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplayInstructionsMenu();
+
+	/***********************
+	* DisplayOptionsMenu: Displays the Games Options Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplayOptionsMenu();
+
+	// #Packets
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
 	* @author: Callan Moore
 	* @return: bool: Successful creation of Data Packet (or not)
 	********************/
 	bool CreateDataPacket();
+
+	/***********************
+	* CreateCommandPacket: Create a Packet that sends a command
+	* @author: Callan Moore
+	* @parameter: _command: The command to Send
+	* @return: bool: Successful creation of Data Packet (or not)
+	********************/
+	bool CreateCommandPacket(eNetworkCommand _command);
 
 	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
@@ -153,15 +235,6 @@ public:
 	* @return: void
 	********************/
 	void ChangeMenuSelection();
-
-	/***********************
-	* CreateCommandPacket: Create a Packet that sends a command
-	* @author: Callan Moore
-	* @parameter: _strCommand: The command as a string
-	* @return: bool: Successful creation of Data Packet (or not)
-	********************/
-	bool CreateCommandPacket(std::string _strCommand);
-
 
 private:
 	//Disallowing copies and extra constructions
@@ -197,9 +270,14 @@ private:
 	bool m_bNetworkOnline;
 	CClient* m_pClientNetwork;
 	ClientToServer* m_pClientToServer;
+	ServerToClient* m_pPacketToProcess;
 	ServerToClient* m_pServerToClient;
 	std::thread m_ReceiveThread;
 	std::queue<ServerToClient>* m_pWorkQueue;
+
+	// Client User
+	std::string m_strUserName;
+	bool m_bCreatingUserforHost;
 
 	// Graphics Variables
 	IRenderer* m_pRenderer;

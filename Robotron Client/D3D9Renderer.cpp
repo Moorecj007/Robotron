@@ -419,8 +419,6 @@ int CD3D9Renderer::CreateOffscreenSurface(std::string _strFileName, D3DXIMAGE_IN
 
 void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, int _iSurfaceID, D3DXIMAGE_INFO& _pImageInfo, VertexScalar _VertexScalar)
 {
-
-	// TO DO - Comment
 	D3DLOCKED_RECT lockRect;
 	ZeroMemory(&lockRect, sizeof(D3DLOCKED_RECT));
 
@@ -720,7 +718,7 @@ eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouse
 	if (_font == MENU_FONT)
 	{
 		// Check if the mouse position is within the Text Rect
-		if (_iMouseY + 15 >= rect.top && _iMouseY + 15 <= rect.bottom)
+		if (_iMouseY + 20 >= rect.top && _iMouseY + 20 <= rect.bottom)
 		{
 			// Highlight the Text to a differect color to show selection is available
 			_color = 0xff0000ff;
@@ -786,8 +784,8 @@ void CD3D9Renderer::CreateMenuFont()
 	// Creating a font to draw text to screen
 	D3DXFONT_DESCA fontDesc;
 	ZeroMemory(&fontDesc, sizeof(D3DXFONT_DESCA));
-	fontDesc.Height = 60;
-	fontDesc.Width = 30;
+	fontDesc.Height = 44;
+	fontDesc.Width = 22;
 	fontDesc.Weight = 1;
 	fontDesc.MipLevels = D3DX_DEFAULT;
 	fontDesc.Italic = false;

@@ -29,8 +29,8 @@
 
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
-	//#include "vld.h"
-	//#define D3D_DEBUG_INFO
+	#include "vld.h"
+	#define D3D_DEBUG_INFO
 #endif // _DEBUG
 
 // Prototypes
@@ -159,9 +159,10 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	// Create the Game Object
 	CGameClient& rGameInstance = CGameClient::GetInstance();
 	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight);
+	bool bOnline = true;
 
 	// Enter main event loop.
-	while (true)
+	while (bOnline)
 	{
 		while (PeekMessage(&uiMsg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -174,7 +175,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 			break;
 		}
 
-		rGameInstance.RenderOneFrame();
+		bOnline = rGameInstance.RenderOneFrame();
 	}
 
 	// Delete the Game Instance

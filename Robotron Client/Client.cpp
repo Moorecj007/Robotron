@@ -20,9 +20,11 @@ CClient::CClient()
 {
 }
 
-
 CClient::~CClient()
 {
+	// Free the char arrays on the heap memory
+	delete m_cReceiveData;
+	m_cReceiveData = 0;
 }
 
 bool CClient::Initialise()
@@ -83,9 +85,8 @@ bool CClient::Initialise()
 	// Clear out the ServerAddr memory for use
 	ZeroMemory(&m_ServerAddr, sizeof(m_ServerAddr));
 
-	m_ServerAddr.sin_family = AF_INET;
-	m_ServerAddr.sin_port = htons(network::DEFAULT_SERVER_PORT);
-	inet_pton(AF_INET, network::cUDPAddr, &m_ServerAddr.sin_addr);
+	// Create char array for storing received data
+	m_cReceiveData = new char[sizeof(ServerToClient) + 1];
 
 	// Binding was successful
 	return true;
@@ -97,16 +98,17 @@ bool CClient::SendPacket(ClientToServer* _pSendPacket)
 	int iPacketSize = sizeof(SendPacket) + 1;
 
 	// Reinterpret the Data Packet into a char* for sending
-	char* cSendData = new char[iPacketSize * sizeof(char)];
-	cSendData = reinterpret_cast<char*>(&SendPacket);
+	m_cSendData = reinterpret_cast<char*>(&SendPacket);
 
 	// Send the Data
 	int iNumBytes = sendto(	m_ClientSocket,
-							cSendData,
+							m_cSendData,
 							iPacketSize,
 							0,
 							reinterpret_cast<sockaddr*>(&m_ServerAddr),
 							sizeof(m_ServerAddr) );
+
+
 	// Check to ensure the right number of bytes was sent
 	if (iNumBytes != iPacketSize)
 	{
@@ -118,13 +120,52 @@ bool CClient::SendPacket(ClientToServer* _pSendPacket)
 	return true;
 }
 
+bool CClient::BroadcastToServers(ClientToServer* _pSendPacket)
+{
+	ClientToServer SendPacket = *_pSendPacket;
+	int iPacketSize = sizeof(SendPacket) + 1;
+
+	// Structure to hold the potential server addresses
+	sockaddr_in ServerAddr;
+	ServerAddr.sin_family = AF_INET;
+	inet_pton(AF_INET, network::cUDPAddr, &ServerAddr.sin_addr);
+
+	// Reinterpret the Data Packet into a char* for sending
+	m_cSendData = reinterpret_cast<char*>(&SendPacket);
+
+	// Send to all potential server ports
+	for (int iServerPort = network::DEFAULT_SERVER_PORT;
+		iServerPort <= network::MAX_SERVER_PORT;
+		iServerPort++)
+	{
+		ServerAddr.sin_port = htons(iServerPort);
+
+		// Send the Data
+		int iNumBytes = sendto(m_ClientSocket,
+			m_cSendData,
+			iPacketSize,
+			0,
+			reinterpret_cast<sockaddr*>(&ServerAddr),
+			sizeof(ServerAddr));
+
+		// Check to ensure the right number of bytes was sent
+		if (iNumBytes != iPacketSize)
+		{
+			// Bytes did not match therefore an error occured
+			return false;
+		}
+	}
+	// Data Packet sending was successful
+	return true;
+}
+
 bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 {
 	// Create some local variables
-	int iSizeOfAddr = sizeof(m_ServerAddr);
-	char* cReceiveData = new char[sizeof(ServerToClient) + 1];
+	sockaddr_in receivedSockAddr;
+	int iSizeOfAddr = sizeof(receivedSockAddr);
 	int iBytesReceived = sizeof(ServerToClient) + 1;
-
+	
 
 	// Time out Value
 	struct timeval timeValue;
@@ -134,10 +175,10 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 
 	// Receive the Data
 	int iNumBytesReceived = recvfrom(m_ClientSocket,
-		cReceiveData,
+		m_cReceiveData,
 		iBytesReceived,
 		0,
-		reinterpret_cast<sockaddr*>(&m_ServerAddr),
+		reinterpret_cast<sockaddr*>(&receivedSockAddr),
 		&iSizeOfAddr);
 	if (iNumBytesReceived < 0)
 	{
@@ -146,6 +187,20 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 	}
 
 	// Convert char* back into data Packet struct
-	*_pReceivePacket = *(reinterpret_cast<ServerToClient*>(cReceiveData));
+	*_pReceivePacket = *(reinterpret_cast<ServerToClient*>(m_cReceiveData));
+	if ((std::string)(_pReceivePacket->cUserName) != "SERVER")
+	{
+		return false;
+	}
+	else
+	{
+		if (_pReceivePacket->bCommand == true)
+		{
+			if (_pReceivePacket->eCommand == HOST_SERVER)
+			{
+				m_ServerAddr = receivedSockAddr;
+			}
+		}
+	}
 	return true;
 }

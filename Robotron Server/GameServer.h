@@ -65,16 +65,17 @@ public:
 	* @parameters: _hWnd: Handle to The creating window
 	* @parameters: _iScreenWidth: The Height of the Screen
 	* @parameters: _iScreenHeight: The Width of the Screen
+	* @parameters: _strHost: Hosts User Name
 	* @return: bool: Successful Initialisation or not
 	********************/
-	bool Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight);
+	bool Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, const wchar_t* _wstrHost);
 	
 	/***********************
-	* RenderOneFrame: Renders one frame
+	* ExecuteOneFrame: Executes one frame
 	* @author: Callan Moore
-	* @return: void
+	* @return: bool: False if the network is offline
 	********************/
-	void RenderOneFrame();
+	bool ExecuteOneFrame();
 
 	/***********************
 	* Process: Processes the Game for the Delta tick
@@ -82,6 +83,13 @@ public:
 	* @return: void
 	********************/
 	void Process();
+
+	/***********************
+	* ProcessPacket: Process a packet from the work queue
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessPacket();
 
 	/***********************
 	* Draw: Draws all the game world
@@ -103,6 +111,14 @@ public:
 	* @return: bool: Successful creation of Data Packet (or not)
 	********************/
 	bool CreateDataPacket();
+
+	/***********************
+	* CreateCommandPacket: Create a Packet that sends a command
+	* @author: Callan Moore
+	* @parameter: _command: The command to send
+	* @return: bool: Successful creation of Data Packet (or not)
+	********************/
+	bool CreateCommandPacket(eNetworkCommand _command);
 
 	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
@@ -145,9 +161,17 @@ private:
 	bool m_bNetworkOnline;
 	CServer* m_pServerNetwork;
 	ClientToServer* m_pClientToServer;
+	ClientToServer* m_pPacketToProcess;
 	ServerToClient* m_pServerToClient;
 	std::thread m_ReceiveThread;
 	std::queue<ClientToServer>* m_pWorkQueue;
+
+	// Host Variable
+	std::string m_strHostUser;
+	bool m_bRepliedToHost;
+
+	// Server Users
+	std::vector<std::string>* m_pVecUsers;
 
 	
 };

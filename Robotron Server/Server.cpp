@@ -19,9 +19,15 @@ CServer::CServer()
 {
 }
 
-
 CServer::~CServer()
 {
+	// Delete the Map of Users
+	delete m_pServerUsers;
+	m_pServerUsers = 0;
+
+	// Free the char arrays on the heap memory
+	delete m_cReceiveData;
+	m_cReceiveData = 0;
 }
 
 bool CServer::Initialise()
@@ -35,37 +41,55 @@ bool CServer::Initialise()
 		return false;
 	}
 
-	// Create a socket for the client
-	m_ServerSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (m_ServerSocket == INVALID_SOCKET)
+	// Loop through a range of potential ports until one has successfully bound
+	for (unsigned int iPort = network::DEFAULT_SERVER_PORT;
+		iPort <= network::MAX_SERVER_PORT;
+		iPort++)
 	{
-		return false;
-	}
-
-	// Bind the socket to the address and port.
-	m_ServerAddr.sin_family = AF_INET;
-	m_ServerAddr.sin_port = htons(network::DEFAULT_SERVER_PORT);
-	m_ServerAddr.sin_addr.S_un.S_addr = INADDR_ANY;
-
-	// Check if the current port number is available for binding
-	if (bind(m_ServerSocket, reinterpret_cast<sockaddr*>(&m_ServerAddr), sizeof(m_ServerAddr)) == 0)
-	{
-		bool bOptionValue = true;
-		int iOptionLength = sizeof(bOptionValue);
-		int iResult = setsockopt(m_ServerSocket, SOL_SOCKET, SO_BROADCAST, (char*)&bOptionValue, iOptionLength);
-		if (iResult == SOCKET_ERROR)
+		// Create a socket for the client
+		m_ServerSocket = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (m_ServerSocket == INVALID_SOCKET)
 		{
-			// The socket successfully bound but it was unable to broadcast
-			closesocket(m_ServerSocket);
 			return false;
 		}
-	}
-	else
-	{
-		// Binding failed. Close socket and exit
+
+		// Bind the socket to the address and port.
+		m_ServerAddr.sin_family = AF_INET;
+		m_ServerAddr.sin_port = htons(iPort);
+		m_ServerAddr.sin_addr.S_un.S_addr = INADDR_ANY;
+
+		// Check if the current port number is available for binding
+		if (bind(m_ServerSocket, reinterpret_cast<sockaddr*>(&m_ServerAddr), sizeof(m_ServerAddr)) == 0)
+		{
+			bool bOptionValue = true;
+			int iOptionLength = sizeof(bOptionValue);
+			int iResult = setsockopt(m_ServerSocket, SOL_SOCKET, SO_BROADCAST, (char*)&bOptionValue, iOptionLength);
+			if (iResult == SOCKET_ERROR)
+			{
+				// The socket successfully bound but it was unable to broadcast
+				closesocket(m_ServerSocket);
+				return false;
+			}
+
+			// Socket was correctly bound. No need to check another port number
+			break;
+		}
+		
+		// Binding failed. Close socket
 		closesocket(m_ServerSocket);
-		return false;
+
+		if (iPort == network::MAX_SERVER_PORT)
+		{
+			// No ports within designated range worked. Unable to initialise
+			return false;
+		}	
 	}
+
+	// Create a map to hold users
+	m_pServerUsers = new std::map < std::string, sockaddr_in>;
+
+	// Create char array for storing received data
+	m_cReceiveData = new char[sizeof(ClientToServer) + 1];
 
 	// Binding was successful
 	return true;
@@ -73,20 +97,79 @@ bool CServer::Initialise()
 
 bool CServer::SendPacket(ServerToClient* _pSendPacket)
 {
-	ServerToClient SendPacket = *_pSendPacket;
-	int iPacketSize = sizeof(SendPacket) + 1;
+	std::map < std::string, sockaddr_in>::iterator iterCurrentUser = m_pServerUsers->begin();
+	std::map < std::string, sockaddr_in>::iterator iterUsersEnd = m_pServerUsers->end();
+
+	// Send to All current clients
+	while (iterCurrentUser != iterUsersEnd)
+	{
+		ServerToClient SendPacket = *_pSendPacket;
+		int iPacketSize = sizeof(SendPacket) + 1;
+
+		// Reinterpret the Data Packet into a char* for sending
+		char* cSendData = new char[iPacketSize * sizeof(char)];
+		cSendData = reinterpret_cast<char*>(&SendPacket);
+
+		// Send the Data
+		int iNumBytes = sendto(m_ServerSocket,
+			cSendData,
+			iPacketSize,
+			0,
+			reinterpret_cast<sockaddr*>(&iterCurrentUser->second),
+			sizeof(iterCurrentUser->second));
+
+		// Check to ensure the right number of bytes was sent
+		if (iNumBytes != iPacketSize)
+		{
+			// Bytes did not match therefore an error occured
+			return false;
+		}
+
+		iterCurrentUser++;
+	}
+
+	// Data Packet sending was successful
+	return true;
+}
+
+bool CServer::SendPacket(std::string _strUserName, ServerToClient* _pSendPacket)
+{
+	// Find the Addr of the Client to send Packet to
+	sockaddr_in clientAddr;
+	if (_pSendPacket->eCommand == CREATEUSER_NAMEINUSE)
+	{
+		// Packet is for the Failed to join client due to username in use
+		clientAddr = m_FailedClientAddr;
+	}
+	else
+	{
+		// Packet it for a connected Client
+		std::map < std::string, sockaddr_in>::iterator clientRecipient = m_pServerUsers->find(_strUserName);
+		clientAddr = clientRecipient->second;
+
+		// Delete users from the Network list if they were rejected for any reason
+		if (	(_pSendPacket->eCommand == CREATEUSER_SERVERFULL)
+			||	(_pSendPacket->eCommand == NOT_HOST))
+		{
+			m_pServerUsers->erase(_pSendPacket->cUserName);
+		}
+	}
+
+	ServerToClient PacketToSend = *_pSendPacket;
+	int iPacketSize = sizeof(PacketToSend) + 1;
 
 	// Reinterpret the Data Packet into a char* for sending
 	char* cSendData = new char[iPacketSize * sizeof(char)];
-	cSendData = reinterpret_cast<char*>(&SendPacket);
+	cSendData = reinterpret_cast<char*>(&PacketToSend);
 
 	// Send the Data
 	int iNumBytes = sendto(m_ServerSocket,
 		cSendData,
 		iPacketSize,
 		0,
-		reinterpret_cast<sockaddr*>(&m_ClientAddr),
-		sizeof(m_ClientAddr));
+		reinterpret_cast<sockaddr*>(&clientAddr),
+		sizeof(clientAddr));
+
 	// Check to ensure the right number of bytes was sent
 	if (iNumBytes != iPacketSize)
 	{
@@ -102,7 +185,6 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 {
 	// Create some local variables
 	int iSizeOfAddr = sizeof(m_ClientAddr);
-	char* cReceiveData = new char[sizeof(ClientToServer) + 1];
 	int iBytesReceived = sizeof(ClientToServer) + 1;
 
 	// Time out Value
@@ -113,7 +195,7 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 
 	// Receive the Data
 	int iNumBytesReceived = recvfrom(m_ServerSocket,
-		cReceiveData,
+		m_cReceiveData,
 		iBytesReceived,
 		0,
 		reinterpret_cast<sockaddr*>(&m_ClientAddr),
@@ -125,6 +207,35 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 	}
 
 	// Convert char* back into data Packet struct
-	*_pReceivePacket = *(reinterpret_cast<ClientToServer*>(cReceiveData));
+	*_pReceivePacket = *(reinterpret_cast<ClientToServer*>(m_cReceiveData));
+
+	// Packet contains a command
+	if (_pReceivePacket->bCommand == true)
+	{
+		if ((	_pReceivePacket->eCommand == CREATEUSER)
+			||	_pReceivePacket->eCommand == QUERY_HOST)
+		{
+			std::pair<std::string, sockaddr_in> insertUser = { (std::string)(_pReceivePacket->cUserName), m_ClientAddr };
+			std::pair<std::map<std::string, sockaddr_in>::iterator, bool> addedUser;
+			addedUser = m_pServerUsers->insert(insertUser);
+
+			// Keep a record of the client address for failed to insert clients
+			if (addedUser.second == false)
+			{
+				m_FailedClientAddr = insertUser.second;
+			}
+		}
+	}
+	else	// Packet was not a command
+	{
+		// Check if the packet arrived from a connected user
+		std::string strUser = (std::string)(_pReceivePacket->cUserName);
+		if (m_pServerUsers->find(strUser) == m_pServerUsers->end())
+		{
+			// Ignore packet - it did not come from a connected client
+			return false;
+		}
+	}
+
 	return true;
 }

@@ -33,11 +33,17 @@ enum eScreenState
 	STATE_MAIN_MENU,
 
 	// Main Menu
-	STATE_PLAY_MENU,
+	STATE_SINGLEPLAYER_MENU,
+	STATE_MULTIPLAYER_MENU,
+	STATE_INSTRUCTIONS_MENU,
+	STATE_OPTIONS_MENU,
 
 	// Play Menu
 	STATE_HOST_GAME,
 
+	STATE_CREATEUSER,
+
+	// During Gameplay
 	STATE_GAME_PLAY
 };
 
@@ -54,13 +60,24 @@ enum eMenuSelection
 	NO_SELECTION,
 
 	// Main Menu
-	PLAY_GAME,
+	SINGLE_PLAYER,
+	MULTIPLAYER,
+	INSTRUCTIONS,
 	OPTIONS,
 	EXIT_GAME,
 
-	// Play Game Menu
+	// Multiplayer Menu
 	HOST_GAME,
-	JOIN_GAME
+	JOIN_GAME,
+	MULTIPLAYER_BACK,
+
+	// Instructions Menu
+	INSTRUCTIONS_BACK,
+
+	// Options Menu
+	OPTIONS_BACK,
+
+
 };
 
 enum eIGPrimitiveType

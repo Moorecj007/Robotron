@@ -37,6 +37,8 @@ CGameServer::~CGameServer()
 	m_pClientToServer = 0;
 	delete m_pServerToClient;
 	m_pServerToClient = 0;
+	delete m_pPacketToProcess;
+	m_pPacketToProcess = 0;
 
 	// Delete the ServerMutex
 	delete m_pServerMutex;
@@ -45,6 +47,10 @@ CGameServer::~CGameServer()
 	// Delete the WorkQueue
 	delete m_pWorkQueue;
 	m_pWorkQueue = 0;
+
+	// Delete the container of Users from the Heap Memory
+	delete m_pVecUsers;
+	m_pVecUsers = 0;
 }
 
 CGameServer& CGameServer::GetInstance()
@@ -62,15 +68,25 @@ void CGameServer::DestroyInstance()
 	s_pGame = 0;
 }
 
-bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
+bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, const wchar_t* _kwstrHost)
 {
 	// Populate window variables
 	m_hWnd = _hWnd;
 	m_iScreenWidth = _iScreenWidth;
 	m_iScreenHeight = _iScreenHeight;
 
+	// Convert the WideString to a standard string
+	size_t lengthWstr = (wcslen(_kwstrHost) + 1);
+	size_t convertedCount = 0;
+	char* cHostName = new char[lengthWstr * 2];
+	wcstombs_s(&convertedCount, cHostName, lengthWstr, _kwstrHost, _TRUNCATE);
+	// Store the hosts username
+	m_strHostUser = (std::string)(cHostName);
+	m_bRepliedToHost = false;
+
 	// Create Data Packets
 	m_pClientToServer = new ClientToServer();
+	m_pPacketToProcess = new ClientToServer();
 	m_pServerToClient = new ServerToClient();
 
 	// Create and Initialise the Server-side Network
@@ -84,30 +100,134 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 	// Create the WorkQueue
 	m_pWorkQueue = new std::queue<ClientToServer>;
 
+	// Create a vector to store current Users
+	m_pVecUsers = new std::vector<std::string>;
+
 	return true;
 }
 
-void CGameServer::RenderOneFrame()
+bool CGameServer::ExecuteOneFrame()
 {
-	
+	if (m_bNetworkOnline == false)
+	{
+		return false;
+	}
+
+	Process();
+
+	return true;
+
 }
 
 void CGameServer::Process()
 {
+	while (m_pWorkQueue->empty() == false)
+	{
+		m_pServerMutex->Wait();
+		*m_pPacketToProcess = m_pWorkQueue->front();
+		m_pWorkQueue->pop();
+		m_pServerMutex->Signal();
 
+		// Process the Pulled Packet
+		ProcessPacket();
+	}
+}
+
+void CGameServer::ProcessPacket()
+{
+	if (m_pPacketToProcess->bCommand == true)
+	{
+		//Process a command code
+
+		// Terminate Server
+		if (m_pPacketToProcess->eCommand == TERMINATE_SERVER)
+		{
+			if ((std::string)(m_pPacketToProcess->cUserName) == m_strHostUser)
+			{
+				m_bNetworkOnline = false;
+				return;
+			}
+		}
+		else if (m_pPacketToProcess->eCommand == QUERY_HOST)
+		{
+			std::string strCheckHost = (std::string)(m_pPacketToProcess->cUserName);
+			if (strCheckHost == m_strHostUser)
+			{
+				if (m_bRepliedToHost == false)
+				{
+					CreateCommandPacket(HOST_SERVER);
+					m_pServerNetwork->SendPacket(strCheckHost, m_pServerToClient);
+					m_bRepliedToHost = true;
+				}
+			}
+			else
+			{
+				CreateCommandPacket(NOT_HOST);
+				m_pServerNetwork->SendPacket(strCheckHost, m_pServerToClient);
+			}
+		}
+		// Tries to Create a new User on the Server
+		else if (m_pPacketToProcess->eCommand == CREATEUSER)
+		{
+			if (m_pVecUsers->size() < network::MAX_CLIENTS)
+			{
+				bool bCanAdd = true;
+				std::string strUser = (std::string)(m_pPacketToProcess->cUserName);
+				for (unsigned int i = 0; i < m_pVecUsers->size(); i++)
+				{
+					if (strUser == (*m_pVecUsers)[i])
+					{
+						bCanAdd = false;
+					}
+				}
+				if (bCanAdd == true)
+				{
+					m_pVecUsers->push_back(strUser);
+
+					CreateCommandPacket(CREATEUSER_ACCEPTED);
+					m_pServerNetwork->SendPacket(strUser, m_pServerToClient);
+				}
+				else
+				{
+					CreateCommandPacket(CREATEUSER_NAMEINUSE);
+					m_pServerNetwork->SendPacket(strUser, m_pServerToClient);
+				}
+			}
+			else
+			{
+				CreateCommandPacket(CREATEUSER_SERVERFULL);
+				m_pServerNetwork->SendPacket(m_strHostUser, m_pServerToClient);
+			}
+
+			return;
+		}
+
+	}
+	else
+	{
+		// Process as normal client input
+	}
 }
 
 bool CGameServer::CreateDataPacket()
 {
 	// TO DO - Create actual Data
-	m_pClientToServer->bCommand = false;
-	char* strCommand = "Testing - Server to Client with FALSE command boolean";
 
-	// Check that the structure was able to accept the data
-	if (!(StringToStruct(strCommand, m_pServerToClient->cCommand)))
+	return true;
+}
+
+bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand)
+{
+	// Change the Packet Data to contain a Command
+	m_pServerToClient->bCommand = true;
+
+	// Add the Command to The Packet structure
+	m_pServerToClient->eCommand = _eCommand;
+
+	// Add the Server as the username to the Packet structure
+	if (!(StringToStruct("SERVER", m_pServerToClient->cUserName)))
 	{
-		// Data invalid - Data Packet failed to create
-		return false;
+		return false;	// Data invalid - Data Packet failed to create
 	}
 
 	return true;
@@ -141,8 +261,6 @@ void CGameServer::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
 			m_pServerMutex->Signal();
 
 			// TO DO - Remove
-			CreateDataPacket();
-			m_pServerNetwork->SendPacket(m_pServerToClient);
 			int i = 0;
 		}
 	}

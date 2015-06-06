@@ -17,6 +17,9 @@
 #ifndef __SERVERNETWORK_H__
 #define __SERVERNETWORK_H__
 
+// Library Includes
+#include <map>
+
 // Local Includes
 #include "../Common Files/Network_Defines.h"
 
@@ -51,12 +54,21 @@ public:
 	bool Initialise();
 
 	/***********************
-	* SendPacket: Send a Data Packet to the Client for processing
+	* SendPacket: Send a Data Packet to all the Clients for processing
 	* @author: Callan Moore
 	* @parameter: _pSendPacket: Data Packet structure to Send
 	* @return: bool: Successful Sending of the packet (or Not)
 	********************/
 	bool SendPacket(ServerToClient* _pSendPacket);
+
+	/***********************
+	* SendPacket: Send a Data Packet to One Client for processing
+	* @author: Callan Moore
+	* @parameter: _pSendPacket: Data Packet structure to Send
+	* @parameter: _strUserName: The Username of the Client to send this Data packet to
+	* @return: bool: Successful Sending of the packet (or Not)
+	********************/
+	bool SendPacket(std::string _strUserName, ServerToClient* _pSendPacket);
 	
 	/***********************
 	* ReceivePacket: Receive a Data Packet from the client for processing
@@ -74,7 +86,11 @@ private:
 private:
 	SOCKET m_ServerSocket;
 	sockaddr_in m_ServerAddr;
-	sockaddr_in m_ClientAddr; // TO DO - create map of users
+	sockaddr_in m_ClientAddr; 
+	std::map < std::string, sockaddr_in>* m_pServerUsers;
+	sockaddr_in m_FailedClientAddr;
+
+	char* m_cReceiveData;
 };
 
 #endif // __SERVERNETWORK_H__

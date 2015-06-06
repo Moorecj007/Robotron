@@ -30,25 +30,45 @@
 namespace network
 {
 	unsigned const	DEFAULT_SERVER_PORT		= 60000; 
-	unsigned const	DEFAULT_CLIENT_PORT		= 60001;
+	unsigned const	MAX_SERVER_PORT			= 60004;
+	unsigned const	DEFAULT_CLIENT_PORT		= 60005;
 	unsigned const	MAX_CLIENT_PORT			= 61000;
-	unsigned const	MAX_CLIENTS				= 16;
-	const char		cUDPAddr[128]			= "127.0.0.1";
-	unsigned const	MAX_CHAR_LENGTH			= 100;
+	unsigned const	MAX_CLIENTS				= 6;
+	const char		cUDPAddr[32]			= "127.0.0.1";
+	unsigned const	MAX_CHAR_LENGTH			= 30;
 }
+
+// Enums
+enum eNetworkCommand
+{
+	ERROR_COMMAND,
+
+	TERMINATE_SERVER,
+
+	QUERY_HOST,
+	HOST_SERVER,
+	NOT_HOST,
+
+	CREATEUSER,
+	CREATEUSER_ACCEPTED,
+	CREATEUSER_NAMEINUSE,
+	CREATEUSER_SERVERFULL
+};
 
 // Structs
 
 struct ClientToServer
 {
 	bool bCommand;
-	char cCommand[network::MAX_CHAR_LENGTH];
+	eNetworkCommand eCommand;
+	char cUserName[network::MAX_CHAR_LENGTH];
 };
 
 struct ServerToClient
 {
 	bool bCommand;
-	char cCommand[network::MAX_CHAR_LENGTH];
+	eNetworkCommand eCommand;
+	char cUserName[network::MAX_CHAR_LENGTH];
 };
 
 #endif //__NETWORKDEFINES_H__

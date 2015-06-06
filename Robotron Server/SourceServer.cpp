@@ -18,6 +18,7 @@
 
 // Library Includes
 #include <winsock2.h>
+#include <shellapi.h>
 //#include <windows.h>		// Include all the windows headers.
 //#include <windowsx.h>		// Include useful macros.
 
@@ -28,8 +29,8 @@
 #define WINDOW_CLASS_NAME L"ROBOTRON"
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
-	//#include "vld.h"
-	//#define D3D_DEBUG_INFO
+	#include "vld.h"
+	#define D3D_DEBUG_INFO
 #endif // _DEBUG
 
 // Prototypes
@@ -142,12 +143,18 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		return (0);
 	}
 
+	LPWSTR* strArgList;
+	int iArgCount;
+	strArgList = CommandLineToArgvW(GetCommandLine(), &iArgCount);
+
+	wchar_t* wstrHostUser = strArgList[1];
 	// Create the Game Object
 	CGameServer& rGameInstance = CGameServer::GetInstance();
-	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight);
+	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight, wstrHostUser);
+	bool bOnline = true;
 
 	// Enter main event loop.
-	while (true)
+	while (bOnline)
 	{
 		while (PeekMessage(&uiMsg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -159,7 +166,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		{
 			break;
 		}
-		rGameInstance.RenderOneFrame();
+		bOnline = rGameInstance.ExecuteOneFrame();
 	}
 
 	// Delete the Game Instance

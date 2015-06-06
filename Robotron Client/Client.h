@@ -59,6 +59,14 @@ public:
 	bool SendPacket(ClientToServer* _pSendPacket);
 
 	/***********************
+	* BroadcastToServers: Broadcast Packet to all servers
+	* @author: Callan Moore
+	* @parameter: _pSendPacket: Data Packet structure to broadcast
+	* @return: bool: Successful broadcast of the packet (or Not)
+	********************/
+	bool BroadcastToServers(ClientToServer* _pSendPacket);
+
+	/***********************
 	* ReceivePacket: Receive a Data Packet from the server for processing
 	* @author: Callan Moore
 	* @parameter: _pReceivePacket: Data Packet structure to receive/store incoming data packets
@@ -76,6 +84,8 @@ private:
 	SOCKET m_ClientSocket;
 	sockaddr_in m_ClientAddr;
 	sockaddr_in m_ServerAddr;
+	char* m_cReceiveData;
+	char* m_cSendData;
 
 };
 #endif //__CLIENTNETWORK_H__
