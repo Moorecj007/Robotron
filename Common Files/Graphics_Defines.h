@@ -60,31 +60,6 @@ enum eFontType
 	SCREEN_FONT
 };
 
-enum eMenuSelection
-{
-	NO_SELECTION,
-
-	// Main Menu
-	SINGLE_PLAYER,
-	MULTIPLAYER,
-	INSTRUCTIONS,
-	OPTIONS,
-	EXIT_GAME,
-
-	// Multiplayer Menu
-	HOST_GAME,
-	JOIN_GAME,
-	MULTIPLAYER_BACK,
-
-	// Instructions Menu
-	INSTRUCTIONS_BACK,
-
-	// Options Menu
-	OPTIONS_BACK,
-
-
-};
-
 enum eIGPrimitiveType
 {
 	INVALID_IGPT,

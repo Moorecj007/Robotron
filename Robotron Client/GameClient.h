@@ -134,6 +134,20 @@ public:
 	void ProcessScreenState();
 
 	/***********************
+	* ProcessCreateUser: Process information from the Create User Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessCreateUser();
+
+	/***********************
+	* ProcessCreateServer: Process information from the Server Name Menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessCreateServer();
+
+	/***********************
 	* ProcessMainMenu: Process information from the Main Menu
 	* @author: Callan Moore
 	* @return: void
@@ -301,11 +315,15 @@ private:
 	// Singleton Instance
 	static CGameClient* s_pGame;
 
-	// Game Variables
+	// Menu Variables
 	CClock* m_pClock;
 	eScreenState m_eScreenState;
-	eMenuSelection m_eMenuSelection;
-	eMenuSelection m_eMenuTempSelection;
+	std::string m_strMenuSelection;
+	bool m_bMenuSelected;
+	std::string m_strMenuTempSelection;
+	int m_iServerIndex;
+
+	// Game Variables
 	bool m_bHost;
 
 	// Window Variables

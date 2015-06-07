@@ -677,15 +677,15 @@ int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 	return m_iNextMaterialKey;
 }
 
-eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft)
+std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft)
 {
 	ID3DXFont* pFont;
 	DWORD dwAllignment;
-	eMenuSelection selection = NO_SELECTION;
+	std::string strSelection;
 
 	if (_bAllignLeft == true)
 	{
-		dwAllignment = DT_BOTTOM | DT_LEFT | DT_SINGLELINE;
+		dwAllignment = DT_LEFT | DT_SINGLELINE | DT_VCENTER;
 	}
 	else
 	{
@@ -724,16 +724,16 @@ eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouse
 	// Create a rect based on the string and font type in relation to the Y position
 	RECT rect = RectfromString(_iYpos, _str, pFont);
 	
-	// If the Menu font is selected
-	if (_font == MENU_FONT)
+	// If the string is selectable
+	if (_bSelectable == true)
 	{
 		// Check if the mouse position is within the Text Rect
 		if (_iMouseY + 20 >= rect.top && _iMouseY + 20 <= rect.bottom)
 		{
 			// Highlight the Text to a differect color to show selection is available
 			_color = 0xff0000ff;
-			// Save the menuSelection type
-			selection = _eSelection;
+			// Save the string if this item to show the mouse is in it
+			strSelection = _str;
 		}
 
 	}
@@ -746,7 +746,7 @@ eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouse
 						dwAllignment,
 						_color);
 
-	return selection;
+	return strSelection;
 }
 
 void CD3D9Renderer::RenderColor(D3DXCOLOR _color)

@@ -289,15 +289,15 @@ bool CGameServer::StringToStruct(const char* _pcData, char* _pcStruct)
 	// based on the memory address that it is going to be writing to
 	if (*(&m_pServerToClient->cUserName) == *(&_pcStruct))
 	{
-		iMaxLength = network::MAX_USERNAME_LENGTH;
+		iMaxLength = network::MAX_USERNAME_LENGTH - 1;
 	}
 	else if (*(&m_pServerToClient->cAdditionalMessage) == *(&_pcStruct))
 	{
-		iMaxLength = network::MAX_CHAR_LENGTH;
+		iMaxLength = network::MAX_CHAR_LENGTH - 1;
 	}
 
 	// Ensure no buffer overrun will occur when copying directly to memory
-	if ((strlen(_pcData) + 1) < network::MAX_CHAR_LENGTH)
+	if ((strlen(_pcData) + 1) < network::MAX_CHAR_LENGTH - 1)
 	{
 		// Copy the characters into the struct
 		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);

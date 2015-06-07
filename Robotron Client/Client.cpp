@@ -206,6 +206,7 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 		{
 			std::pair<std::string, sockaddr_in> pairServer(_pReceivePacket->cUserName, receivedSockAddr);
 			m_pAvailableServers->insert(pairServer);
+
 		}
 		
 	}

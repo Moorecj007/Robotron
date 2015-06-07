@@ -36,8 +36,8 @@ namespace network
 	unsigned const	MAX_CLIENTS				= 6;
 	const char		cUDPAddr[32]			= "127.0.0.1";
 	unsigned const	MAX_CHAR_LENGTH			= 30;
-	unsigned const	MAX_USERNAME_LENGTH		= 12;
-	unsigned const  MAX_SERVERNAME_LENGTH	= 20;
+	unsigned const	MAX_USERNAME_LENGTH		= 13;
+	unsigned const  MAX_SERVERNAME_LENGTH	= 16;
 }
 
 // Enums
