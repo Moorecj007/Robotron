@@ -68,20 +68,30 @@ void CGameServer::DestroyInstance()
 	s_pGame = 0;
 }
 
-bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, const wchar_t* _kwstrHost)
+bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, LPWSTR* _wstrArgs)
 {
 	// Populate window variables
 	m_hWnd = _hWnd;
 	m_iScreenWidth = _iScreenWidth;
 	m_iScreenHeight = _iScreenHeight;
 
-	// Convert the WideString to a standard string
-	size_t lengthWstr = (wcslen(_kwstrHost) + 1);
-	size_t convertedCount = 0;
-	char* cHostName = new char[lengthWstr * 2];
-	wcstombs_s(&convertedCount, cHostName, lengthWstr, _kwstrHost, _TRUNCATE);
-	// Store the hosts username
-	m_strHostUser = (std::string)(cHostName);
+	
+	// Get the Host and server name from the command arguments
+	wchar_t* wstrHostName = _wstrArgs[1];
+	wchar_t* wstrServerName = _wstrArgs[2];
+
+	if (wstrHostName == 0 || wstrServerName == 0)
+	{
+		// Invalid server creation
+		return false;
+	}
+
+	// Save the Host Name
+	m_strHostUser = WideStringToString(wstrHostName);
+	m_bRepliedToHost = false;
+
+	// Save the Server Name
+	m_strServerName = WideStringToString(wstrServerName);
 	m_bRepliedToHost = false;
 
 	// Create Data Packets
@@ -102,6 +112,7 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 
 	// Create a vector to store current Users
 	m_pVecUsers = new std::vector<std::string>;
+	m_pVecUsers->push_back(m_strHostUser);
 
 	return true;
 }
@@ -139,16 +150,19 @@ void CGameServer::ProcessPacket()
 	{
 		//Process a command code
 
+		eNetworkCommand eProcessCommand = m_pPacketToProcess->eCommand;
+
 		// Terminate Server
-		if (m_pPacketToProcess->eCommand == TERMINATE_SERVER)
+		if (eProcessCommand == TERMINATE_SERVER)
 		{
+			// Accept Terminate COmmand only if the Host client sent it
 			if ((std::string)(m_pPacketToProcess->cUserName) == m_strHostUser)
 			{
 				m_bNetworkOnline = false;
-				return;
 			}
+			return;
 		}
-		else if (m_pPacketToProcess->eCommand == QUERY_HOST)
+		else if (eProcessCommand == QUERY_HOST)
 		{
 			std::string strCheckHost = (std::string)(m_pPacketToProcess->cUserName);
 			if (strCheckHost == m_strHostUser)
@@ -165,9 +179,17 @@ void CGameServer::ProcessPacket()
 				CreateCommandPacket(NOT_HOST);
 				m_pServerNetwork->SendPacket(strCheckHost, m_pServerToClient);
 			}
+			return;
+		}
+		else if (eProcessCommand == QUERY_CLIENT_CONNECTION)
+		{
+			CreateCommandPacket(SERVER_CONNECTION_AVAILABLE);
+			m_pServerNetwork->SendPacket(m_pPacketToProcess->cUserName, m_pServerToClient);
+
+			return;
 		}
 		// Tries to Create a new User on the Server
-		else if (m_pPacketToProcess->eCommand == CREATEUSER)
+		else if (eProcessCommand == CREATEUSER)
 		{
 			if (m_pVecUsers->size() < network::MAX_CLIENTS)
 			{
@@ -182,10 +204,23 @@ void CGameServer::ProcessPacket()
 				}
 				if (bCanAdd == true)
 				{
-					m_pVecUsers->push_back(strUser);
-
 					CreateCommandPacket(CREATEUSER_ACCEPTED);
 					m_pServerNetwork->SendPacket(strUser, m_pServerToClient);
+
+					CreateCommandPacket(USER_JOINED, (std::string)m_pPacketToProcess->cUserName);
+					m_pServerNetwork->SendPacket(m_pServerToClient);
+
+					// Send the list of users to the new User
+					for (unsigned int i = 0; i < m_pVecUsers->size(); i++)
+					{
+						CreateCommandPacket(USER_JOINED, (*m_pVecUsers)[i]);
+						m_pServerNetwork->SendPacket(m_pPacketToProcess->cUserName, m_pServerToClient);
+					}
+
+					CreateCommandPacket(YOUR_HOST, m_strHostUser);
+					m_pServerNetwork->SendPacket(m_pPacketToProcess->cUserName, m_pServerToClient);
+
+					m_pVecUsers->push_back(strUser);
 				}
 				else
 				{
@@ -225,7 +260,21 @@ bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand)
 	m_pServerToClient->eCommand = _eCommand;
 
 	// Add the Server as the username to the Packet structure
-	if (!(StringToStruct("SERVER", m_pServerToClient->cUserName)))
+	if (!(StringToStruct(m_strServerName.c_str(), m_pServerToClient->cUserName)))
+	{
+		return false;	// Data invalid - Data Packet failed to create
+	}
+
+	return true;
+}
+
+bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage)
+{
+	// Create a general command packet
+	CreateCommandPacket(_eCommand);
+
+	// Add the additional meesage
+	if (!(StringToStruct(_strMessage.c_str(), m_pServerToClient->cAdditionalMessage)))
 	{
 		return false;	// Data invalid - Data Packet failed to create
 	}
@@ -235,18 +284,30 @@ bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand)
 
 bool CGameServer::StringToStruct(const char* _pcData, char* _pcStruct)
 {
+	int iMaxLength;
+	// Determine the maximum amount of characters that can be copied
+	// based on the memory address that it is going to be writing to
+	if (*(&m_pServerToClient->cUserName) == *(&_pcStruct))
+	{
+		iMaxLength = network::MAX_USERNAME_LENGTH;
+	}
+	else if (*(&m_pServerToClient->cAdditionalMessage) == *(&_pcStruct))
+	{
+		iMaxLength = network::MAX_CHAR_LENGTH;
+	}
+
 	// Ensure no buffer overrun will occur when copying directly to memory
 	if ((strlen(_pcData) + 1) < network::MAX_CHAR_LENGTH)
 	{
 		// Copy the characters into the struct
 		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);
-		return true;
 	}
 	else
 	{
 		// char* is too long, buffer overrun would occur so failed operation
 		return false;
 	}
+	return true;
 }
 
 void CGameServer::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
@@ -264,4 +325,22 @@ void CGameServer::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
 			int i = 0;
 		}
 	}
+}
+
+std::string CGameServer::WideStringToString(wchar_t* _wstr)
+{
+	// Convert the WideString to a standard string
+	size_t lengthWstr = (wcslen(_wstr) + 1);
+	size_t convertedCount = 0;
+	char* cHostName = new char[lengthWstr * 2];
+	wcstombs_s(&convertedCount, cHostName, lengthWstr, _wstr, _TRUNCATE);
+
+	std::string strReturn = (std::string)(cHostName);
+
+	// Delete the created memory
+	delete cHostName;
+	cHostName = 0;
+
+	// Store the hosts username
+	return strReturn;
 }

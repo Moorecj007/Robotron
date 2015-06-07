@@ -222,9 +222,10 @@ public:
 	* @parameter: _iYpos: TThe Y position to start drawing the text
 	* @parameter: _font: The font to use to draw the text
 	* @parameter: _color: Default color for the font
+	* @parameter: _bAllignLeft
 	* @return: eMenuSelection: Selection for if the mouse is unclicked
 	********************/
-	virtual eMenuSelection RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color);
+	virtual eMenuSelection RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft);
 	
 	/***********************
 	* RenderColor: Color fill the backbuffer to the input color

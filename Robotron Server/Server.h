@@ -89,7 +89,9 @@ private:
 	sockaddr_in m_ClientAddr; 
 	std::map < std::string, sockaddr_in>* m_pServerUsers;
 	sockaddr_in m_FailedClientAddr;
+	sockaddr_in m_ClientRequest;
 
+	char* m_cSendData;
 	char* m_cReceiveData;
 };
 

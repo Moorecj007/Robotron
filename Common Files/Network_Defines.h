@@ -36,6 +36,8 @@ namespace network
 	unsigned const	MAX_CLIENTS				= 6;
 	const char		cUDPAddr[32]			= "127.0.0.1";
 	unsigned const	MAX_CHAR_LENGTH			= 30;
+	unsigned const	MAX_USERNAME_LENGTH		= 12;
+	unsigned const  MAX_SERVERNAME_LENGTH	= 20;
 }
 
 // Enums
@@ -52,7 +54,14 @@ enum eNetworkCommand
 	CREATEUSER,
 	CREATEUSER_ACCEPTED,
 	CREATEUSER_NAMEINUSE,
-	CREATEUSER_SERVERFULL
+	CREATEUSER_SERVERFULL,
+
+	QUERY_CLIENT_CONNECTION,
+	SERVER_CONNECTION_AVAILABLE,
+
+	USER_JOINED,
+	USER_LEFT,
+	YOUR_HOST
 };
 
 // Structs
@@ -61,14 +70,16 @@ struct ClientToServer
 {
 	bool bCommand;
 	eNetworkCommand eCommand;
-	char cUserName[network::MAX_CHAR_LENGTH];
+	char cUserName[network::MAX_USERNAME_LENGTH];
+	//char cAdditionalCommandMessage[network::MAX_CHAR_LENGTH];
 };
 
 struct ServerToClient
 {
 	bool bCommand;
 	eNetworkCommand eCommand;
-	char cUserName[network::MAX_CHAR_LENGTH];
+	char cUserName[network::MAX_USERNAME_LENGTH];
+	char cAdditionalMessage[network::MAX_CHAR_LENGTH];
 };
 
 #endif //__NETWORKDEFINES_H__

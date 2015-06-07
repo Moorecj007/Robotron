@@ -65,10 +65,10 @@ public:
 	* @parameters: _hWnd: Handle to The creating window
 	* @parameters: _iScreenWidth: The Height of the Screen
 	* @parameters: _iScreenHeight: The Width of the Screen
-	* @parameters: _strHost: Hosts User Name
+	* @parameters: _wstrArgs: Command Arguments for the executable. Contains the host name and the server name
 	* @return: bool: Successful Initialisation or not
 	********************/
-	bool Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, const wchar_t* _wstrHost);
+	bool Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, LPWSTR* _wstrArgs);
 	
 	/***********************
 	* ExecuteOneFrame: Executes one frame
@@ -121,6 +121,15 @@ public:
 	bool CreateCommandPacket(eNetworkCommand _command);
 
 	/***********************
+	* CreateCommandPacket: Create a Packet that sends a command with an additional message
+	* @author: Callan Moore
+	* @parameter: _command: The command to send
+	* @parameter: _strMessage: Additional Message
+	* @return: bool: Successful creation of Data Packet (or not)
+	********************/
+	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage);
+
+	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
 	* @author: Callan Moore
 	* @parameter: _pcData: Char array to input into the struct
@@ -136,6 +145,15 @@ public:
 	* @return: void
 	********************/
 	void ReceiveDataFromNetwork(ClientToServer* _pReceiveData);
+
+	/***********************
+	* WideStringToString: Converts a cide char string into a standard string
+	* @author: Callan Moore
+	* @parameter: _wstr: Wide character string to convert
+	* @return: std::string: The input as a standard string
+	********************/
+	std::string WideStringToString(wchar_t* _wstr);
+
 
 private:
 	//Disallowing copies and extra constructions
@@ -165,6 +183,7 @@ private:
 	ServerToClient* m_pServerToClient;
 	std::thread m_ReceiveThread;
 	std::queue<ClientToServer>* m_pWorkQueue;
+	std::string m_strServerName;
 
 	// Host Variable
 	std::string m_strHostUser;

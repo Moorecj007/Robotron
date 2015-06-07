@@ -143,14 +143,14 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		return (0);
 	}
 
-	LPWSTR* strArgList;
+	LPWSTR* wstrArgList;
 	int iArgCount;
-	strArgList = CommandLineToArgvW(GetCommandLine(), &iArgCount);
+	wstrArgList = CommandLineToArgvW(GetCommandLine(), &iArgCount);
+	//wchar_t* wstrHostUser = strArgList[1];
 
-	wchar_t* wstrHostUser = strArgList[1];
 	// Create the Game Object
 	CGameServer& rGameInstance = CGameServer::GetInstance();
-	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight, wstrHostUser);
+	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight, wstrArgList);
 	bool bOnline = true;
 
 	// Enter main event loop.

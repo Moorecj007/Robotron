@@ -18,6 +18,7 @@
 #define __CLIENTNETWORK_H__
 
 // Local Includes
+#include <map>
 #include "../Common Files/Network_Defines.h"
 
 class CClient
@@ -74,6 +75,14 @@ public:
 	********************/
 	bool ReceivePacket(ServerToClient* _pReceivePacket);
 
+	/***********************
+	* SelectServer: Set the server on the network to the chosen server
+	* @author: Callan Moore
+	* @parameter: _pReceivePacket: Data Packet structure to receive/store incoming data packets
+	* @return: bool: Successful if an actual Packet was received
+	********************/
+	void SelectServer(std::string _strServerName);
+
 
 private:
 	//Disallowing copies and extra constructions
@@ -83,9 +92,12 @@ private:
 private:
 	SOCKET m_ClientSocket;
 	sockaddr_in m_ClientAddr;
-	sockaddr_in m_ServerAddr;
+	sockaddr_in m_ReceivedAddr;
 	char* m_cReceiveData;
 	char* m_cSendData;
+
+	std::map<std::string, sockaddr_in>* m_pAvailableServers;
+	sockaddr_in m_ServerAddr;
 
 };
 #endif //__CLIENTNETWORK_H__

@@ -107,12 +107,11 @@ bool CServer::SendPacket(ServerToClient* _pSendPacket)
 		int iPacketSize = sizeof(SendPacket) + 1;
 
 		// Reinterpret the Data Packet into a char* for sending
-		char* cSendData = new char[iPacketSize * sizeof(char)];
-		cSendData = reinterpret_cast<char*>(&SendPacket);
+		m_cSendData = reinterpret_cast<char*>(&SendPacket);
 
 		// Send the Data
 		int iNumBytes = sendto(m_ServerSocket,
-			cSendData,
+			m_cSendData,
 			iPacketSize,
 			0,
 			reinterpret_cast<sockaddr*>(&iterCurrentUser->second),
@@ -141,30 +140,34 @@ bool CServer::SendPacket(std::string _strUserName, ServerToClient* _pSendPacket)
 		// Packet is for the Failed to join client due to username in use
 		clientAddr = m_FailedClientAddr;
 	}
+	else if (_pSendPacket->eCommand == SERVER_CONNECTION_AVAILABLE)
+	{
+		clientAddr = m_ClientRequest;
+	}
 	else
 	{
 		// Packet it for a connected Client
 		std::map < std::string, sockaddr_in>::iterator clientRecipient = m_pServerUsers->find(_strUserName);
-		clientAddr = clientRecipient->second;
+		clientAddr = clientRecipient->second;	
+	}
 
-		// Delete users from the Network list if they were rejected for any reason
-		if (	(_pSendPacket->eCommand == CREATEUSER_SERVERFULL)
-			||	(_pSendPacket->eCommand == NOT_HOST))
-		{
-			m_pServerUsers->erase(_pSendPacket->cUserName);
-		}
+	// Delete users from the Network list if they were rejected for any reason
+	if ((_pSendPacket->eCommand == CREATEUSER_SERVERFULL)
+		|| (_pSendPacket->eCommand == NOT_HOST)
+		|| (_pSendPacket->eCommand == SERVER_CONNECTION_AVAILABLE))
+	{
+		m_pServerUsers->erase(_pSendPacket->cUserName);
 	}
 
 	ServerToClient PacketToSend = *_pSendPacket;
 	int iPacketSize = sizeof(PacketToSend) + 1;
 
 	// Reinterpret the Data Packet into a char* for sending
-	char* cSendData = new char[iPacketSize * sizeof(char)];
-	cSendData = reinterpret_cast<char*>(&PacketToSend);
+	m_cSendData = reinterpret_cast<char*>(&PacketToSend);
 
 	// Send the Data
 	int iNumBytes = sendto(m_ServerSocket,
-		cSendData,
+		m_cSendData,
 		iPacketSize,
 		0,
 		reinterpret_cast<sockaddr*>(&clientAddr),
@@ -212,8 +215,8 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 	// Packet contains a command
 	if (_pReceivePacket->bCommand == true)
 	{
-		if ((	_pReceivePacket->eCommand == CREATEUSER)
-			||	_pReceivePacket->eCommand == QUERY_HOST)
+		if (	(_pReceivePacket->eCommand == CREATEUSER)
+			||	(_pReceivePacket->eCommand == QUERY_HOST))
 		{
 			std::pair<std::string, sockaddr_in> insertUser = { (std::string)(_pReceivePacket->cUserName), m_ClientAddr };
 			std::pair<std::map<std::string, sockaddr_in>::iterator, bool> addedUser;
@@ -224,6 +227,10 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 			{
 				m_FailedClientAddr = insertUser.second;
 			}
+		}
+		else if (_pReceivePacket->eCommand == QUERY_CLIENT_CONNECTION)
+		{
+			m_ClientRequest = m_ClientAddr;
 		}
 	}
 	else	// Packet was not a command

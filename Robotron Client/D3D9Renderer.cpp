@@ -677,10 +677,20 @@ int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 	return m_iNextMaterialKey;
 }
 
-eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color)
+eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft)
 {
 	ID3DXFont* pFont;
+	DWORD dwAllignment;
 	eMenuSelection selection = NO_SELECTION;
+
+	if (_bAllignLeft == true)
+	{
+		dwAllignment = DT_BOTTOM | DT_LEFT | DT_SINGLELINE;
+	}
+	else
+	{
+		dwAllignment  = DT_CENTER | DT_SINGLELINE | DT_VCENTER;
+	}
 
 	// Get pointer to the correct font
 	switch (_font)
@@ -702,7 +712,7 @@ eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouse
 		}
 		case SCREEN_FONT:
 		{
-			pFont = m_pScreenFont;
+			pFont = m_pScreenFont;	
 			break;
 		}
 		default:
@@ -733,7 +743,7 @@ eMenuSelection CD3D9Renderer::RenderText(eMenuSelection _eSelection, int _iMouse
 						_str.c_str(),
 						-1,
 						&rect,
-						DT_CENTER | DT_SINGLELINE | DT_VCENTER,
+						dwAllignment,
 						_color);
 
 	return selection;

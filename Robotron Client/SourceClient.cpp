@@ -73,6 +73,30 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 			return (0);
 		}
 		break;
+		case WM_KEYDOWN:
+		{
+			if (CGameClient::GetInstance().GetTextInput() == true)
+			{
+				if (_wParam == 16)	// Shift Key
+				{
+					CGameClient::GetInstance().m_pbKeyDown[_wParam] = true;
+				}
+				if (((_lParam >> 30) & 1) != 1)
+				{
+					CGameClient::GetInstance().ProcessTextInput(_wParam);
+				}
+			}
+			else
+			{
+				CGameClient::GetInstance().m_pbKeyDown[_wParam] = true;
+			}
+		}
+		break;
+		case WM_KEYUP:
+		{
+			CGameClient::GetInstance().m_pbKeyDown[_wParam] = false;
+		}
+		break;
 		case WM_MOUSEMOVE:
 		{
 			// Get the position of the mouse when it moves

@@ -41,7 +41,12 @@ enum eScreenState
 	// Play Menu
 	STATE_HOST_GAME,
 
+	// Creating User and server names
 	STATE_CREATEUSER,
+	STATE_CREATE_SERVERNAME,
+
+	STATE_GAME_LOBBY,
+	STATE_SELECT_SERVER,
 
 	// During Gameplay
 	STATE_GAME_PLAY

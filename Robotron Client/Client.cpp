@@ -25,6 +25,10 @@ CClient::~CClient()
 	// Free the char arrays on the heap memory
 	delete m_cReceiveData;
 	m_cReceiveData = 0;
+
+	// Delete the available servers list
+	delete m_pAvailableServers;
+	m_pAvailableServers = 0;
 }
 
 bool CClient::Initialise()
@@ -83,10 +87,12 @@ bool CClient::Initialise()
 	}
 
 	// Clear out the ServerAddr memory for use
-	ZeroMemory(&m_ServerAddr, sizeof(m_ServerAddr));
+	ZeroMemory(&m_ReceivedAddr, sizeof(m_ReceivedAddr));
 
 	// Create char array for storing received data
 	m_cReceiveData = new char[sizeof(ServerToClient) + 1];
+
+	m_pAvailableServers = new std::map<std::string, sockaddr_in>;
 
 	// Binding was successful
 	return true;
@@ -106,7 +112,7 @@ bool CClient::SendPacket(ClientToServer* _pSendPacket)
 							iPacketSize,
 							0,
 							reinterpret_cast<sockaddr*>(&m_ServerAddr),
-							sizeof(m_ServerAddr) );
+							sizeof(m_ServerAddr));
 
 
 	// Check to ensure the right number of bytes was sent
@@ -188,19 +194,31 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 
 	// Convert char* back into data Packet struct
 	*_pReceivePacket = *(reinterpret_cast<ServerToClient*>(m_cReceiveData));
-	if ((std::string)(_pReceivePacket->cUserName) != "SERVER")
+
+	if (_pReceivePacket->bCommand == true)
 	{
-		return false;
-	}
-	else
-	{
-		if (_pReceivePacket->bCommand == true)
+		eNetworkCommand eCommand = _pReceivePacket->eCommand;
+		if (eCommand == HOST_SERVER)
 		{
-			if (_pReceivePacket->eCommand == HOST_SERVER)
-			{
-				m_ServerAddr = receivedSockAddr;
-			}
+			m_ServerAddr = receivedSockAddr;
 		}
+		else if (eCommand == SERVER_CONNECTION_AVAILABLE)
+		{
+			std::pair<std::string, sockaddr_in> pairServer(_pReceivePacket->cUserName, receivedSockAddr);
+			m_pAvailableServers->insert(pairServer);
+		}
+		
 	}
 	return true;
+}
+
+void CClient::SelectServer(std::string _strServerName)
+{
+	std::map<std::string, sockaddr_in>::iterator iterSelectedServer;
+	iterSelectedServer = m_pAvailableServers->find(_strServerName);
+
+	if (iterSelectedServer != m_pAvailableServers->end())
+	{
+		m_ServerAddr = iterSelectedServer->second;
+	}
 }

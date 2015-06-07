@@ -20,6 +20,7 @@
 // Library Includes
 #include <thread>
 #include <queue>
+#include <algorithm>
 
 // Local Includes
 #include "Client.h"
@@ -56,6 +57,13 @@ public:
 	static void DestroyInstance();
 
 	// Getters
+
+	/***********************
+	* GetTextInput: Returns if the input is text or controls
+	* @author: Callan Moore
+	* @return: bool: True if the input is intended for text
+	********************/
+	bool GetTextInput() { return m_bTextInput; };
 
 	// Setters
 
@@ -102,6 +110,14 @@ public:
 	* @return: void
 	********************/
 	void Process();
+
+	/***********************
+	* ProcessTextInput: Processes Text input
+	* @author: Callan Moore
+	* @parameter: _wKeyPress: The pressed key
+	* @return: void
+	********************/
+	void ProcessTextInput(WPARAM _wKeyPress);
 
 	/***********************
 	* ProcessPacket: Process a packet from the work queue
@@ -153,6 +169,20 @@ public:
 	void ProcessOptionsMenu();
 
 	/***********************
+	* ProcessGameLobby: Process information for the Game Lobby Screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessGameLobby();
+
+	/***********************
+	* ProcessSelectServer: Process information for the Select server screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessSelectServer();
+
+	/***********************
 	* Draw: Draws all the game world
 	* @author: Callan Moore
 	* @return: void
@@ -161,12 +191,18 @@ public:
 
 	// #DisplayMenus
 	/***********************
-	* CreateUserName: Allos the User to Create a username
+	* CreateUserName: Allows the User to Create a username
 	* @author: Callan Moore
-	* @parameter: _bHost: variable to tell the function where to return oonce username is complete
 	* @return: void
 	********************/
-	void CGameClient::CreateUserName(bool _bHost);
+	void CGameClient::CreateUserName();
+
+	/***********************
+	* CreateUserName: Allows the User to Create a Server Name
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CGameClient::CreateServerName();
 
 	/***********************
 	* DisplayMainMenu: Displays the Games Main Menu
@@ -195,6 +231,20 @@ public:
 	* @return: void
 	********************/
 	void DisplayOptionsMenu();
+
+	/***********************
+	* DisplayGameLobby: Displays the Games Lobby
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplayGameLobby();
+
+	/***********************
+	* DisplaySelectServer: Displays the Select a Server menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplaySelectServer();
 
 	// #Packets
 	/***********************
@@ -265,6 +315,7 @@ private:
 	int m_iMouseX;
 	int m_iMouseY;
 	bool m_bLeftMouseClick;
+	bool m_bTextInput;
 
 	// Client Network Variables
 	bool m_bNetworkOnline;
@@ -275,9 +326,16 @@ private:
 	std::thread m_ReceiveThread;
 	std::queue<ServerToClient>* m_pWorkQueue;
 
-	// Client User
+	// Users
 	std::string m_strUserName;
-	bool m_bCreatingUserforHost;
+	std::string m_strServerHost;
+	eNetworkCommand m_eUserNameFailed;
+	std::vector<std::string>* m_pCurrentUsers;
+		
+	// Server Information
+	std::string m_strServerName;
+	std::vector<std::string>* m_pAvailableServers;
+	
 
 	// Graphics Variables
 	IRenderer* m_pRenderer;
