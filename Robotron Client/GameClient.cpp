@@ -154,7 +154,8 @@ bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 	m_bHost = false;
 
 	// Set User Information
-	m_pCurrentUsers = new std::vector<std::string>;
+	m_pCurrentUsers = new std::map<std::string, bool>;
+	m_bAlive = false;
 
 
 	return true;
@@ -194,7 +195,6 @@ void CGameClient::Process()
 	ProcessScreenState();
 
 	// Process all Packets in the Work Queue
-	// TO DO - Potentially limit to 1 - 3 packets per process loop
 	while (m_pWorkQueue->empty() == false)
 	{
 		m_pClientMutex->Wait();
@@ -247,7 +247,25 @@ void CGameClient::ProcessTextInput(WPARAM _wParam)
 		{
 			cInput = '_';
 		}
-		bAddLetter = true;
+		
+		// Determine which name to edit
+		if (m_eScreenState == STATE_CREATEUSER)
+		{
+			if (m_strUserName.length() < network::MAX_USERNAME_LENGTH - 1)
+			{
+				// Add letter if Username isnt at length limit
+				bAddLetter = true;
+			}
+		}
+		else if (m_eScreenState == STATE_CREATE_SERVERNAME)
+		{
+			if (m_strServerName.length() < network::MAX_SERVERNAME_LENGTH - 1)
+			{
+				// Add letter if Server name isnt at length limit
+				bAddLetter = true;
+			}
+		}
+
 	}
 	else if (cInput == 8)	// backspace
 	{
@@ -289,10 +307,10 @@ void CGameClient::ProcessTextInput(WPARAM _wParam)
 
 				// Start the Server executable running
 				std::string strOpenParameters = m_strUserName + " " + m_strServerName;
-				int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_NORMAL));
+				//int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_NORMAL));
 
 				Sleep(50);
-				CreateCommandPacket(QUERY_HOST);
+				CreateCommandPacket(QUERY_HOST, m_strServerName);
 				m_pClientNetwork->BroadcastToServers(m_pClientToServer);
 
 				m_strServerHost = m_strUserName;
@@ -305,7 +323,6 @@ void CGameClient::ProcessTextInput(WPARAM _wParam)
 			CreateCommandPacket(CREATEUSER);
 			m_pClientNetwork->SendPacket(m_pClientToServer);
 			Sleep(50);
-			//m_eScreenState = STATE_GAME_LOBBY;
 		}
 		return;
 	}
@@ -332,22 +349,27 @@ void CGameClient::ProcessPacket()
 	{
 		//Process a command code
 		eNetworkCommand eProcessCommand = m_pPacketToProcess->eCommand;
+
+		// Reply from the server when you have successfully gained control as the host
 		if (eProcessCommand == HOST_SERVER)
 		{
-			m_pCurrentUsers->push_back(m_strUserName);
+			InsertUser(m_strUserName);
 		}
+		// Reply when a server is saying they are available for connection
 		else if (eProcessCommand == SERVER_CONNECTION_AVAILABLE)
 		{
-			m_pAvailableServers->push_back(m_pPacketToProcess->cUserName);
+			m_pAvailableServers->push_back(m_pPacketToProcess->cServerName);
 
 			return;
 		}
+		// Reply when accepted into a server
 		else if (eProcessCommand == CREATEUSER_ACCEPTED)
 		{
-			m_pCurrentUsers->push_back(m_strUserName);
+			InsertUser(m_strUserName);
 			m_eUserNameFailed = eProcessCommand;
 			m_eScreenState = STATE_GAME_LOBBY;	
 		}
+		// Reply if the chosen username is already in use on that server
 		else if (eProcessCommand == CREATEUSER_NAMEINUSE)
 		{
 			// Username was already in use. Wipe username and start again
@@ -355,39 +377,62 @@ void CGameClient::ProcessPacket()
 			m_eUserNameFailed = eProcessCommand;
 			m_eScreenState = STATE_CREATEUSER;
 		}
+		// Reply if the Server was full
 		else if (eProcessCommand == CREATEUSER_SERVERFULL)
 		{
 			// Server was full. Wipe username and start again
 			m_strUserName = "";
 			m_eUserNameFailed = eProcessCommand;
 			m_eScreenState = STATE_CREATEUSER;
-
-			// TO DO - allow back button so they can exit after getting this message
 		}
+		// Add a user that has joined the server
 		else if (eProcessCommand == USER_JOINED)
 		{
 			// Stop the User from adding themselves again
-			if (m_pPacketToProcess->cAdditionalMessage != m_strUserName)
+			if (m_pPacketToProcess->cUserName != m_strUserName)
 			{
-				m_pCurrentUsers->push_back(m_pPacketToProcess->cAdditionalMessage);
-				std::sort(m_pCurrentUsers->begin(), m_pCurrentUsers->end());
+				InsertUser(m_pPacketToProcess->cUserName);
 			}
 		}
+		// Delete users that have left
 		else if (eProcessCommand == USER_LEFT)
 		{
-			// Find the User in the list
-			for (unsigned int i = 0; i < m_pCurrentUsers->size(); i++)
-			{
-				if (m_pPacketToProcess->cAdditionalMessage == (*m_pCurrentUsers)[i])
-				{
-					// Delete the user
-					m_pCurrentUsers->erase(m_pCurrentUsers->begin() + i);
-				}
-			}
+			// Delete the User from the list
+			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
+
 		}
 		else if (eProcessCommand == YOUR_HOST)
 		{
-			m_strServerHost = m_pPacketToProcess->cAdditionalMessage;
+			m_strServerHost = m_pPacketToProcess->cUserName;
+		}
+		else if (eProcessCommand == ALIVE_SET)
+		{
+			// Get the boolean value
+			bool bAliveness = ((std::string)m_pPacketToProcess->cAdditionalMessage == "true") ? true : false;
+
+			// Check if the user in question is yourself
+			if (m_pPacketToProcess->cUserName == m_strUserName)
+			{
+				m_bAlive = bAliveness;
+			}
+
+			// Find the user
+			std::map<std::string, bool>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+			User->second = bAliveness;
+		}
+		// All users are ready. Start the Game
+		else if (eProcessCommand == START_GAME)
+		{
+			m_eScreenState = STATE_GAME_PLAY;
+		}
+		// The server has been terminated
+		else if (eProcessCommand == TERMINATE_SERVER)
+		{
+			// Process this message only if this is not a host
+			if (m_bHost == false)
+			{
+				m_eScreenState = STATE_TERMINATED_SERVER;
+			}
 		}
 	}
 	else
@@ -453,6 +498,11 @@ void CGameClient::ProcessScreenState()
 		ProcessGameLobby();
 		break;
 	}
+	case STATE_TERMINATED_SERVER:
+	{
+		ProcessTerminatedServer();
+		break;
+	}
 	
 	default: break;
 	}	// End Switch(m_eScreenState)
@@ -494,6 +544,8 @@ void CGameClient::ProcessCreateServer()
 
 void CGameClient::ProcessMainMenu()
 {
+	m_bHost = false;
+
 	if (m_strMenuSelection == "Single Player")
 	{
 		m_eScreenState = STATE_SINGLEPLAYER_MENU;
@@ -523,6 +575,8 @@ void CGameClient::ProcessSingleMenu()
 
 void CGameClient::ProcessMultiMenu()
 {
+	m_bHost = false;
+
 	if (m_strMenuSelection == "Host a Game")
 	{
 		m_bHost = true;
@@ -559,8 +613,28 @@ void CGameClient::ProcessGameLobby()
 {
 	if (m_strMenuSelection == "Exit")
 	{
-		// TO DO - send exit user to server
 		m_eScreenState = STATE_MAIN_MENU;
+
+		if (m_bHost == true)
+		{
+			CreateCommandPacket(TERMINATE_SERVER);
+			m_pClientNetwork->SendPacket(m_pClientToServer);
+		}
+		else
+		{
+			CreateCommandPacket(LEAVE_SERVER);
+			m_pClientNetwork->SendPacket(m_pClientToServer);
+		}
+	}
+	else if (m_strMenuSelection == "I am Ready!")
+	{
+		CreateCommandPacket(ALIVE_SET, "true");
+		m_pClientNetwork->SendPacket(m_pClientToServer);
+	}
+	else if (m_strMenuSelection == "Actually I'm not ready!")
+	{
+		CreateCommandPacket(ALIVE_SET, "false");
+		m_pClientNetwork->SendPacket(m_pClientToServer);
 	}
 }
 
@@ -578,7 +652,6 @@ void CGameClient::ProcessSelectServer()
 	}
 	else if (m_strMenuSelection == "Back")
 	{
-		// TO DO - send exit user to server
 		m_eScreenState = STATE_MULTIPLAYER_MENU;
 	}
 	
@@ -601,6 +674,15 @@ void CGameClient::ProcessSelectServer()
 	
 }
 
+void CGameClient::ProcessTerminatedServer()
+{
+	if (m_strMenuSelection == "Back to Main Menu")
+	{
+		m_eScreenState = STATE_MAIN_MENU;
+	}
+}
+
+
 
 
 void CGameClient::Draw()
@@ -611,8 +693,6 @@ void CGameClient::Draw()
 	{
 		case STATE_GAME_PLAY:
 		{
-			CreateDataPacket();
-			m_pClientNetwork->SendPacket(m_pClientToServer);
 		
 			break;
 		}
@@ -659,6 +739,11 @@ void CGameClient::Draw()
 		case STATE_GAME_LOBBY:
 		{
 			DisplayGameLobby();
+			break;
+		}
+		case STATE_TERMINATED_SERVER:
+		{
+			DisplayTerminatedServer();
 			break;
 		}
 		
@@ -888,18 +973,28 @@ void CGameClient::DisplayGameLobby()
 
 	iYpos += 40;
 	m_pRenderer->RenderText(false, m_iMouseY, "  Current Users", (iYpos += 30), SCREEN_FONT, defaultColor, true);
-	for (unsigned int i = 0; i < m_pCurrentUsers->size(); i++)
+	
+
+	std::map<std::string, bool>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
+
+	while (iterUsersCurrent != m_pCurrentUsers->end())
 	{
-		if (i == 0)
+		if (iterUsersCurrent == m_pCurrentUsers->begin())
 		{
 			// Don't move the text down by the full 60 the first time
 			iYpos -= 30;
 		}
-		m_pRenderer->RenderText(false, m_iMouseY, (*m_pCurrentUsers)[i], (iYpos += 60), MENU_FONT, defaultColor, true);
+		m_pRenderer->RenderText(false, m_iMouseY, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, defaultColor, true);
+		D3DXCOLOR colorReady = (iterUsersCurrent->second == true) ? defaultColor : (0xff440000);
+		m_pRenderer->RenderText(false, m_iMouseY, "Ready", (iYpos), MENU_FONT, colorReady, false);
+
+		iterUsersCurrent++;
 	}
 
-	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos), MENU_FONT, defaultColor, false);
+	iYpos = m_iScreenHeight - 150;
+	std::string strReadyState = (m_bAlive == true) ? ("Actually I'm not ready!") : ("I am Ready!");
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, strReadyState, (iYpos), MENU_FONT, defaultColor, false);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos += 60), MENU_FONT, defaultColor, false);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -957,6 +1052,39 @@ void CGameClient::DisplaySelectServer()
 	
 }
 
+void CGameClient::DisplayTerminatedServer()
+{
+	int iYpos = 0;
+	D3DXCOLOR defaultColor = 0xffff0000;
+	std::string strSelection = "";
+
+	// Render the Backbuffer to Black
+	m_pRenderer->RenderColor(0xff000000);
+
+	// Print the Title Text
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
+
+	// Print the Menu Options
+	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server has been terminated", (iYpos += 30), SCREEN_FONT, defaultColor, false);
+
+	iYpos = m_iScreenHeight - 100;
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back to Main Menu", (iYpos += 30), MENU_FONT, defaultColor, false);
+
+	// Change the MenuSelection Variable to the menu enum
+	if (m_bLeftMouseClick == true)
+	{
+		m_strMenuTempSelection = strSelection;
+	}
+	else
+	{
+		m_strMenuTempSelection = "";
+	}
+}
+
 // #Packets
 bool CGameClient::CreateDataPacket()
 {
@@ -966,6 +1094,10 @@ bool CGameClient::CreateDataPacket()
 
 bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand)
 {
+	// Clear out the memory of the Data Packet to stop old data being sent
+	//m_pClientToServer = {};
+	//ZeroMemory(&m_pClientToServer, sizeof(m_pClientToServer));
+
 	// Change the Packet Data to contain a Command
 	m_pClientToServer->bCommand = true;
 
@@ -981,11 +1113,37 @@ bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand)
 	return true;
 }
 
+bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage)
+{
+	// Create a general command packet
+	CreateCommandPacket(_eCommand);
+
+	// Add the additional meesage
+	if (!(StringToStruct(_strMessage.c_str(), m_pClientToServer->cAdditionalMessage)))
+	{
+		return false;	// Data invalid - Data Packet failed to create
+	}
+
+	return true;
+}
+
 // #Extras
 bool CGameClient::StringToStruct(const char* _pcData, char* _pcStruct)
 {
+	unsigned int iMaxLength;
+	// Determine the maximum amount of characters that can be copied
+	// based on the memory address that it is going to be writing to
+	if (*(&m_pClientToServer->cUserName) == *(&_pcStruct))
+	{
+		iMaxLength = network::MAX_USERNAME_LENGTH;
+	}
+	else if (*(&m_pClientToServer->cAdditionalMessage) == *(&_pcStruct))
+	{
+		iMaxLength = network::MAX_CHAR_LENGTH;
+	}
+
 	// Ensure no buffer overrun will occur when copying directly to memory
-	if ((strlen(_pcData) + 1) < network::MAX_CHAR_LENGTH)
+	if ((strlen(_pcData) + 1) <= (iMaxLength))
 	{
 		// Copy the characters into the struct
 		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);
@@ -1017,3 +1175,8 @@ void CGameClient::ChangeMenuSelection()
 	//m_strMenuSelection = m_eMenuTempSelection;
 }
 
+void CGameClient::InsertUser(std::string _strUser)
+{
+	std::pair<std::string, bool> pairUser(_strUser, false);
+	m_pCurrentUsers->insert(pairUser);
+}

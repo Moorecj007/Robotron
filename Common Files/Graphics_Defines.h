@@ -48,6 +48,8 @@ enum eScreenState
 	STATE_GAME_LOBBY,
 	STATE_SELECT_SERVER,
 
+	STATE_TERMINATED_SERVER,
+
 	// During Gameplay
 	STATE_GAME_PLAY
 };

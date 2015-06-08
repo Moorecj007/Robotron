@@ -29,6 +29,15 @@
 class CGameServer
 {
 public:
+
+	enum eServerState
+	{
+		STATE_LOBBY,
+		STATE_GAMEPLAY
+	};
+
+
+
 	// Constructors / Destructors
 
 	/***********************
@@ -121,13 +130,23 @@ public:
 	bool CreateCommandPacket(eNetworkCommand _command);
 
 	/***********************
-	* CreateCommandPacket: Create a Packet that sends a command with an additional message
+	* CreateCommandPacket: Create a Packet that sends a command with an Client Username attached 
 	* @author: Callan Moore
 	* @parameter: _command: The command to send
-	* @parameter: _strMessage: Additional Message
+	* @parameter: _strUserName: A user name of a client
 	* @return: bool: Successful creation of Data Packet (or not)
 	********************/
-	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage);
+	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName);
+
+	/***********************
+	* CreateCommandPacket: Create a Packet that sends a command with an Client Username attached
+	* @author: Callan Moore
+	* @parameter: _command: The command to send
+	* @parameter: _strUserName: A user name of a client
+	* @parameter: _strMessage: Additional information needed
+	* @return: bool: Successful creation of Data Packet (or not)
+	********************/
+	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName, std::string _strMessage);
 
 	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
@@ -147,12 +166,20 @@ public:
 	void ReceiveDataFromNetwork(ClientToServer* _pReceiveData);
 
 	/***********************
-	* WideStringToString: Converts a cide char string into a standard string
+	* WideStringToString: Converts a wide char string into a standard string
 	* @author: Callan Moore
 	* @parameter: _wstr: Wide character string to convert
 	* @return: std::string: The input as a standard string
 	********************/
 	std::string WideStringToString(wchar_t* _wstr);
+
+	/***********************
+	* InsertUser: Insert a new user into the Map
+	* @author: Callan Moore
+	* @parameter: _strUser: The username of the user to add
+	* @return: bool: True if the user can be added, false if the user cannot
+	********************/
+	bool InsertUser(std::string _strUser);
 
 
 private:
@@ -177,6 +204,7 @@ private:
 
 	// Server Network Variables
 	bool m_bNetworkOnline;
+	eServerState m_eServerState;
 	CServer* m_pServerNetwork;
 	ClientToServer* m_pClientToServer;
 	ClientToServer* m_pPacketToProcess;
@@ -190,7 +218,7 @@ private:
 	bool m_bRepliedToHost;
 
 	// Server Users
-	std::vector<std::string>* m_pVecUsers;
+	std::map < std::string, bool>* m_pCurrentUsers;
 
 	
 };

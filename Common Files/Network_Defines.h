@@ -61,7 +61,12 @@ enum eNetworkCommand
 
 	USER_JOINED,
 	USER_LEFT,
-	YOUR_HOST
+	YOUR_HOST,
+	LEAVE_SERVER,
+
+	ALIVE_SET,
+
+	START_GAME
 };
 
 // Structs
@@ -71,15 +76,17 @@ struct ClientToServer
 	bool bCommand;
 	eNetworkCommand eCommand;
 	char cUserName[network::MAX_USERNAME_LENGTH];
-	//char cAdditionalCommandMessage[network::MAX_CHAR_LENGTH];
+	char cAdditionalMessage[network::MAX_CHAR_LENGTH];
 };
 
 struct ServerToClient
 {
 	bool bCommand;
 	eNetworkCommand eCommand;
-	char cUserName[network::MAX_USERNAME_LENGTH];
+	char cServerName[network::MAX_SERVERNAME_LENGTH];
 	char cAdditionalMessage[network::MAX_CHAR_LENGTH];
+	char cUserName[network::MAX_USERNAME_LENGTH];
 };
+
 
 #endif //__NETWORKDEFINES_H__

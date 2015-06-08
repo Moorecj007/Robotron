@@ -204,7 +204,7 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 		}
 		else if (eCommand == SERVER_CONNECTION_AVAILABLE)
 		{
-			std::pair<std::string, sockaddr_in> pairServer(_pReceivePacket->cUserName, receivedSockAddr);
+			std::pair<std::string, sockaddr_in> pairServer(_pReceivePacket->cServerName, receivedSockAddr);
 			m_pAvailableServers->insert(pairServer);
 
 		}

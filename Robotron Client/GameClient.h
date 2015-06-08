@@ -197,6 +197,13 @@ public:
 	void ProcessSelectServer();
 
 	/***********************
+	* ProcessTerminatedServer: Process information for the Terminated server screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessTerminatedServer();
+
+	/***********************
 	* Draw: Draws all the game world
 	* @author: Callan Moore
 	* @return: void
@@ -260,6 +267,13 @@ public:
 	********************/
 	void DisplaySelectServer();
 
+	/***********************
+	* DisplayTerminatedServer: Displays the Terminated Server menu
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplayTerminatedServer();
+
 	// #Packets
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
@@ -275,6 +289,14 @@ public:
 	* @return: bool: Successful creation of Data Packet (or not)
 	********************/
 	bool CreateCommandPacket(eNetworkCommand _command);
+
+	/***********************
+	* CreateCommandPacket: Create a Packet that sends a command
+	* @author: Callan Moore
+	* @parameter: _command: The command to Send
+	* @return: bool: Successful creation of Data Packet (or not)
+	********************/
+	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage);
 
 	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
@@ -299,6 +321,14 @@ public:
 	* @return: void
 	********************/
 	void ChangeMenuSelection();
+
+	/***********************
+	* InsertUser: Creates a pair for a new user and adds them to the clientside map
+	* @author: Callan Moore
+	* @parameter: _strUser: String of the new users username
+	* @return: void: 
+	********************/
+	void InsertUser(std::string _strUser);
 
 private:
 	//Disallowing copies and extra constructions
@@ -346,9 +376,10 @@ private:
 
 	// Users
 	std::string m_strUserName;
+	bool m_bAlive;
 	std::string m_strServerHost;
 	eNetworkCommand m_eUserNameFailed;
-	std::vector<std::string>* m_pCurrentUsers;
+	std::map<std::string, bool>* m_pCurrentUsers;
 		
 	// Server Information
 	std::string m_strServerName;

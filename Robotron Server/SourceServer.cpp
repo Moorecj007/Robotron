@@ -146,7 +146,6 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	LPWSTR* wstrArgList;
 	int iArgCount;
 	wstrArgList = CommandLineToArgvW(GetCommandLine(), &iArgCount);
-	//wchar_t* wstrHostUser = strArgList[1];
 
 	// Create the Game Object
 	CGameServer& rGameInstance = CGameServer::GetInstance();

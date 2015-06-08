@@ -154,9 +154,14 @@ bool CServer::SendPacket(std::string _strUserName, ServerToClient* _pSendPacket)
 	// Delete users from the Network list if they were rejected for any reason
 	if ((_pSendPacket->eCommand == CREATEUSER_SERVERFULL)
 		|| (_pSendPacket->eCommand == NOT_HOST)
-		|| (_pSendPacket->eCommand == SERVER_CONNECTION_AVAILABLE))
+		|| (_pSendPacket->eCommand == SERVER_CONNECTION_AVAILABLE)
+		|| (_pSendPacket->eCommand == USER_LEFT))
 	{
-		m_pServerUsers->erase(_pSendPacket->cUserName);
+		if ((std::string)(_pSendPacket->cUserName) == "Cal")
+		{
+			int i = 0; // TO DO
+		}
+		m_pServerUsers->erase(_strUserName);
 	}
 
 	ServerToClient PacketToSend = *_pSendPacket;
