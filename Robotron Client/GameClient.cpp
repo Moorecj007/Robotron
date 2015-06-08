@@ -339,8 +339,6 @@ void CGameClient::ProcessTextInput(WPARAM _wParam)
 			m_strServerName += cInput;
 		}
 	}
-
-	int i = 0;
 }
 
 void CGameClient::ProcessPacket()
