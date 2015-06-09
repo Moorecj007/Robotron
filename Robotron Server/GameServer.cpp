@@ -222,7 +222,8 @@ void CGameServer::ProcessPacket()
 					if (m_bRepliedToHost == false)
 					{
 						CreateCommandPacket(HOST_SERVER);
-						m_pServerNetwork->SendPacket(strCheckHost, m_pServerToClient);
+						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						m_pServerNetwork->AddClientAddr(strCheckHost, m_pPacketToProcess->ClientAddr);
 						m_bRepliedToHost = true;
 					}
 				}
@@ -230,7 +231,7 @@ void CGameServer::ProcessPacket()
 				else
 				{
 					CreateCommandPacket(NOT_HOST);
-					m_pServerNetwork->SendPacket(strCheckHost, m_pServerToClient);
+					m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 				}
 			}
 			return;
@@ -243,7 +244,7 @@ void CGameServer::ProcessPacket()
 			{
 				// return message saying this server is available
 				CreateCommandPacket(SERVER_CONNECTION_AVAILABLE, m_strHostUser);
-				m_pServerNetwork->SendPacket(m_pPacketToProcess->cUserName, m_pServerToClient);
+				m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 			}
 			return;
 		}
@@ -264,7 +265,8 @@ void CGameServer::ProcessPacket()
 					{
 						// If the User was successfully added send back that they were accepted
 						CreateCommandPacket(CREATEUSER_ACCEPTED);
-						m_pServerNetwork->SendPacket(strUser, m_pServerToClient);
+						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						m_pServerNetwork->AddClientAddr(strUser, m_pPacketToProcess->ClientAddr);
 
 						// Send to all current users that a user has joined with their details
 						CreateCommandPacket(USER_JOINED, (std::string)m_pPacketToProcess->cUserName);
@@ -272,20 +274,20 @@ void CGameServer::ProcessPacket()
 
 						// Send the new user the name of the Host user
 						CreateCommandPacket(YOUR_HOST, m_strHostUser);
-						m_pServerNetwork->SendPacket(m_pPacketToProcess->cUserName, m_pServerToClient);
+						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 					}
 					else
 					{
 						// If the Insert failed then the username was already in use
 						CreateCommandPacket(CREATEUSER_NAMEINUSE);
-						m_pServerNetwork->SendPacket(strUser, m_pServerToClient);
+						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 					}
 				}
 				else
 				{
 					// reply to the user that the server is currently full
 					CreateCommandPacket(CREATEUSER_SERVERFULL);
-					m_pServerNetwork->SendPacket(m_strHostUser, m_pServerToClient);
+					m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 				}
 			}	
 
@@ -297,6 +299,7 @@ void CGameServer::ProcessPacket()
 			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
 
 			CreateCommandPacket(USER_LEFT, m_pPacketToProcess->cUserName);
+			m_pServerNetwork->RemoveClientAddr(m_pPacketToProcess->cUserName);
 			m_pServerNetwork->SendPacket(m_pServerToClient);
 
 			return;

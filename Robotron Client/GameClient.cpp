@@ -488,12 +488,7 @@ void CGameClient::ProcessPacket()
 		// The server has been terminated
 		else if (eProcessCommand == TERMINATE_SERVER)
 		{
-			// Process this message only if this is not a host
-			if (m_bHost == false)
-			{
-				m_eScreenState = STATE_TERMINATED_SERVER;
-			}
-			else if ( m_pPacketToProcess->cUserName == m_strUserName)
+			if (m_eScreenState != STATE_MAIN_MENU)
 			{
 				m_eScreenState = STATE_TERMINATED_SERVER;
 			}
@@ -639,6 +634,8 @@ void CGameClient::ProcessSingleMenu()
 
 void CGameClient::ProcessMultiMenu()
 {
+	m_eUserNameFailed = ERROR_COMMAND;
+
 	if (m_strMenuSelection == "Host a Game")
 	{
 		m_bHost = true;
@@ -705,6 +702,8 @@ void CGameClient::ProcessGameLobby()
 
 void CGameClient::ProcessSelectServer()
 {
+	m_eUserNameFailed = ERROR_COMMAND;
+
 	// Check if a server was selected
 	if (m_iServerIndex != -1)
 	{
@@ -825,36 +824,34 @@ void CGameClient::Draw()
 void CGameClient::CreateUserName()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Create a User Name", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	iYpos = PrintFullTitle(iYpos);
+	m_pRenderer->RenderText(false, m_iMouseY, "Create a User Name", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	if (m_eUserNameFailed == CREATEUSER_NAMEINUSE)
 	{
-		m_pRenderer->RenderText(false, m_iMouseY, "Username already in use. Try again", (iYpos += 80), SCREEN_FONT, defaultColor, H_CENTER);
+		m_pRenderer->RenderText(false, m_iMouseY, "Username already in use. Try again", (iYpos += 80), SCREEN_FONT, colorRed, H_CENTER);
 	}
 	else if (m_eUserNameFailed == CREATEUSER_SERVERFULL)
 	{
-		m_pRenderer->RenderText(false, m_iMouseY, "Server is currently full. You may try again or exit", (iYpos += 80), SCREEN_FONT, defaultColor, H_CENTER);
+		m_pRenderer->RenderText(false, m_iMouseY, "Server is currently full. You may try again or exit", (iYpos += 80), SCREEN_FONT, colorRed, H_CENTER);
 	}
 	else
 	{
 		iYpos += 80;
 	}
 
-	m_pRenderer->RenderText(false, m_iMouseY, m_strUserName, (iYpos += 70), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, m_strUserName, (iYpos += 70), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, H_CENTER);
+	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -870,23 +867,21 @@ void CGameClient::CreateUserName()
 void CGameClient::CreateServerName()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Name your Server", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	iYpos = PrintFullTitle(iYpos);
+	m_pRenderer->RenderText(false, m_iMouseY, "Name your Server", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
-	m_pRenderer->RenderText(false, m_iMouseY, m_strServerName, (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, m_strServerName, (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, H_CENTER);
+	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -902,25 +897,23 @@ void CGameClient::CreateServerName()
 void CGameClient::DisplayMainMenu()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
-	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Main Menu", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	// Print the Title
+	iYpos = PrintFullTitle(iYpos);
+	m_pRenderer->RenderText(false, m_iMouseY, "Main Menu", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Single Player", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Multiplayer", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Instructions", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Options", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit Game", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Single Player", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Multiplayer", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Instructions", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Options", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -936,23 +929,21 @@ void CGameClient::DisplayMainMenu()
 void CGameClient::DisplayMultiplayerMenu()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Multiplayer", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	iYpos = PrintFullTitle(iYpos);
+	m_pRenderer->RenderText(false, m_iMouseY, "Multiplayer", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Host a Game", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Join a Game", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Host a Game", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Join a Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -968,22 +959,20 @@ void CGameClient::DisplayMultiplayerMenu()
 void CGameClient::DisplayInstructionsMenu()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Instructions", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	iYpos = PrintFullTitle(iYpos);
+	m_pRenderer->RenderText(false, m_iMouseY, "Instructions", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Input Instructions Here", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Input Instructions Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -999,22 +988,20 @@ void CGameClient::DisplayInstructionsMenu()
 void CGameClient::DisplayOptionsMenu()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Options", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
+	iYpos = PrintFullTitle(iYpos);
+	m_pRenderer->RenderText(false, m_iMouseY, "Options", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Input Options Here", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Input Options Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1030,20 +1017,21 @@ void CGameClient::DisplayOptionsMenu()
 void CGameClient::DisplayGameLobby()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "Game Lobby", (iYpos += 50), TITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Name : " + m_strServerName, (iYpos += 150), SCREEN_FONT, defaultColor, H_LEFT);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Host : " + m_strServerHost, (iYpos += 30), SCREEN_FONT, defaultColor, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Game Lobby", (iYpos += 50), TITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server Name : " + m_strServerName, (iYpos += 150), SCREEN_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server Host : " + m_strServerHost, (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
 
 	iYpos += 40;
-	m_pRenderer->RenderText(false, m_iMouseY, "  Current Users", (iYpos += 30), SCREEN_FONT, defaultColor, H_LEFT);
-	m_pRenderer->RenderText(false, m_iMouseY, "Status", (iYpos), SCREEN_FONT, defaultColor, H_RIGHT);
+	m_pRenderer->RenderText(false, m_iMouseY, "  Current Users", (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Status", (iYpos), SCREEN_FONT, colorRed, H_RIGHT);
 
 	std::map<std::string, UserInfo>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
 
@@ -1054,8 +1042,8 @@ void CGameClient::DisplayGameLobby()
 			// Don't move the text down by the full 60 the first time
 			iYpos -= 30;
 		}
-		m_pRenderer->RenderText(false, m_iMouseY, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, defaultColor, H_LEFT);
-		D3DXCOLOR colorReady = (iterUsersCurrent->second.bAlive == true) ? defaultColor : (0xff440000);
+		m_pRenderer->RenderText(false, m_iMouseY, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, colorRed, H_LEFT);
+		D3DXCOLOR colorReady = (iterUsersCurrent->second.bAlive == true) ? colorRed : (0xff440000);
 		m_pRenderer->RenderText(false, m_iMouseY, "Ready", (iYpos), MENU_FONT, colorReady, H_RIGHT);
 
 		iterUsersCurrent++;
@@ -1063,8 +1051,8 @@ void CGameClient::DisplayGameLobby()
 
 	iYpos = m_iScreenHeight - 150;
 	std::string strReadyState = (m_bAlive == true) ? ("Actually I'm not ready!") : ("I am Ready!");
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, strReadyState, (iYpos), MENU_FONT, defaultColor, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, strReadyState, (iYpos), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1080,7 +1068,8 @@ void CGameClient::DisplayGameLobby()
 void CGameClient::DisplaySelectServer()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 	int iServerIndex = -1;
 
@@ -1088,13 +1077,13 @@ void CGameClient::DisplaySelectServer()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "Available Servers", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Available Servers", (iYpos += 50), SUBTITLE_FONT, colorRed, H_CENTER);
 	iYpos += 120;
 
 	// Print the Headings
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Name", (iYpos += 40), MENU_FONT, defaultColor, H_LEFT);
-	m_pRenderer->RenderText(false, m_iMouseY, "Host", (iYpos), MENU_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Users", (iYpos), MENU_FONT, defaultColor, H_RIGHT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server Name", (iYpos += 40), MENU_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Host", (iYpos), MENU_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Users", (iYpos), MENU_FONT, colorRed, H_RIGHT);
 
 	iYpos += 50;
 
@@ -1104,10 +1093,27 @@ void CGameClient::DisplaySelectServer()
 		{
 			for (unsigned int i = 0; i < m_pAvailableServers->size(); i++)
 			{
-				// TO DO
-				strSelection += m_pRenderer->RenderText(true , m_iMouseY, (*m_pAvailableServers)[i].cServerName, (iYpos += 30), SCREEN_FONT, defaultColor, H_LEFT);
-				m_pRenderer->RenderText(true, m_iMouseY, (*m_pAvailableServers)[i].cHostName, (iYpos), SCREEN_FONT, defaultColor, H_CENTER);
-				m_pRenderer->RenderText(true, m_iMouseY, std::to_string((*m_pAvailableServers)[i].iCurrentClients) + " / " + std::to_string(network::MAX_CLIENTS), (iYpos), SCREEN_FONT, defaultColor, H_RIGHT);
+				int iCurrentClients = (*m_pAvailableServers)[i].iCurrentClients;
+				std::string strCurrentClients;
+				bool bSelectable;
+				D3DCOLOR color;
+
+				if (iCurrentClients >= network::MAX_CLIENTS)
+				{
+					strCurrentClients = "FULL";
+					bSelectable = false;
+					color = colorRed;
+				}
+				else
+				{
+					strCurrentClients = std::to_string((*m_pAvailableServers)[i].iCurrentClients) + " / " + std::to_string(network::MAX_CLIENTS);
+					bSelectable = true;
+					color = colorWhite;
+				}
+
+				strSelection += m_pRenderer->RenderText(bSelectable, m_iMouseY, (*m_pAvailableServers)[i].cServerName, (iYpos += 30), SCREEN_FONT, color, H_LEFT);
+				m_pRenderer->RenderText(bSelectable, m_iMouseY, (*m_pAvailableServers)[i].cHostName, (iYpos), SCREEN_FONT, color, H_CENTER);
+				m_pRenderer->RenderText(bSelectable, m_iMouseY, strCurrentClients, (iYpos), SCREEN_FONT, color, H_RIGHT);
 
 				if (strSelection != "" && iServerIndex == -1)
 				{
@@ -1117,12 +1123,12 @@ void CGameClient::DisplaySelectServer()
 		}
 		else
 		{
-			m_pRenderer->RenderText(false, m_iMouseY, "No Servers are Currently Active", (iYpos += 300), SCREEN_FONT, defaultColor, H_CENTER);
+			m_pRenderer->RenderText(false, m_iMouseY, "No Servers are Currently Active", (iYpos += 300), SCREEN_FONT, colorRed, H_CENTER);
 		}
 	}
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1141,24 +1147,22 @@ void CGameClient::DisplaySelectServer()
 void CGameClient::DisplayTerminatedServer()
 {
 	int iYpos = 0;
-	D3DXCOLOR defaultColor = 0xffff0000;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	PrintFullTitle(iYpos);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, defaultColor, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server has been terminated", (iYpos += 30), SCREEN_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server has been terminated", (iYpos += 30), SCREEN_FONT, colorRed, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back to Main Menu", (iYpos += 30), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back to Main Menu", (iYpos += 30), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1169,6 +1173,17 @@ void CGameClient::DisplayTerminatedServer()
 	{
 		m_strMenuTempSelection = "";
 	}
+}
+
+int CGameClient::PrintFullTitle(int _iYpos)
+{
+	// Print the Title Text
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (_iYpos += 50), SUBTITLE_FONT, 0xff450000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (_iYpos += 80), TITLE_FONT, 0xff650000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (_iYpos += 100), TITLE_FONT, 0xff7c0000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (_iYpos += 100), TITLE_FONT, 0xffa50000, H_CENTER);
+
+	return _iYpos;
 }
 
 // #Packets

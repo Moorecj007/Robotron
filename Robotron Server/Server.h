@@ -20,6 +20,7 @@
 // Library Includes
 #include <map>
 
+
 // Local Includes
 #include "../Common Files/Network_Defines.h"
 
@@ -64,11 +65,11 @@ public:
 	/***********************
 	* SendPacket: Send a Data Packet to One Client for processing
 	* @author: Callan Moore
+	* @parameter: _clientAddr: The socket address of the client to send this data packet to
 	* @parameter: _pSendPacket: Data Packet structure to Send
-	* @parameter: _strUserName: The Username of the Client to send this Data packet to
 	* @return: bool: Successful Sending of the packet (or Not)
 	********************/
-	bool SendPacket(std::string _strUserName, ServerToClient* _pSendPacket);
+	bool SendPacket(sockaddr_in _clientAddr, ServerToClient* _pSendPacket);
 	
 	/***********************
 	* ReceivePacket: Receive a Data Packet from the client for processing
@@ -77,6 +78,23 @@ public:
 	* @return: bool: Successful if an actual Packet was received
 	********************/
 	bool ReceivePacket(ClientToServer* _pReceivePacket);
+	
+	/***********************
+	* AddClientAddr: Add a Client address to the networks map
+	* @author: Callan Moore
+	* @parameter: _strUser: The username of the client to add
+	* @parameter: _clientAddr: The socket address of the client to add
+	* @return: void
+	********************/
+	void AddClientAddr(std::string _strUser, sockaddr_in _clientAddr);
+
+	/***********************
+	* RemoveClientAddr: remove a Client address to the networks map
+	* @author: Callan Moore
+	* @parameter: _strUser: The username of the client to remove
+	* @return: void
+	********************/
+	void RemoveClientAddr(std::string _strUser);
 
 private:
 	//Disallowing copies and extra constructions
@@ -87,7 +105,7 @@ private:
 	SOCKET m_ServerSocket;
 	sockaddr_in m_ServerAddr;
 	sockaddr_in m_ClientAddr; 
-	std::map < std::string, sockaddr_in>* m_pServerUsers;
+	std::map<std::string,  sockaddr_in>* m_pServerUsers;
 	sockaddr_in m_FailedClientAddr;
 	sockaddr_in m_ClientRequest;
 

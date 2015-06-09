@@ -37,8 +37,6 @@ public:
 		STATE_GAMEPLAY
 	};
 
-
-
 	// Constructors / Destructors
 
 	/***********************
@@ -209,13 +207,10 @@ private:
 	bool m_bRepliedToHost;
 
 	// Server Users
-	std::map < std::string, UserInfo>* m_pCurrentUsers;
+	std::map<std::string, UserInfo>* m_pCurrentUsers;
 
 	// Gameplay Containers
 	D3DXVECTOR3 m_v3TerrainPos;
-	
-
-	
 };
 
 #endif //__GAMESERVER_H__

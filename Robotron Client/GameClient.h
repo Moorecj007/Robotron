@@ -290,6 +290,14 @@ public:
 	********************/
 	void DisplayTerminatedServer();
 
+	/***********************
+	* PrintFullTitle: Print the full title
+	* @author: Callan Moore
+	* @parameter: _iYpos: The starting Y coordinate for the Text
+	* @return: int: The current yPos after printing the title
+	********************/
+	int PrintFullTitle(int _iYpos);
+
 	// #Packets
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
