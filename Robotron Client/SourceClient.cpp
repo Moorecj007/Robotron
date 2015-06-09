@@ -29,7 +29,7 @@
 
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
-	//#include "vld.h"
+	#include "vld.h"
 	#define D3D_DEBUG_INFO
 #endif // _DEBUG
 

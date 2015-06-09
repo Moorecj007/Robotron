@@ -110,13 +110,6 @@ void CGameClient::SetMousePos(int _iX, int _iY)
 
 bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 {
-	// TO DO - remove
-	LPRECT clientRect = new RECT;
-	LPRECT windowRect = new RECT;
-	GetClientRect(_hWnd, clientRect);
-	GetWindowRect(_hWnd, windowRect);
-
-
 	// Populate window variables
 	m_hWnd = _hWnd;
 	m_iScreenWidth = _iScreenWidth;
@@ -1155,7 +1148,7 @@ void CGameClient::DisplayTerminatedServer()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	PrintFullTitle(iYpos);
+	iYpos = PrintFullTitle(iYpos);
 
 	// Print the Menu Options
 	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, colorRed, H_CENTER);
