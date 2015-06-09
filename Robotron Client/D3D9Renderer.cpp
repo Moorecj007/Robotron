@@ -677,20 +677,31 @@ int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 	return m_iNextMaterialKey;
 }
 
-std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft)
+std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH)
 {
 	ID3DXFont* pFont;
 	DWORD dwAllignment;
 	std::string strSelection;
 
-	if (_bAllignLeft == true)
+	switch (_eAllignmentH)
 	{
-		dwAllignment = DT_LEFT | DT_SINGLELINE | DT_VCENTER;
-	}
-	else
-	{
-		dwAllignment  = DT_CENTER | DT_SINGLELINE | DT_VCENTER;
-	}
+		case H_LEFT:
+		{
+			dwAllignment = DT_LEFT | DT_VCENTER | DT_SINGLELINE;
+			break;
+		}
+		case H_CENTER:
+		{
+			dwAllignment = DT_CENTER | DT_VCENTER | DT_SINGLELINE;
+			break;
+		}
+		case H_RIGHT:
+		{
+			dwAllignment = DT_RIGHT | DT_VCENTER | DT_SINGLELINE;
+			break;
+		}
+	}	// End Switch (_eAllignment)
+
 
 	// Get pointer to the correct font
 	switch (_font)
@@ -712,7 +723,7 @@ std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::stri
 		}
 		case SCREEN_FONT:
 		{
-			pFont = m_pScreenFont;	
+			pFont = m_pScreenFont;
 			break;
 		}
 		default:
@@ -720,10 +731,11 @@ std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::stri
 			pFont = m_pScreenFont;
 			break;
 		}
-	}
+	} // End Switch (_font)
+
 	// Create a rect based on the string and font type in relation to the Y position
 	RECT rect = RectfromString(_iYpos, _str, pFont);
-	
+
 	// If the string is selectable
 	if (_bSelectable == true)
 	{
@@ -737,14 +749,14 @@ std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::stri
 		}
 
 	}
-	
+
 	// Draw the Text
-	pFont->DrawTextA(	NULL,
-						_str.c_str(),
-						-1,
-						&rect,
-						dwAllignment,
-						_color);
+	pFont->DrawTextA(NULL,
+		_str.c_str(),
+		-1,
+		&rect,
+		dwAllignment,
+		_color);
 
 	return strSelection;
 }

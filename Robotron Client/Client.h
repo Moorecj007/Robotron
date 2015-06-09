@@ -78,10 +78,17 @@ public:
 	/***********************
 	* SelectServer: Set the server on the network to the chosen server
 	* @author: Callan Moore
-	* @parameter: _pReceivePacket: Data Packet structure to receive/store incoming data packets
+	* @parameter: _ServerAddr: A server Address
 	* @return: bool: Successful if an actual Packet was received
 	********************/
-	void SelectServer(std::string _strServerName);
+	void SelectServer(sockaddr_in _ServerAddr);
+
+	/***********************
+	* Reset: Reset values set for a specific server
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void Reset();
 
 
 private:
@@ -96,8 +103,6 @@ private:
 	char* m_cReceiveData;
 	char* m_cSendData;
 
-	std::map<std::string, sockaddr_in>* m_pAvailableServers;
 	sockaddr_in m_ServerAddr;
-
 };
 #endif //__CLIENTNETWORK_H__

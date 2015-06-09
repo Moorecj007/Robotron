@@ -25,6 +25,7 @@
 #include "Server.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/MySemaphore.h"
+#include "../Common Files/Graphics_Defines.h"
 
 class CGameServer
 {
@@ -139,23 +140,14 @@ public:
 	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName);
 
 	/***********************
-	* CreateCommandPacket: Create a Packet that sends a command with an Client Username attached
-	* @author: Callan Moore
-	* @parameter: _command: The command to send
-	* @parameter: _strUserName: A user name of a client
-	* @parameter: _strMessage: Additional information needed
-	* @return: bool: Successful creation of Data Packet (or not)
-	********************/
-	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName, std::string _strMessage);
-
-	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
 	* @author: Callan Moore
 	* @parameter: _pcData: Char array to input into the struct
 	* @parameter: _pcStruct: Struct property to receive char array
+	* @parameter: _iMaxLength: Maximum allowed length of the data to copy
 	* @return: bool: Successful copy (or Not)
 	********************/
-	bool StringToStruct(const char* _pcData, char* _pcStruct);
+	bool StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength);
 
 	/***********************
 	* ReceiveDataFromNetwork: Thread to receive data from the network
@@ -196,7 +188,6 @@ private:
 	// Singleton Instance
 	static CGameServer* s_pGame;
 
-
 	// Window Variables
 	HWND m_hWnd;
 	int m_iScreenWidth;
@@ -218,7 +209,11 @@ private:
 	bool m_bRepliedToHost;
 
 	// Server Users
-	std::map < std::string, bool>* m_pCurrentUsers;
+	std::map < std::string, UserInfo>* m_pCurrentUsers;
+
+	// Gameplay Containers
+	D3DXVECTOR3 m_v3TerrainPos;
+	
 
 	
 };

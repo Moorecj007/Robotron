@@ -71,22 +71,60 @@ enum eNetworkCommand
 
 // Structs
 
+struct AvailableServer
+{
+	char cServerName[network::MAX_SERVERNAME_LENGTH];
+	char cHostName[network::MAX_USERNAME_LENGTH];
+	int iCurrentClients;
+	sockaddr_in ServerAddr;
+};
+
+struct UserInfo
+{
+	char cUserName[network::MAX_USERNAME_LENGTH];
+	bool bAlive;
+	float fPosX;
+	float fPosY;
+	float fPosZ;
+};
+
+struct EnemyInfo
+{
+
+};
+
+struct PowerUpInfo
+{
+
+};
+
 struct ClientToServer
 {
 	bool bCommand;
 	eNetworkCommand eCommand;
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	char cAdditionalMessage[network::MAX_CHAR_LENGTH];
+
+	// Gameplay Information
+	//
 };
 
 struct ServerToClient
 {
+	sockaddr_in ServerAddr;
+
 	bool bCommand;
 	eNetworkCommand eCommand;
 	char cServerName[network::MAX_SERVERNAME_LENGTH];
-	char cAdditionalMessage[network::MAX_CHAR_LENGTH];
 	char cUserName[network::MAX_USERNAME_LENGTH];
+	//char cAdditionalMessage[network::MAX_CHAR_LENGTH];
+
+	// Gameplay Information
+	int CurrentUserCount;
+	UserInfo UserInfos[network::MAX_CLIENTS];
 };
+
+
 
 
 #endif //__NETWORKDEFINES_H__

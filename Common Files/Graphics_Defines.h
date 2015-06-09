@@ -61,6 +61,12 @@ enum eFontType
 	MENU_FONT,
 	SCREEN_FONT
 };
+enum eAllignmentH
+{
+	H_LEFT,
+	H_CENTER,
+	H_RIGHT
+};
 
 enum eIGPrimitiveType
 {

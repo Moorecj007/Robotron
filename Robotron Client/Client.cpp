@@ -25,10 +25,6 @@ CClient::~CClient()
 	// Free the char arrays on the heap memory
 	delete m_cReceiveData;
 	m_cReceiveData = 0;
-
-	// Delete the available servers list
-	delete m_pAvailableServers;
-	m_pAvailableServers = 0;
 }
 
 bool CClient::Initialise()
@@ -91,8 +87,6 @@ bool CClient::Initialise()
 
 	// Create char array for storing received data
 	m_cReceiveData = new char[sizeof(ServerToClient) + 1];
-
-	m_pAvailableServers = new std::map<std::string, sockaddr_in>;
 
 	// Binding was successful
 	return true;
@@ -172,7 +166,6 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 	int iSizeOfAddr = sizeof(receivedSockAddr);
 	int iBytesReceived = sizeof(ServerToClient) + 1;
 	
-
 	// Time out Value
 	struct timeval timeValue;
 	timeValue.tv_sec = 1;
@@ -195,31 +188,21 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 	// Convert char* back into data Packet struct
 	*_pReceivePacket = *(reinterpret_cast<ServerToClient*>(m_cReceiveData));
 
-	if (_pReceivePacket->bCommand == true)
-	{
-		eNetworkCommand eCommand = _pReceivePacket->eCommand;
-		if (eCommand == HOST_SERVER)
-		{
-			m_ServerAddr = receivedSockAddr;
-		}
-		else if (eCommand == SERVER_CONNECTION_AVAILABLE)
-		{
-			std::pair<std::string, sockaddr_in> pairServer(_pReceivePacket->cServerName, receivedSockAddr);
-			m_pAvailableServers->insert(pairServer);
+	_pReceivePacket->ServerAddr = receivedSockAddr;
 
-		}
-		
+	if (_pReceivePacket->bCommand == true && _pReceivePacket->eCommand == HOST_SERVER)
+	{
+			m_ServerAddr = receivedSockAddr;	
 	}
 	return true;
 }
 
-void CClient::SelectServer(std::string _strServerName)
+void CClient::SelectServer(sockaddr_in _ServerAddr)
 {
-	std::map<std::string, sockaddr_in>::iterator iterSelectedServer;
-	iterSelectedServer = m_pAvailableServers->find(_strServerName);
+	m_ServerAddr = _ServerAddr;
+}
 
-	if (iterSelectedServer != m_pAvailableServers->end())
-	{
-		m_ServerAddr = iterSelectedServer->second;
-	}
+void CClient::Reset()
+{
+	ZeroMemory(&m_ServerAddr, sizeof(m_ServerAddr));
 }

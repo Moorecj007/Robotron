@@ -31,9 +31,11 @@ CGameClient::~CGameClient()
 		// Send a Terminate command to the Server
 		CreateCommandPacket(TERMINATE_SERVER);
 		m_pClientNetwork->SendPacket(m_pClientToServer);
-		int i = 0;
 	}
 
+	// Send a left user packet - Invalid send if the user is not connected
+	CreateCommandPacket(LEAVE_SERVER);
+	m_pClientNetwork->SendPacket(m_pClientToServer);
 
 	// Turn the Network off so the Receive thread can exit
 	m_bNetworkOnline = false;
@@ -108,6 +110,13 @@ void CGameClient::SetMousePos(int _iX, int _iY)
 
 bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 {
+	// TO DO - remove
+	LPRECT clientRect = new RECT;
+	LPRECT windowRect = new RECT;
+	GetClientRect(_hWnd, clientRect);
+	GetWindowRect(_hWnd, windowRect);
+
+
 	// Populate window variables
 	m_hWnd = _hWnd;
 	m_iScreenWidth = _iScreenWidth;
@@ -154,7 +163,7 @@ bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 	m_bHost = false;
 
 	// Set User Information
-	m_pCurrentUsers = new std::map<std::string, bool>;
+	m_pCurrentUsers = new std::map<std::string, UserInfo>;
 	m_bAlive = false;
 
 
@@ -210,12 +219,85 @@ void CGameClient::Process()
 	m_strMenuSelection = "";
 }
 
-void CGameClient::ProcessTextInput(WPARAM _wParam)
+void CGameClient::ProcessTextInput(WPARAM _wKeyPress)
+{
+	switch (m_eScreenState)
+	{
+		case STATE_CREATEUSER:
+		{
+			ProcessUserNameInput(_wKeyPress);
+			break;
+		}
+		case STATE_CREATE_SERVERNAME:
+		{
+			ProcessServerNameInput(_wKeyPress);
+			break;
+		}
+
+	}	// End Switch (m_eScreenState)
+}
+
+void CGameClient::ProcessServerNameInput(WPARAM _wKeyPress)
 {
 	bool bAddLetter = false;
-	char cInput = (char)(_wParam);
-	if (	(cInput >= 65 && cInput <= 90)		// Allows Upper Case Characters
-		||	(cInput >= 97 && cInput <= 122) )	// Allows Lower Case Characters
+	char cInput = (char)(_wKeyPress);
+	if (cInput >= 65 && cInput <= 90)		// Allows The alphabet
+	{
+		cInput += 32;	// Default to Lower case
+		if (m_pbKeyDown[16] == true)	// Shift key is down
+		{
+			cInput -= 32;	// Change lowercase into uppercase
+		}
+
+		if (m_strServerName.length() < network::MAX_SERVERNAME_LENGTH - 1)
+		{
+			// Add letter if Server name isnt at length limit
+			bAddLetter = true;
+		}
+	}
+	else if ((cInput >= 48 && cInput <= 57)	// Allows Number
+		|| (cInput == 32))					// Allows Spaces
+	{
+		if (cInput == ' ')
+		{
+			cInput = '_';
+		}
+
+		if (m_strServerName.length() < network::MAX_SERVERNAME_LENGTH - 1)
+		{
+			// Add letter if Server name isnt at length limit
+			bAddLetter = true;
+		}
+	}
+	else if (cInput == 8)	// backspace
+	{
+		if (m_strServerName.length() > 0)
+		{
+			m_strServerName.erase(m_strServerName.length() - 1);	// Remove last character
+		}
+	}
+	else if (cInput == '\n'	// New line command
+		|| cInput == '\r')	// Enter key
+	{
+		if (m_strServerName.length() != 0)
+		{
+			CreateServer();
+		}
+	}
+
+	// Add the letter to the required string
+	if (bAddLetter == true)
+	{
+		m_strServerName += cInput;
+	}
+}
+
+void CGameClient::ProcessUserNameInput(WPARAM _wKeyPress)
+{
+	bool bAddLetter = false;
+	char cInput = (char)(_wKeyPress);
+
+	if (cInput >= 65 && cInput <= 90)		// Allows the Alphabet	
 	{
 		cInput += 32;	// Default to Lower case
 		if (m_pbKeyDown[16] == true)	// Shift key is down
@@ -223,121 +305,57 @@ void CGameClient::ProcessTextInput(WPARAM _wParam)
 			cInput -= 32;	// Change lowercase into uppercase
 		}
 		// Determine which name to edit
-		if (m_eScreenState == STATE_CREATEUSER)
+		if (m_strUserName.length() < network::MAX_USERNAME_LENGTH - 1)
 		{
-			if (m_strUserName.length() < network::MAX_USERNAME_LENGTH - 1)
-			{
-				// Add letter if Username isnt at length limit
-				bAddLetter = true;
-			}
-		}
-		else if (m_eScreenState == STATE_CREATE_SERVERNAME)
-		{
-			if (m_strServerName.length() < network::MAX_SERVERNAME_LENGTH - 1)
-			{
-				// Add letter if Server name isnt at length limit
-				bAddLetter = true;
-			}
+			// Add letter if Username isnt at length limit
+			bAddLetter = true;
 		}
 	}
-	else if (	(cInput >= 48 && cInput <= 57)	// Allows Number
-			||	(cInput == 32))					// Allows Spaces
+	else if ((cInput >= 48 && cInput <= 57)	// Allows Number
+		|| (cInput == 32))					// Allows Spaces
 	{
 		if (cInput == ' ')
 		{
 			cInput = '_';
 		}
-		
-		// Determine which name to edit
-		if (m_eScreenState == STATE_CREATEUSER)
-		{
-			if (m_strUserName.length() < network::MAX_USERNAME_LENGTH - 1)
-			{
-				// Add letter if Username isnt at length limit
-				bAddLetter = true;
-			}
-		}
-		else if (m_eScreenState == STATE_CREATE_SERVERNAME)
-		{
-			if (m_strServerName.length() < network::MAX_SERVERNAME_LENGTH - 1)
-			{
-				// Add letter if Server name isnt at length limit
-				bAddLetter = true;
-			}
-		}
 
+		// Add letter if Username isnt at length limit
+		if (m_strUserName.length() < network::MAX_USERNAME_LENGTH - 1)
+		{
+			
+			bAddLetter = true;
+		}
 	}
 	else if (cInput == 8)	// backspace
 	{
-		if (m_eScreenState == STATE_CREATEUSER)
+		if (m_strUserName.length() > 0)
 		{
-			if (m_strUserName.length() > 0)
-			{
-				m_strUserName.erase(m_strUserName.length() - 1);	// Remove last character
-			}
-		}
-		else if (m_eScreenState == STATE_CREATE_SERVERNAME)
-		{
-			if (m_strServerName.length() > 0)
-			{
-				m_strServerName.erase(m_strServerName.length() - 1);	// Remove last character
-			}
+			m_strUserName.erase(m_strUserName.length() - 1);	// Remove last character
 		}
 	}
-	else if (	cInput == '\n'	// New line command
-			||	cInput == '\r')	// Enter key
+	else if (cInput == '\n'	// New line command
+		|| cInput == '\r')	// Enter key
 	{
-		if (m_bHost == true)
+		if (m_strUserName.length() != 0)
 		{
-			if (m_eScreenState == STATE_CREATEUSER)
+			if (m_bHost == true)
 			{
 				m_eScreenState = STATE_CREATE_SERVERNAME;
 			}
-			else if (m_eScreenState == STATE_CREATE_SERVERNAME)
+			else
 			{
-				// TO DO - Move this to another location
-				std::string strFilename;
-				#ifdef _DEBUG
-					strFilename = "..\\Debug\\Robotron Server";
-				#endif // _DEBUG
-				#ifndef _DEBUG
-					// TO DO - change file path when handing in final build
-					strFilename = "..\\Release\\Robotron Server";
-				#endif // Not _DEBUG
-
-				// Start the Server executable running
-				std::string strOpenParameters = m_strUserName + " " + m_strServerName;
-				//int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_NORMAL));
-
+				CreateCommandPacket(CREATEUSER);
+				m_pClientNetwork->SendPacket(m_pClientToServer);
 				Sleep(50);
-				CreateCommandPacket(QUERY_HOST, m_strServerName);
-				m_pClientNetwork->BroadcastToServers(m_pClientToServer);
-
-				m_strServerHost = m_strUserName;
-
-				m_eScreenState = STATE_GAME_LOBBY;
 			}
+			return;
 		}
-		else
-		{
-			CreateCommandPacket(CREATEUSER);
-			m_pClientNetwork->SendPacket(m_pClientToServer);
-			Sleep(50);
-		}
-		return;
 	}
 
 	// Add the letter to the required string
 	if (bAddLetter == true)
 	{
-		if (m_eScreenState == STATE_CREATEUSER)
-		{
-			m_strUserName += cInput;
-		}
-		else if (m_eScreenState == STATE_CREATE_SERVERNAME)
-		{
-			m_strServerName += cInput;
-		}
+		m_strUserName += cInput;
 	}
 }
 
@@ -351,27 +369,58 @@ void CGameClient::ProcessPacket()
 		// Reply from the server when you have successfully gained control as the host
 		if (eProcessCommand == HOST_SERVER)
 		{
-			InsertUser(m_strUserName);
+			InsertUser(m_strUserName, m_pPacketToProcess->UserInfos[0]);
 		}
 		// Reply when a server is saying they are available for connection
 		else if (eProcessCommand == SERVER_CONNECTION_AVAILABLE)
 		{
-			m_pAvailableServers->push_back(m_pPacketToProcess->cServerName);
+			// Create Server structure and add in the details from the received packet
+			AvailableServer tempServer;
+			strcpy_s(tempServer.cServerName, m_pPacketToProcess->cServerName);
+			strcpy_s(tempServer.cHostName, m_pPacketToProcess->cUserName);
+			tempServer.iCurrentClients = m_pPacketToProcess->CurrentUserCount;
+			tempServer.ServerAddr = m_pPacketToProcess->ServerAddr;
 
+			bool bInserted = false;
+
+			// Insertion Sort the available servers
+			for (unsigned int i = 0; i < m_pAvailableServers->size(); i++)
+			{
+				int iCompare = strcmp(tempServer.cServerName, (*m_pAvailableServers)[i].cServerName);
+				if (iCompare <= 0)
+				{
+					// Add the server if the alphabetical order of the servername is less or equal
+					m_pAvailableServers->insert(m_pAvailableServers->begin() + i, tempServer);
+					bInserted = true;
+					break;
+				}
+			}
+			if (bInserted == false)
+			{
+				// Add the Server to the available servers vector
+				m_pAvailableServers->push_back(tempServer);
+			}
 			return;
 		}
 		// Reply when accepted into a server
 		else if (eProcessCommand == CREATEUSER_ACCEPTED)
 		{
-			InsertUser(m_strUserName);
+			// TO DO - look if this statement needs to be here
+			//InsertUser(m_strUserName);
 			m_eUserNameFailed = eProcessCommand;
+
+			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
+			{
+				InsertUser(m_pPacketToProcess->UserInfos[i].cUserName, m_pPacketToProcess->UserInfos[i]);
+			}
+
 			m_eScreenState = STATE_GAME_LOBBY;	
 		}
 		// Reply if the chosen username is already in use on that server
 		else if (eProcessCommand == CREATEUSER_NAMEINUSE)
 		{
 			// Username was already in use. Wipe username and start again
-			m_strUserName = "";
+			//m_strUserName = "";
 			m_eUserNameFailed = eProcessCommand;
 			m_eScreenState = STATE_CREATEUSER;
 		}
@@ -379,18 +428,24 @@ void CGameClient::ProcessPacket()
 		else if (eProcessCommand == CREATEUSER_SERVERFULL)
 		{
 			// Server was full. Wipe username and start again
-			m_strUserName = "";
+			//m_strUserName = "";
 			m_eUserNameFailed = eProcessCommand;
 			m_eScreenState = STATE_CREATEUSER;
 		}
 		// Add a user that has joined the server
 		else if (eProcessCommand == USER_JOINED)
 		{
-			// Stop the User from adding themselves again
-			if (m_pPacketToProcess->cUserName != m_strUserName)
-			{
-				InsertUser(m_pPacketToProcess->cUserName);
-			}
+				int iIndex;
+				// Find the Index of the new user within the UserInfo List
+				for (int i = 0; i < network::MAX_CLIENTS; i++)
+				{
+					if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->UserInfos[i].cUserName)
+					{
+						iIndex = i;
+					}
+				}
+
+				InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->UserInfos[iIndex]);
 		}
 		// Delete users that have left
 		else if (eProcessCommand == USER_LEFT)
@@ -406,7 +461,14 @@ void CGameClient::ProcessPacket()
 		else if (eProcessCommand == ALIVE_SET)
 		{
 			// Get the boolean value
-			bool bAliveness = ((std::string)m_pPacketToProcess->cAdditionalMessage == "true") ? true : false;
+			bool bAliveness;
+			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
+			{
+				if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->UserInfos[i].cUserName)
+				{
+					bAliveness = m_pPacketToProcess->UserInfos[i].bAlive;
+				}
+			}
 
 			// Check if the user in question is yourself
 			if (m_pPacketToProcess->cUserName == m_strUserName)
@@ -415,8 +477,8 @@ void CGameClient::ProcessPacket()
 			}
 
 			// Find the user
-			std::map<std::string, bool>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
-			User->second = bAliveness;
+			std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+			User->second.bAlive = bAliveness;
 		}
 		// All users are ready. Start the Game
 		else if (eProcessCommand == START_GAME)
@@ -428,6 +490,10 @@ void CGameClient::ProcessPacket()
 		{
 			// Process this message only if this is not a host
 			if (m_bHost == false)
+			{
+				m_eScreenState = STATE_TERMINATED_SERVER;
+			}
+			else if ( m_pPacketToProcess->cUserName == m_strUserName)
 			{
 				m_eScreenState = STATE_TERMINATED_SERVER;
 			}
@@ -573,8 +639,6 @@ void CGameClient::ProcessSingleMenu()
 
 void CGameClient::ProcessMultiMenu()
 {
-	m_bHost = false;
-
 	if (m_strMenuSelection == "Host a Game")
 	{
 		m_bHost = true;
@@ -587,6 +651,7 @@ void CGameClient::ProcessMultiMenu()
 	}
 	else if (m_strMenuSelection == "Back")
 	{
+		ResetGameData();
 		m_eScreenState = STATE_MAIN_MENU;
 	}
 }
@@ -623,6 +688,8 @@ void CGameClient::ProcessGameLobby()
 			CreateCommandPacket(LEAVE_SERVER);
 			m_pClientNetwork->SendPacket(m_pClientToServer);
 		}
+
+		ResetGameData();
 	}
 	else if (m_strMenuSelection == "I am Ready!")
 	{
@@ -642,8 +709,8 @@ void CGameClient::ProcessSelectServer()
 	if (m_iServerIndex != -1)
 	{
 		// Determine what server was selected
-		m_strServerName = (*m_pAvailableServers)[m_iServerIndex];
-		m_pClientNetwork->SelectServer(m_strServerName);
+		m_strServerName = (*m_pAvailableServers)[m_iServerIndex].cServerName;
+		m_pClientNetwork->SelectServer((*m_pAvailableServers)[m_iServerIndex].ServerAddr);
 		m_eScreenState = STATE_CREATEUSER;
 
 		m_iServerIndex = -1;
@@ -660,7 +727,7 @@ void CGameClient::ProcessSelectServer()
 		m_pAvailableServers = 0;
 	}
 	
-	m_pAvailableServers = new std::vector<std::string>;
+	m_pAvailableServers = new std::vector<AvailableServer>;
 	
 	// Broadcast to check which servers are available
 	CreateCommandPacket(QUERY_CLIENT_CONNECTION);
@@ -677,6 +744,7 @@ void CGameClient::ProcessTerminatedServer()
 	if (m_strMenuSelection == "Back to Main Menu")
 	{
 		m_eScreenState = STATE_MAIN_MENU;
+		ResetGameData();
 	}
 }
 
@@ -764,25 +832,29 @@ void CGameClient::CreateUserName()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Create a User Name", (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Create a User Name", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	if (m_eUserNameFailed == CREATEUSER_NAMEINUSE)
 	{
-		m_pRenderer->RenderText(false, m_iMouseY, "Username already in use. Try again", (iYpos += 80), SCREEN_FONT, defaultColor, false);
+		m_pRenderer->RenderText(false, m_iMouseY, "Username already in use. Try again", (iYpos += 80), SCREEN_FONT, defaultColor, H_CENTER);
 	}
 	else if (m_eUserNameFailed == CREATEUSER_SERVERFULL)
 	{
-		m_pRenderer->RenderText(false, m_iMouseY, "Server is currently full. You may try again or exit", (iYpos += 80), SCREEN_FONT, defaultColor, false);
+		m_pRenderer->RenderText(false, m_iMouseY, "Server is currently full. You may try again or exit", (iYpos += 80), SCREEN_FONT, defaultColor, H_CENTER);
+	}
+	else
+	{
+		iYpos += 80;
 	}
 
-	m_pRenderer->RenderText(false, m_iMouseY, m_strUserName, (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, m_strUserName, (iYpos += 70), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, false);
+	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -805,16 +877,16 @@ void CGameClient::CreateServerName()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Name your Server", (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Name your Server", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
-	m_pRenderer->RenderText(false, m_iMouseY, m_strServerName, (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, m_strServerName, (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, false);
+	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -837,18 +909,18 @@ void CGameClient::DisplayMainMenu()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Main Menu", (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Main Menu", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	// Print the Menu Options
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Single Player", (iYpos += 120), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Multiplayer", (iYpos += 60), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Instructions", (iYpos += 60), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Options", (iYpos += 60), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit Game", (iYpos += 60), MENU_FONT, defaultColor, false);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Single Player", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Multiplayer", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Instructions", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Options", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit Game", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -871,16 +943,16 @@ void CGameClient::DisplayMultiplayerMenu()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Multiplayer", (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Multiplayer", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	// Print the Menu Options
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Host a Game", (iYpos += 120), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Join a Game", (iYpos += 60), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, false);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Host a Game", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Join a Game", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -903,15 +975,15 @@ void CGameClient::DisplayInstructionsMenu()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Instructions", (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Instructions", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Input Instructions Here", (iYpos += 120), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "Input Instructions Here", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -934,15 +1006,15 @@ void CGameClient::DisplayOptionsMenu()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Options", (iYpos += 150), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Options", (iYpos += 150), SUBTITLE_FONT, defaultColor, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Input Options Here", (iYpos += 120), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "Input Options Here", (iYpos += 120), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -965,15 +1037,15 @@ void CGameClient::DisplayGameLobby()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "Game Lobby", (iYpos += 50), TITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Name : " + m_strServerName, (iYpos += 150), SCREEN_FONT, defaultColor, true);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Host : " + m_strServerHost, (iYpos += 30), SCREEN_FONT, defaultColor, true);
+	m_pRenderer->RenderText(false, m_iMouseY, "Game Lobby", (iYpos += 50), TITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server Name : " + m_strServerName, (iYpos += 150), SCREEN_FONT, defaultColor, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server Host : " + m_strServerHost, (iYpos += 30), SCREEN_FONT, defaultColor, H_LEFT);
 
 	iYpos += 40;
-	m_pRenderer->RenderText(false, m_iMouseY, "  Current Users", (iYpos += 30), SCREEN_FONT, defaultColor, true);
-	
+	m_pRenderer->RenderText(false, m_iMouseY, "  Current Users", (iYpos += 30), SCREEN_FONT, defaultColor, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Status", (iYpos), SCREEN_FONT, defaultColor, H_RIGHT);
 
-	std::map<std::string, bool>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
+	std::map<std::string, UserInfo>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
 
 	while (iterUsersCurrent != m_pCurrentUsers->end())
 	{
@@ -982,17 +1054,17 @@ void CGameClient::DisplayGameLobby()
 			// Don't move the text down by the full 60 the first time
 			iYpos -= 30;
 		}
-		m_pRenderer->RenderText(false, m_iMouseY, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, defaultColor, true);
-		D3DXCOLOR colorReady = (iterUsersCurrent->second == true) ? defaultColor : (0xff440000);
-		m_pRenderer->RenderText(false, m_iMouseY, "Ready", (iYpos), MENU_FONT, colorReady, false);
+		m_pRenderer->RenderText(false, m_iMouseY, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, defaultColor, H_LEFT);
+		D3DXCOLOR colorReady = (iterUsersCurrent->second.bAlive == true) ? defaultColor : (0xff440000);
+		m_pRenderer->RenderText(false, m_iMouseY, "Ready", (iYpos), MENU_FONT, colorReady, H_RIGHT);
 
 		iterUsersCurrent++;
 	}
 
 	iYpos = m_iScreenHeight - 150;
 	std::string strReadyState = (m_bAlive == true) ? ("Actually I'm not ready!") : ("I am Ready!");
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, strReadyState, (iYpos), MENU_FONT, defaultColor, false);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos += 60), MENU_FONT, defaultColor, false);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, strReadyState, (iYpos), MENU_FONT, defaultColor, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos += 60), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1016,25 +1088,41 @@ void CGameClient::DisplaySelectServer()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "Available Servers", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "Available Servers", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
 	iYpos += 120;
+
+	// Print the Headings
+	m_pRenderer->RenderText(false, m_iMouseY, "Server Name", (iYpos += 40), MENU_FONT, defaultColor, H_LEFT);
+	m_pRenderer->RenderText(false, m_iMouseY, "Host", (iYpos), MENU_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Users", (iYpos), MENU_FONT, defaultColor, H_RIGHT);
+
+	iYpos += 50;
 
 	if (m_pAvailableServers != 0)
 	{
-		std::sort(m_pAvailableServers->begin(), m_pAvailableServers->end());
-
-		for (unsigned int i = 0; i < m_pAvailableServers->size(); i++)
+		if (m_pAvailableServers->size() > 0)
 		{
-			strSelection += m_pRenderer->RenderText(true , m_iMouseY, (*m_pAvailableServers)[i], (iYpos += 80), MENU_FONT, defaultColor, true);
-			if (strSelection != "" && iServerIndex == -1)
+			for (unsigned int i = 0; i < m_pAvailableServers->size(); i++)
 			{
-				iServerIndex = i;
+				// TO DO
+				strSelection += m_pRenderer->RenderText(true , m_iMouseY, (*m_pAvailableServers)[i].cServerName, (iYpos += 30), SCREEN_FONT, defaultColor, H_LEFT);
+				m_pRenderer->RenderText(true, m_iMouseY, (*m_pAvailableServers)[i].cHostName, (iYpos), SCREEN_FONT, defaultColor, H_CENTER);
+				m_pRenderer->RenderText(true, m_iMouseY, std::to_string((*m_pAvailableServers)[i].iCurrentClients) + " / " + std::to_string(network::MAX_CLIENTS), (iYpos), SCREEN_FONT, defaultColor, H_RIGHT);
+
+				if (strSelection != "" && iServerIndex == -1)
+				{
+					iServerIndex = i;
+				}
 			}
+		}
+		else
+		{
+			m_pRenderer->RenderText(false, m_iMouseY, "No Servers are Currently Active", (iYpos += 300), SCREEN_FONT, defaultColor, H_CENTER);
 		}
 	}
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, false);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1060,17 +1148,17 @@ void CGameClient::DisplayTerminatedServer()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (iYpos += 80), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "OF", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (iYpos += 100), TITLE_FONT, 0xff550000, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, defaultColor, false);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server has been terminated", (iYpos += 30), SCREEN_FONT, defaultColor, false);
+	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, defaultColor, H_CENTER);
+	m_pRenderer->RenderText(false, m_iMouseY, "Server has been terminated", (iYpos += 30), SCREEN_FONT, defaultColor, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back to Main Menu", (iYpos += 30), MENU_FONT, defaultColor, false);
+	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back to Main Menu", (iYpos += 30), MENU_FONT, defaultColor, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_bLeftMouseClick == true)
@@ -1092,9 +1180,8 @@ bool CGameClient::CreateDataPacket()
 
 bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand)
 {
-	// Clear out the memory of the Data Packet to stop old data being sent
-	//m_pClientToServer = {};
-	//ZeroMemory(&m_pClientToServer, sizeof(m_pClientToServer));
+	// Clear out old data from the Data Packet packet
+	ZeroMemory(*(&m_pServerToClient), sizeof(*m_pServerToClient));
 
 	// Change the Packet Data to contain a Command
 	m_pClientToServer->bCommand = true;
@@ -1103,7 +1190,7 @@ bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand)
 	m_pClientToServer->eCommand = _eCommand;
 
 	// Add the Username of the Client to the Packet structure
-	if (!(StringToStruct(m_strUserName.c_str(), m_pClientToServer->cUserName)))
+	if (!(StringToStruct(m_strUserName.c_str(), m_pClientToServer->cUserName, network::MAX_USERNAME_LENGTH)))
 	{
 		return false;	// Data invalid - Data Packet failed to create
 	}
@@ -1117,7 +1204,7 @@ bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand, std::string _st
 	CreateCommandPacket(_eCommand);
 
 	// Add the additional meesage
-	if (!(StringToStruct(_strMessage.c_str(), m_pClientToServer->cAdditionalMessage)))
+	if (!(StringToStruct(_strMessage.c_str(), m_pClientToServer->cAdditionalMessage, network::MAX_CHAR_LENGTH)))
 	{
 		return false;	// Data invalid - Data Packet failed to create
 	}
@@ -1126,32 +1213,44 @@ bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand, std::string _st
 }
 
 // #Extras
-bool CGameClient::StringToStruct(const char* _pcData, char* _pcStruct)
+void CGameClient::CreateServer()
 {
-	unsigned int iMaxLength;
-	// Determine the maximum amount of characters that can be copied
-	// based on the memory address that it is going to be writing to
-	if (*(&m_pClientToServer->cUserName) == *(&_pcStruct))
-	{
-		iMaxLength = network::MAX_USERNAME_LENGTH;
-	}
-	else if (*(&m_pClientToServer->cAdditionalMessage) == *(&_pcStruct))
-	{
-		iMaxLength = network::MAX_CHAR_LENGTH;
-	}
+	std::string strFilename;
+	#ifdef _DEBUG
+		strFilename = "..\\Debug\\Robotron Server";
+	#endif // _DEBUG
+	#ifndef _DEBUG
+		// TO DO - change file path when handing in final build
+		strFilename = "..\\Release\\Robotron Server";
+	#endif // Not _DEBUG
 
+	// Start the Server executable running
+	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
+	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
+
+	// Sleep to give the server time to start up
+	Sleep(200);
+	CreateCommandPacket(QUERY_HOST, m_strServerName);
+	m_pClientNetwork->BroadcastToServers(m_pClientToServer);
+
+	m_strServerHost = m_strUserName;
+	m_eScreenState = STATE_GAME_LOBBY;
+}
+
+bool CGameClient::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
+{
 	// Ensure no buffer overrun will occur when copying directly to memory
-	if ((strlen(_pcData) + 1) <= (iMaxLength))
+	if ((strlen(_pcData) + 1) <= (_iMaxLength))
 	{
 		// Copy the characters into the struct
 		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);
-		return true;
 	}
 	else
 	{
 		// char* is too long, buffer overrun would occur so failed operation
 		return false;
 	}
+	return true;
 }
 
 void CGameClient::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)
@@ -1173,8 +1272,22 @@ void CGameClient::ChangeMenuSelection()
 	//m_strMenuSelection = m_eMenuTempSelection;
 }
 
-void CGameClient::InsertUser(std::string _strUser)
+void CGameClient::InsertUser(std::string _strUser, UserInfo _UserInfo)
 {
-	std::pair<std::string, bool> pairUser(_strUser, false);
+	std::pair<std::string, UserInfo> pairUser(_strUser, _UserInfo);
 	m_pCurrentUsers->insert(pairUser);
+}
+
+void CGameClient::ResetGameData()
+{
+	m_bHost = false;
+	m_bAlive = false;
+
+	// remove all users from the map
+	m_pCurrentUsers->clear();
+
+	m_strServerName = "";
+	m_strServerHost = "";
+
+	m_pClientNetwork->Reset();
 }

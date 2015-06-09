@@ -72,7 +72,7 @@ public:
 	virtual int CreateMaterial(MaterialComponents _MaterialComponents) = 0;
 	virtual void SetMaterial(int _iMaterialID) = 0;
 
-	virtual std::string RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft) = 0;
+	virtual std::string RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH) = 0;
 	virtual void RenderColor(D3DXCOLOR _color) = 0;
 
 	// Setters

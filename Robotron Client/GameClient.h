@@ -120,6 +120,22 @@ public:
 	void ProcessTextInput(WPARAM _wKeyPress);
 
 	/***********************
+	* ProcessServerNameInput: Processes Text input for the Server Name
+	* @author: Callan Moore
+	* @parameter: _wKeyPress: The pressed key
+	* @return: void
+	********************/
+	void ProcessServerNameInput(WPARAM _wKeyPress);
+
+	/***********************
+	* ProcessUserNameInput: Processes Text input for the User Name
+	* @author: Callan Moore
+	* @parameter: _wKeyPress: The pressed key
+	* @return: void
+	********************/
+	void ProcessUserNameInput(WPARAM _wKeyPress);
+
+	/***********************
 	* ProcessPacket: Process a packet from the work queue
 	* @author: Callan Moore
 	* @return: void
@@ -298,14 +314,23 @@ public:
 	********************/
 	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage);
 
+	// #Extras
+	/***********************
+	* CreateServer: Create server from a separate application
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateServer();
+
 	/***********************
 	* StringToStruct: Copies characters from a char array into a struct property
 	* @author: Callan Moore
 	* @parameter: _pcData: Char array to input into the struct
 	* @parameter: _pcStruct: Struct property to receive char array
+	* @parameter: _iMaxLength: Maximum allowed length of the data to copy
 	* @return: bool: Successful copy (or Not)
 	********************/
-	bool StringToStruct(const char* _pcData, char* _pcStruct);
+	bool StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength);
 
 	/***********************
 	* ReceiveDataFromNetwork: Thread to receive data from the network
@@ -326,9 +351,17 @@ public:
 	* InsertUser: Creates a pair for a new user and adds them to the clientside map
 	* @author: Callan Moore
 	* @parameter: _strUser: String of the new users username
+	* @parameter: _UserInfo: The new users information
 	* @return: void: 
 	********************/
-	void InsertUser(std::string _strUser);
+	void InsertUser(std::string _strUser, UserInfo _UserInfo);
+
+	/***********************
+	* ResetGameData: Reset the game data linked to a particular server/game
+	* @author: Callan Moore
+	* @return: void:
+	********************/
+	void ResetGameData();
 
 private:
 	//Disallowing copies and extra constructions
@@ -379,15 +412,16 @@ private:
 	bool m_bAlive;
 	std::string m_strServerHost;
 	eNetworkCommand m_eUserNameFailed;
-	std::map<std::string, bool>* m_pCurrentUsers;
+	std::map<std::string, UserInfo>* m_pCurrentUsers;
 		
 	// Server Information
 	std::string m_strServerName;
-	std::vector<std::string>* m_pAvailableServers;
+	std::vector<AvailableServer>* m_pAvailableServers;
 	
-
 	// Graphics Variables
 	IRenderer* m_pRenderer;
+
+	// Gameplay Information
 	
 
 };

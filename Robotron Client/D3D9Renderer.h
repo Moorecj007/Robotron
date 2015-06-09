@@ -222,11 +222,11 @@ public:
 	* @parameter: _iYpos: TThe Y position to start drawing the text
 	* @parameter: _font: The font to use to draw the text
 	* @parameter: _color: Default color for the font
-	* @parameter: _bAllignLeft
+	* @parameter: _eAllignmentH: Horizonal Allignment
 	* @return: std::string: The string of the selected item
 	********************/
-	virtual std::string RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, bool _bAllignLeft);
-	
+	virtual std::string RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH);
+
 	/***********************
 	* RenderColor: Color fill the backbuffer to the input color
 	* @author: Callan Moore
