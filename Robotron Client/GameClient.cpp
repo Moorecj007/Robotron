@@ -84,6 +84,15 @@ CGameClient::~CGameClient()
 	delete m_pCurrentUsers;
 	m_pCurrentUsers = 0;
 
+	// Delete the Graphics 
+	delete m_pCamera;
+	m_pCamera = 0;
+	delete m_pTerrain;
+	m_pTerrain = 0;
+
+	// Delete the Game Mechanics handler
+	delete m_pGameMechanics;
+	m_pGameMechanics = 0;
 }
 
 CGameClient& CGameClient::GetInstance()
@@ -159,6 +168,10 @@ bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 	m_pCurrentUsers = new std::map<std::string, UserInfo>;
 	m_bAlive = false;
 
+	// Gameplay Information for Rendering variables
+	m_pTerrain = 0;
+	m_pCamera = 0;
+
 
 	return true;
 }
@@ -179,6 +192,9 @@ bool CGameClient::RenderOneFrame()
 // #Processes
 void CGameClient::Process()
 {
+	
+	
+
 	// Process the Clock and get the new Delta Tick
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
@@ -192,9 +208,12 @@ void CGameClient::Process()
 			m_strMenuTempSelection = "";
 		}
 	}
+	
 
 	// Determine the correct process dependent on the current screen state
 	ProcessScreenState();
+
+	
 
 	// Process all Packets in the Work Queue
 	while (m_pWorkQueue->empty() == false)
@@ -205,11 +224,18 @@ void CGameClient::Process()
 		m_pClientMutex->Signal();
 
 		// Process the Pulled Packet
-		ProcessPacket();
+		ProcessPacket(fDT);
 	}
 
 	// Reset the Menu Selection
 	m_strMenuSelection = "";
+
+	if (m_eScreenState == STATE_GAME_PLAY)
+	{
+		m_pCamera->SetPosition({ 0, 100, 0 });
+		m_pCamera->SetCamera({ 0, 0, 0 }, { 0, 100, 0 }, { 0, 0, 1 }, { 0, -1, 0 });
+		m_pCamera->Process(m_pRenderer);
+	}
 }
 
 void CGameClient::ProcessTextInput(WPARAM _wKeyPress)
@@ -352,7 +378,7 @@ void CGameClient::ProcessUserNameInput(WPARAM _wKeyPress)
 	}
 }
 
-void CGameClient::ProcessPacket()
+void CGameClient::ProcessPacket(float _fDT)
 {
 	if (m_pPacketToProcess->bCommand == true)
 	{
@@ -446,6 +472,11 @@ void CGameClient::ProcessPacket()
 			// Delete the User from the list
 			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
 
+			if (m_eScreenState == STATE_GAME_PLAY)
+			{
+				m_pGameMechanics->RemoveAvatar(m_pPacketToProcess->cUserName);
+			}
+
 		}
 		else if (eProcessCommand == YOUR_HOST)
 		{
@@ -476,6 +507,24 @@ void CGameClient::ProcessPacket()
 		// All users are ready. Start the Game
 		else if (eProcessCommand == START_GAME)
 		{
+			// TO DO - remove/ keep
+			// Create the initial Projection Matrices and set them on the Renderer
+			m_pRenderer->CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
+			// Create a Terrain for the Game
+			m_pTerrain = new CTerrain();
+			VertexScalar TerrainScalar = { 1.0f, 0.05f, 1.0f };
+			std::string strImagePath = "Assets\\Basic Terrain.bmp";
+			m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
+			m_pTerrain->SetCenter(0, 0, 0);
+			// Create and inititalise the Camera for the Game
+			m_pCamera = new CStaticCamera();
+			m_pCamera->Initialise({ 0, 100, 0 }, { 0, -1, 0 }, true);
+			m_pCamera->Process(m_pRenderer);
+
+			// Create the GameMechanics Object for handling the mechanics of the game
+			m_pGameMechanics = new CGameMechanics();
+			m_pGameMechanics->Initialise(m_pRenderer, m_pPacketToProcess);
+
 			m_eScreenState = STATE_GAME_PLAY;
 		}
 		// The server has been terminated
@@ -489,7 +538,7 @@ void CGameClient::ProcessPacket()
 	}
 	else
 	{
-		// Process as normal client input
+		m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
 	}
 }
 
@@ -502,7 +551,6 @@ void CGameClient::ProcessScreenState()
 	{
 	case STATE_GAME_PLAY:
 	{
-
 		break;
 	}
 	case STATE_MAIN_MENU:
@@ -568,6 +616,7 @@ void CGameClient::ProcessCreateUser()
 	{
 		if (m_bHost == true)
 		{
+			ResetGameData();
 			m_eScreenState = STATE_MULTIPLAYER_MENU;
 		}
 		else
@@ -751,7 +800,8 @@ void CGameClient::Draw()
 	{
 		case STATE_GAME_PLAY:
 		{
-		
+			m_pTerrain->Draw(m_pRenderer);
+			m_pGameMechanics->Draw();
 			break;
 		}
 		case STATE_MAIN_MENU:
@@ -810,7 +860,6 @@ void CGameClient::Draw()
 	}	// End Switch(m_eScreenState)
 
 	m_pRenderer->EndRender();
-	int i = 0;
 }
 
 // #DisplayMenus
@@ -1234,7 +1283,7 @@ void CGameClient::CreateServer()
 
 	// Start the Server executable running
 	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
-	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
+	//int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
 	// Sleep to give the server time to start up
 	Sleep(200);

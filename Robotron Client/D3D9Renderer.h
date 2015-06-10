@@ -355,5 +355,8 @@ protected:
 	ID3DXFont* m_pTitleFont;
 	ID3DXFont* m_pMenuFont;
 	ID3DXFont* m_pSubtitleFont;
+
+	// TO DO - delete
+	D3DLIGHT9 m_DirectionLight;
 };
 #endif __D3D9RENDERER_H__

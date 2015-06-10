@@ -14,6 +14,11 @@
 
 #pragma comment(lib, "Winmm.lib")
 
+// Defines and Macros
+#define WIN32_LEAN_AND_MEAN
+#define WINDOW_CLASS_NAME L"ROBOTRON"
+#define _WINSOCKAPI_
+
 // Library Includes
 #include <winsock2.h>
 //#include <windows.h>		// Include all the windows headers.
@@ -21,11 +26,6 @@
 
 // Local Includes
 #include "GameClient.h"
-
-// Defines and Macros
-#define WIN32_LEAN_AND_MEAN
-#define WINDOW_CLASS_NAME L"ROBOTRON"
-
 
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
@@ -140,8 +140,8 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	HWND hWnd;				// Generic window handle.
 	MSG uiMsg;				// Generic message.
 
-	const int kiScreenWidth = 1000;
-	const int kiScreenHeight = 1000;
+	int iScreenWidth = 1000;
+	int iScreenHeight = 1000;
 
 	// Fills in the window class structure.
 	winClass.cbSize = sizeof(WNDCLASSEX);
@@ -163,12 +163,18 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		return (0);
 	}
 
+	RECT rect = { 0, 0, iScreenWidth, iScreenHeight };
+	AdjustWindowRect(&rect, WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU, false);
+	iScreenHeight = rect.bottom - rect.top;
+	iScreenWidth = rect.right - rect.left;
+
+
 	hWnd = CreateWindowEx(	NULL,								// Extended style.
 							WINDOW_CLASS_NAME,					// Class.
 							L"Robotron Client",						// Title.
 							WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU,// Windowed Mode
 							0, 0,								// Initial x,y position for the top left corner of the window
-							kiScreenWidth, kiScreenHeight,		// Initial width, height of the window
+							iScreenWidth, iScreenHeight,		// Initial width, height of the window
 							NULL,								// Handle to parent.
 							NULL,								// Handle to menu.
 							_hInstance,							// Instance of this application.
@@ -182,7 +188,7 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 
 	// Create the Game Object
 	CGameClient& rGameInstance = CGameClient::GetInstance();
-	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight);
+	rGameInstance.Initialise(hWnd, iScreenWidth, iScreenHeight);
 	bool bOnline = true;
 
 	// Enter main event loop.

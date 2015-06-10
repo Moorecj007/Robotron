@@ -121,6 +121,9 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	// Set the Initial ServerState
 	m_eServerState = STATE_LOBBY;
 
+	// Initialise Gameplay containers
+	m_v3TerrainPos = { 0, 0, 0 };
+
 	return true;
 }
 
@@ -180,6 +183,12 @@ void CGameServer::Process()
 				m_pServerNetwork->SendPacket(m_pServerToClient);
 			}
 		}
+	}
+	else if ( m_eServerState == STATE_GAMEPLAY)
+	{
+		CreateDataPacket();
+		m_pServerNetwork->SendPacket(m_pServerToClient);
+		Sleep(16);	// TO DO - remove sleep
 	}
 }
 
@@ -329,7 +338,30 @@ void CGameServer::ProcessPacket()
 
 bool CGameServer::CreateDataPacket()
 {
-	// TO DO - Create actual Data
+	// Erase old data
+	ZeroMemory(*(&m_pServerToClient), sizeof(*m_pServerToClient));
+
+	// Fill basic information of the packet
+	m_pServerToClient->bCommand = false;
+	m_pServerToClient->eCommand = ERROR_COMMAND;
+	m_pServerToClient->CurrentUserCount = (int)(m_pCurrentUsers->size());
+
+	// Add the Server as the username to the Packet structure
+	if (!(StringToStruct(m_strServerName.c_str(), m_pServerToClient->cServerName, network::MAX_SERVERNAME_LENGTH)))
+	{
+		return false;	// Data invalid - Data Packet failed to create
+	}
+
+	// Add all the Users to the Packet with their information status
+	std::map<std::string, UserInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
+	int iIndex = 0;
+	while (iterCurrent != m_pCurrentUsers->end())
+	{
+		m_pServerToClient->UserInfos[iIndex] = iterCurrent->second;
+
+		iIndex++;
+		iterCurrent++;
+	}
 
 	return true;
 }
@@ -442,7 +474,7 @@ bool CGameServer::InsertUser(std::string _strUser)
 
 	// Create the starting position based on the current number of users
 	tempUserInfo.fPosX = (float)iNumber * 5;
-	tempUserInfo.fPosY = 5;
+	tempUserInfo.fPosY = 20;
 	tempUserInfo.fPosZ = 0;
 
 	std::pair<std::string, UserInfo> pairUser(_strUser, tempUserInfo);

@@ -164,6 +164,15 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 
 	m_pDevice->SetMaterial(&material);
 
+	// TO DO - put this somewhere else
+	ZeroMemory((&m_DirectionLight), sizeof(m_DirectionLight));
+	m_DirectionLight.Type = D3DLIGHT_DIRECTIONAL;
+	m_DirectionLight.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
+	m_DirectionLight.Direction = D3DXVECTOR3(-1.0f, -1.0f, 0);
+
+	m_pDevice->SetLight(0, &m_DirectionLight);
+	m_pDevice->LightEnable(0, TRUE);
+
 	return true;
 }
 
@@ -329,7 +338,7 @@ void CD3D9Renderer::CreateViewMatrix(D3DXVECTOR3 _vPosition, D3DXVECTOR3 _vLookA
 void CD3D9Renderer::CalculateProjectionMatrix(float _fFOV, float _fNear, float _fFar)
 {
 	// Calculate the Aspect ratio
-	float fAspectRatio = (float)(m_iScreenWidth / m_iScreenHeight);
+	float fAspectRatio = ((float)m_iScreenWidth / (float)m_iScreenHeight);
 
 	// Calculate the Projection Matrix for the Device
 	D3DXMatrixPerspectiveFovLH(	&m_matProjection,
@@ -767,6 +776,7 @@ void CD3D9Renderer::RenderColor(D3DXCOLOR _color)
 	IDirect3DSurface9* pBackBuffer;
 	m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	m_pDevice->ColorFill(pBackBuffer, 0, _color);
+	pBackBuffer->Release();
 }
 
 void CD3D9Renderer::SetMaterial(int _iMaterialID)

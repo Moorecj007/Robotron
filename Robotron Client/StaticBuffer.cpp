@@ -154,9 +154,11 @@ bool CStaticBuffer::Initialise(	IDirect3DDevice9* _pDevice,
 ********************/
 void CStaticBuffer::Render(IDirect3DDevice9* _pDevice)
 {
+	// TO DO - fix this
+
 	// Check if the Active Buffer is this Buffer
-	if (s_iActiveStaticBuffer != m_iID)
-	{
+	//if (s_iActiveStaticBuffer != m_iID)
+	//{
 		// Set the StreamSource to zero
 		_pDevice->SetStreamSource(0, m_pVertexBuffer, 0, m_iStride);
 
@@ -165,7 +167,7 @@ void CStaticBuffer::Render(IDirect3DDevice9* _pDevice)
 
 		// Set the Active buffer to this Buffer ID
 		s_iActiveStaticBuffer = m_iID;
-	}
+	//}
 
 	if (m_pIndexBuffer != 0)	// has an Index Buffer
 	{

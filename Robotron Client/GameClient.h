@@ -20,12 +20,15 @@
 // Library Includes
 #include <thread>
 #include <queue>
-#include <algorithm>
 
 // Local Includes
-#include "Client.h"
-#include "IRenderer.h"
+#include "GameMechanics.h"
+//#include "Client.h"
+//#include "IRenderer.h"
 #include "D3D9Renderer.h"
+#include "Terrain.h"
+#include "StaticCamera.h"
+
 #include "../Common Files/Clock.h"
 #include "../Common Files/MySemaphore.h"
 
@@ -138,9 +141,10 @@ public:
 	/***********************
 	* ProcessPacket: Process a packet from the work queue
 	* @author: Callan Moore
+	* @parameter: _fDT: The current Delta tick
 	* @return: void
 	********************/
-	void ProcessPacket();
+	void ProcessPacket(float _fDT);
 
 	/***********************
 	* ProcessScreenState: Determine which process to run dependent on the current screen state
@@ -430,8 +434,10 @@ private:
 	IRenderer* m_pRenderer;
 
 	// Gameplay Information
+	CTerrain* m_pTerrain;
+	CStaticCamera* m_pCamera;
+	CGameMechanics* m_pGameMechanics;
 	
-
 };
 
 #endif //__GAMECLIENT_H__

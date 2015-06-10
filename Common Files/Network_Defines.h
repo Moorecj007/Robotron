@@ -33,7 +33,7 @@ namespace network
 	unsigned const	MAX_SERVER_PORT			= 60004;
 	unsigned const	DEFAULT_CLIENT_PORT		= 60005;
 	unsigned const	MAX_CLIENT_PORT			= 61000;
-	unsigned const	MAX_CLIENTS				= 2;
+	unsigned const	MAX_CLIENTS				= 6;
 	const char		cUDPAddr[32]			= "127.0.0.1";
 	unsigned const	MAX_CHAR_LENGTH			= 30;
 	unsigned const	MAX_USERNAME_LENGTH		= 13;
