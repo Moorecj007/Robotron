@@ -217,7 +217,7 @@ public:
 	* RenderText: Render Text to the Screen
 	* @author: Callan Moore
 	* @parameter: _bSelectable: Allows the text to be selectable
-	* @parameter: _iMouseY: The mouse Y coordinate on the screen
+	* @parameter: _ptMousePos: The mouse coordinates on the screen
 	* @parameter: _str: The string to draw
 	* @parameter: _iYpos: TThe Y position to start drawing the text
 	* @parameter: _font: The font to use to draw the text
@@ -225,7 +225,7 @@ public:
 	* @parameter: _eAllignmentH: Horizonal Allignment
 	* @return: std::string: The string of the selected item
 	********************/
-	virtual std::string RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH);
+	virtual std::string RenderText(bool _bSelectable, POINT _ptMousePos, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH);
 
 	/***********************
 	* RenderColor: Color fill the backbuffer to the input color

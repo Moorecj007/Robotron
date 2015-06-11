@@ -93,6 +93,11 @@ CGameClient::~CGameClient()
 	// Delete the Game Mechanics handler
 	delete m_pGameMechanics;
 	m_pGameMechanics = 0;
+
+	// Destroy the DirectInput
+	m_pDInput->Shutdown();
+	delete m_pDInput;
+	m_pDInput = 0;
 }
 
 CGameClient& CGameClient::GetInstance()
@@ -113,11 +118,11 @@ void CGameClient::DestroyInstance()
 // #Setters
 void CGameClient::SetMousePos(int _iX, int _iY)
 {
-	m_iMouseX = _iX;
-	m_iMouseY = _iY;
+	m_ptMousePos.x = _iX;
+	m_ptMousePos.y = _iY;
 }
 
-bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
+bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 {
 	// Populate window variables
 	m_hWnd = _hWnd;
@@ -153,7 +158,6 @@ bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 	// Initialise boolean array for KeyDown to false
 	m_pbKeyDown = new bool[255];
 	memset(m_pbKeyDown, false, 255);
-	m_bLeftMouseClick = false;		// False beginning value
 
 	// Set the Menu Variables
 	m_strMenuSelection = "";
@@ -163,6 +167,7 @@ bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 
 	// Game Variables
 	m_bHost = false;
+	m_bGameLoading = false;
 
 	// Set User Information
 	m_pCurrentUsers = new std::map<std::string, UserInfo>;
@@ -172,6 +177,9 @@ bool CGameClient::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 	m_pTerrain = 0;
 	m_pCamera = 0;
 
+	// Initialise the DirectInput
+	m_pDInput = new CDInput();
+	VALIDATE(m_pDInput->Initialise(_hInstance, _hWnd, _iScreenWidth, _iScreenHeight));
 
 	return true;
 }
@@ -192,28 +200,27 @@ bool CGameClient::RenderOneFrame()
 // #Processes
 void CGameClient::Process()
 {
-	
-	
-
 	// Process the Clock and get the new Delta Tick
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
 
+	// Process and retrieve the Input
+	m_pDInput->Process();
+	m_activatedControls = m_pDInput->GetControls();
+	m_ptMousePos = m_pDInput->GetMousePos();
+
 	// Determine if a Menu has been selected
 	if (m_strMenuTempSelection != "")
 	{
-		if (m_bLeftMouseClick == false)
+		if (m_activatedControls.bAction == false)
 		{
 			m_strMenuSelection = m_strMenuTempSelection;
 			m_strMenuTempSelection = "";
 		}
 	}
 	
-
 	// Determine the correct process dependent on the current screen state
 	ProcessScreenState();
-
-	
 
 	// Process all Packets in the Work Queue
 	while (m_pWorkQueue->empty() == false)
@@ -507,25 +514,7 @@ void CGameClient::ProcessPacket(float _fDT)
 		// All users are ready. Start the Game
 		else if (eProcessCommand == START_GAME)
 		{
-			// TO DO - remove/ keep
-			// Create the initial Projection Matrices and set them on the Renderer
-			m_pRenderer->CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
-			// Create a Terrain for the Game
-			m_pTerrain = new CTerrain();
-			VertexScalar TerrainScalar = { 1.0f, 0.05f, 1.0f };
-			std::string strImagePath = "Assets\\Basic Terrain.bmp";
-			m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
-			m_pTerrain->SetCenter(0, 0, 0);
-			// Create and inititalise the Camera for the Game
-			m_pCamera = new CStaticCamera();
-			m_pCamera->Initialise({ 0, 100, 0 }, { 0, -1, 0 }, true);
-			m_pCamera->Process(m_pRenderer);
-
-			// Create the GameMechanics Object for handling the mechanics of the game
-			m_pGameMechanics = new CGameMechanics();
-			m_pGameMechanics->Initialise(m_pRenderer, m_pPacketToProcess);
-
-			m_eScreenState = STATE_GAME_PLAY;
+			m_eScreenState = STATE_GAMELOADING;
 		}
 		// The server has been terminated
 		else if (eProcessCommand == TERMINATE_SERVER)
@@ -538,7 +527,10 @@ void CGameClient::ProcessPacket(float _fDT)
 	}
 	else
 	{
-		m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
+		if (m_eScreenState != STATE_GAMELOADING)
+		{
+			m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
+		}
 	}
 }
 
@@ -601,6 +593,11 @@ void CGameClient::ProcessScreenState()
 	case STATE_TERMINATED_SERVER:
 	{
 		ProcessTerminatedServer();
+		break;
+	}
+	case STATE_GAMELOADING:
+	{
+		ProcessGameLoading();
 		break;
 	}
 	
@@ -789,6 +786,37 @@ void CGameClient::ProcessTerminatedServer()
 	}
 }
 
+void CGameClient::ProcessGameLoading()
+{
+	// Multithreaded loading screen
+	m_bGameLoading = true;
+	std::thread LoadingThread = std::thread(&CGameClient::DisplayGameLoading, this);
+
+	// Create the initial Projection Matrices and set them on the Renderer
+	m_pRenderer->CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
+
+	// Create a Terrain for the Game
+	m_pTerrain = new CTerrain();
+	VertexScalar TerrainScalar = { 1.0f, 0.05f, 1.0f };
+	std::string strImagePath = "Assets\\Basic Terrain.bmp";
+	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
+	m_pTerrain->SetCenter(0, 0, 0);
+
+	// Create and inititalise the Camera for the Game
+	m_pCamera = new CStaticCamera();
+	m_pCamera->Initialise({ 0, 100, 0 }, { 0, -1, 0 }, true);
+	m_pCamera->Process(m_pRenderer);
+
+	// Create the GameMechanics Object for handling the mechanics of the game
+	m_pGameMechanics = new CGameMechanics();
+	m_pGameMechanics->Initialise(m_pRenderer, m_pPacketToProcess);
+
+	m_bGameLoading = false;
+
+	LoadingThread.join();
+	m_eScreenState = STATE_GAME_PLAY;
+}
+
 
 
 
@@ -854,6 +882,11 @@ void CGameClient::Draw()
 			DisplayTerminatedServer();
 			break;
 		}
+		case STATE_GAMELOADING:
+		{
+			m_pRenderer->RenderColor(0xff000000);
+			break;
+		}
 		
 		default: break;
 		
@@ -875,28 +908,28 @@ void CGameClient::CreateUserName()
 
 	// Print the Title Text
 	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_iMouseY, "Create a User Name", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Create a User Name", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	if (m_eUserNameFailed == CREATEUSER_NAMEINUSE)
 	{
-		m_pRenderer->RenderText(false, m_iMouseY, "Username already in use. Try again", (iYpos += 80), SCREEN_FONT, colorRed, H_CENTER);
+		m_pRenderer->RenderText(false, m_ptMousePos, "Username already in use. Try again", (iYpos += 80), SCREEN_FONT, colorRed, H_CENTER);
 	}
 	else if (m_eUserNameFailed == CREATEUSER_SERVERFULL)
 	{
-		m_pRenderer->RenderText(false, m_iMouseY, "Server is currently full. You may try again or exit", (iYpos += 80), SCREEN_FONT, colorRed, H_CENTER);
+		m_pRenderer->RenderText(false, m_ptMousePos, "Server is currently full. You may try again or exit", (iYpos += 80), SCREEN_FONT, colorRed, H_CENTER);
 	}
 	else
 	{
 		iYpos += 80;
 	}
 
-	m_pRenderer->RenderText(false, m_iMouseY, m_strUserName, (iYpos += 70), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, m_strUserName, (iYpos += 70), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
+	strSelection = m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -918,15 +951,15 @@ void CGameClient::CreateServerName()
 
 	// Print the Title Text
 	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_iMouseY, "Name your Server", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Name your Server", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
-	m_pRenderer->RenderText(false, m_iMouseY, m_strServerName, (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, m_strServerName, (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection = m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
+	strSelection = m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -948,17 +981,17 @@ void CGameClient::DisplayMainMenu()
 
 	// Print the Title
 	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_iMouseY, "Main Menu", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Main Menu", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Single Player", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Multiplayer", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Instructions", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Options", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Single Player", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Multiplayer", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Instructions", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Options", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Exit Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -980,15 +1013,15 @@ void CGameClient::DisplayMultiplayerMenu()
 
 	// Print the Title Text
 	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_iMouseY, "Multiplayer", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Multiplayer", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Host a Game", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Join a Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Host a Game", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Join a Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -1010,14 +1043,14 @@ void CGameClient::DisplayInstructionsMenu()
 
 	// Print the Title Text
 	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_iMouseY, "Instructions", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Instructions", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Input Instructions Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Input Instructions Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -1039,14 +1072,14 @@ void CGameClient::DisplayOptionsMenu()
 
 	// Print the Title Text
 	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_iMouseY, "Options", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Options", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Input Options Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Input Options Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -1067,13 +1100,13 @@ void CGameClient::DisplayGameLobby()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "Game Lobby", (iYpos += 50), TITLE_FONT, colorRed, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Name : " + m_strServerName, (iYpos += 150), SCREEN_FONT, colorRed, H_LEFT);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Host : " + m_strServerHost, (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Game Lobby", (iYpos += 50), TITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Server Name : " + m_strServerName, (iYpos += 150), SCREEN_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Server Host : " + m_strServerHost, (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
 
 	iYpos += 40;
-	m_pRenderer->RenderText(false, m_iMouseY, "  Current Users", (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
-	m_pRenderer->RenderText(false, m_iMouseY, "Status", (iYpos), SCREEN_FONT, colorRed, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "  Current Users", (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Status", (iYpos), SCREEN_FONT, colorRed, H_RIGHT);
 
 	std::map<std::string, UserInfo>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
 
@@ -1084,20 +1117,20 @@ void CGameClient::DisplayGameLobby()
 			// Don't move the text down by the full 60 the first time
 			iYpos -= 30;
 		}
-		m_pRenderer->RenderText(false, m_iMouseY, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, colorRed, H_LEFT);
+		m_pRenderer->RenderText(false, m_ptMousePos, iterUsersCurrent->first, (iYpos += 60), MENU_FONT, colorRed, H_LEFT);
 		D3DXCOLOR colorReady = (iterUsersCurrent->second.bAlive == true) ? colorRed : (0xff440000);
-		m_pRenderer->RenderText(false, m_iMouseY, "Ready", (iYpos), MENU_FONT, colorReady, H_RIGHT);
+		m_pRenderer->RenderText(false, m_ptMousePos, "Ready", (iYpos), MENU_FONT, colorReady, H_RIGHT);
 
 		iterUsersCurrent++;
 	}
 
 	iYpos = m_iScreenHeight - 150;
 	std::string strReadyState = (m_bAlive == true) ? ("Actually I'm not ready!") : ("I am Ready!");
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, strReadyState, (iYpos), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Exit", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, strReadyState, (iYpos), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Exit", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -1119,13 +1152,13 @@ void CGameClient::DisplaySelectServer()
 	m_pRenderer->RenderColor(0xff000000);
 
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "Available Servers", (iYpos += 50), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Available Servers", (iYpos += 50), SUBTITLE_FONT, colorRed, H_CENTER);
 	iYpos += 120;
 
 	// Print the Headings
-	m_pRenderer->RenderText(false, m_iMouseY, "Server Name", (iYpos += 40), MENU_FONT, colorRed, H_LEFT);
-	m_pRenderer->RenderText(false, m_iMouseY, "Host", (iYpos), MENU_FONT, colorRed, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Users", (iYpos), MENU_FONT, colorRed, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Server Name", (iYpos += 40), MENU_FONT, colorRed, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Host", (iYpos), MENU_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Users", (iYpos), MENU_FONT, colorRed, H_RIGHT);
 
 	iYpos += 50;
 
@@ -1153,9 +1186,9 @@ void CGameClient::DisplaySelectServer()
 					color = colorWhite;
 				}
 
-				strSelection += m_pRenderer->RenderText(bSelectable, m_iMouseY, (*m_pAvailableServers)[i].cServerName, (iYpos += 30), SCREEN_FONT, color, H_LEFT);
-				m_pRenderer->RenderText(bSelectable, m_iMouseY, (*m_pAvailableServers)[i].cHostName, (iYpos), SCREEN_FONT, color, H_CENTER);
-				m_pRenderer->RenderText(bSelectable, m_iMouseY, strCurrentClients, (iYpos), SCREEN_FONT, color, H_RIGHT);
+				strSelection += m_pRenderer->RenderText(bSelectable, m_ptMousePos, (*m_pAvailableServers)[i].cServerName, (iYpos += 30), SCREEN_FONT, color, H_LEFT);
+				m_pRenderer->RenderText(bSelectable, m_ptMousePos, (*m_pAvailableServers)[i].cHostName, (iYpos), SCREEN_FONT, color, H_CENTER);
+				m_pRenderer->RenderText(bSelectable, m_ptMousePos, strCurrentClients, (iYpos), SCREEN_FONT, color, H_RIGHT);
 
 				if (strSelection != "" && iServerIndex == -1)
 				{
@@ -1165,15 +1198,15 @@ void CGameClient::DisplaySelectServer()
 		}
 		else
 		{
-			m_pRenderer->RenderText(false, m_iMouseY, "No Servers are Currently Active", (iYpos += 300), SCREEN_FONT, colorRed, H_CENTER);
+			m_pRenderer->RenderText(false, m_ptMousePos, "No Servers are Currently Active", (iYpos += 300), SCREEN_FONT, colorRed, H_CENTER);
 		}
 	}
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 		m_iServerIndex = iServerIndex;
@@ -1200,14 +1233,14 @@ void CGameClient::DisplayTerminatedServer()
 	iYpos = PrintFullTitle(iYpos);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_iMouseY, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, colorRed, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "Server has been terminated", (iYpos += 30), SCREEN_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Connection has been lost.", (iYpos += 270), SCREEN_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Server has been terminated", (iYpos += 30), SCREEN_FONT, colorRed, H_CENTER);
 
 	iYpos = m_iScreenHeight - 100;
-	strSelection += m_pRenderer->RenderText(true, m_iMouseY, "Back to Main Menu", (iYpos += 30), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back to Main Menu", (iYpos += 30), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
-	if (m_bLeftMouseClick == true)
+	if (m_activatedControls.bAction == true)
 	{
 		m_strMenuTempSelection = strSelection;
 	}
@@ -1217,13 +1250,51 @@ void CGameClient::DisplayTerminatedServer()
 	}
 }
 
+void CGameClient::DisplayGameLoading()
+{
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
+
+	int iDotCount = 1;
+	std::string strDots = ".";
+	while (m_bGameLoading == true)
+	{
+		int iYpos = 0;
+
+		m_pRenderer->StartRender(true, true, false);
+
+		// Render the Backbuffer to Black
+		m_pRenderer->RenderColor(0xff000000);
+
+		// Print the Title Text
+		iYpos = PrintFullTitle(iYpos);
+
+		// Print the Menu Options
+		m_pRenderer->RenderText(false, m_ptMousePos, "Game Loading", (iYpos += 270), MENU_FONT, colorRed, H_CENTER);
+	
+		m_pRenderer->RenderText(false, m_ptMousePos, strDots, (iYpos += 60), MENU_FONT, colorRed, H_CENTER);
+		Sleep(200);
+
+		strDots.append(" .");
+		iDotCount++;
+
+		if (iDotCount == 6)
+		{
+			strDots = ".";
+			iDotCount = 1;
+		}
+
+		m_pRenderer->EndRender();
+	}
+}
+
 int CGameClient::PrintFullTitle(int _iYpos)
 {
 	// Print the Title Text
-	m_pRenderer->RenderText(false, m_iMouseY, "ROBOTRON", (_iYpos += 50), SUBTITLE_FONT, 0xff450000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HORDES", (_iYpos += 80), TITLE_FONT, 0xff650000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "OF", (_iYpos += 100), TITLE_FONT, 0xff7c0000, H_CENTER);
-	m_pRenderer->RenderText(false, m_iMouseY, "HELL", (_iYpos += 100), TITLE_FONT, 0xffa50000, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "ROBOTRON", (_iYpos += 50), SUBTITLE_FONT, 0xff450000, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "HORDES", (_iYpos += 80), TITLE_FONT, 0xff650000, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "OF", (_iYpos += 100), TITLE_FONT, 0xff7c0000, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "HELL", (_iYpos += 100), TITLE_FONT, 0xffa50000, H_CENTER);
 
 	return _iYpos;
 }
@@ -1283,7 +1354,7 @@ void CGameClient::CreateServer()
 
 	// Start the Server executable running
 	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
-	//int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
+	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
 	// Sleep to give the server time to start up
 	Sleep(200);
@@ -1322,11 +1393,6 @@ void CGameClient::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)
 			m_pClientMutex->Signal();
 		}
 	}
-}
-
-void CGameClient::ChangeMenuSelection()
-{
-	//m_strMenuSelection = m_eMenuTempSelection;
 }
 
 void CGameClient::InsertUser(std::string _strUser, UserInfo _UserInfo)

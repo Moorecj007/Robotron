@@ -23,12 +23,10 @@
 
 // Local Includes
 #include "GameMechanics.h"
-//#include "Client.h"
-//#include "IRenderer.h"
 #include "D3D9Renderer.h"
 #include "Terrain.h"
 #include "StaticCamera.h"
-
+#include "DInput.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/MySemaphore.h"
 
@@ -79,25 +77,18 @@ public:
 	********************/
 	void SetMousePos(int _iX, int _iY);
 
-	/***********************
-	* SetMouseDown: Sets the Mouse Down variable
-	* @author: Callan Moore
-	* @parameter: _b: Boolean state for the Mouse down variable
-	* @return: void
-	********************/
-	void SetLeftMouseClick(bool _b) { m_bLeftMouseClick = _b; }
-
 	// Prototypes
 
 	/***********************
 	* Initialise: Initialise the Game Object for Use
 	* @author: Callan Moore
+	* @parameters: _hInstance: Handle to Instance of the application
 	* @parameters: _hWnd: Handle to The creating window
 	* @parameters: _iScreenWidth: The Height of the Screen
 	* @parameters: _iScreenHeight: The Width of the Screen
 	* @return: bool: Successful initialisation or not
 	********************/
-	bool Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight);
+	bool Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth, int _iScreenHeight);
 
 	/***********************
 	* RenderOneFrame: Renders one frame
@@ -224,6 +215,15 @@ public:
 	void ProcessTerminatedServer();
 
 	/***********************
+	* ProcessGameLoading: Process information for the Game Loading Screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessGameLoading();
+
+
+
+	/***********************
 	* Draw: Draws all the game world
 	* @author: Callan Moore
 	* @return: void
@@ -295,6 +295,13 @@ public:
 	void DisplayTerminatedServer();
 
 	/***********************
+	* DisplayGameLoading: Displays the Game Loading Screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void DisplayGameLoading();
+
+	/***********************
 	* PrintFullTitle: Print the full title
 	* @author: Callan Moore
 	* @parameter: _iYpos: The starting Y coordinate for the Text
@@ -353,13 +360,6 @@ public:
 	void ReceiveDataFromNetwork(ServerToClient* _pReceiveData);
 
 	/***********************
-	* ChangeMenuSelection: Change the Menu Selection to the current Temp Menu Selection
-	* @author: Callan Moore
-	* @return: void
-	********************/
-	void ChangeMenuSelection();
-
-	/***********************
 	* InsertUser: Creates a pair for a new user and adds them to the clientside map
 	* @author: Callan Moore
 	* @parameter: _strUser: String of the new users username
@@ -400,14 +400,15 @@ private:
 
 	// Game Variables
 	bool m_bHost;
+	CDInput* m_pDInput;
+	Controls m_activatedControls;
+	bool m_bGameLoading;
 
 	// Window Variables
 	HWND m_hWnd;
 	int m_iScreenWidth;
 	int m_iScreenHeight;
-	int m_iMouseX;
-	int m_iMouseY;
-	bool m_bLeftMouseClick;
+	POINT m_ptMousePos;
 	bool m_bTextInput;
 
 	// Client Network Variables

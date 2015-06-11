@@ -17,56 +17,18 @@
 #ifndef __GRAPHICSDEFINES_H__
 #define __GRAPHICSDEFINES_H__
 
+// Local Includes
+#include "Generic_Defines.h"
+
 // Library Includes
-#pragma comment(lib, "Winmm.lib")
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
-
 #include <d3dx9.h>
 
 // Types
 typedef long VertexType;
 
-// Enumerators
-enum eScreenState
-{
-	STATE_MAIN_MENU,
 
-	// Main Menu
-	STATE_SINGLEPLAYER_MENU,
-	STATE_MULTIPLAYER_MENU,
-	STATE_INSTRUCTIONS_MENU,
-	STATE_OPTIONS_MENU,
-
-	// Play Menu
-	STATE_HOST_GAME,
-
-	// Creating User and server names
-	STATE_CREATEUSER,
-	STATE_CREATE_SERVERNAME,
-
-	STATE_GAME_LOBBY,
-	STATE_SELECT_SERVER,
-
-	STATE_TERMINATED_SERVER,
-
-	// During Gameplay
-	STATE_GAME_PLAY
-};
-
-enum eFontType
-{
-	TITLE_FONT,
-	SUBTITLE_FONT,
-	MENU_FONT,
-	SCREEN_FONT
-};
-enum eAllignmentH
-{
-	H_LEFT,
-	H_CENTER,
-	H_RIGHT
-};
 
 enum eIGPrimitiveType
 {

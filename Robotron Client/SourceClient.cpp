@@ -26,6 +26,7 @@
 
 // Local Includes
 #include "GameClient.h"
+#include "resource.h"
 
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
@@ -35,6 +36,9 @@
 
 // Prototypes
 LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _msg, WPARAM _wParam, LPARAM _lParam);
+
+// Global Variables
+HCURSOR g_hCursor;
 
 /***********************
 * WindowProc: Process the window
@@ -66,6 +70,12 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 			return (0);
 		}
 		break;
+		case WM_SETCURSOR:
+		{
+			SetCursor(g_hCursor);
+			// Return Success.
+			return (0);
+		}
 		case WM_DESTROY:
 		{
 			// Kill the application, this sends a WM_QUIT message.
@@ -86,10 +96,10 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 					CGameClient::GetInstance().ProcessTextInput(_wParam);
 				}
 			}
-			else
-			{
-				CGameClient::GetInstance().m_pbKeyDown[_wParam] = true;
-			}
+			//else
+			//{
+			//	CGameClient::GetInstance().m_pbKeyDown[_wParam] = true;
+			//}
 		}
 		break;
 		case WM_KEYUP:
@@ -97,26 +107,25 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 			CGameClient::GetInstance().m_pbKeyDown[_wParam] = false;
 		}
 		break;
-		case WM_MOUSEMOVE:
-		{
-			// Get the position of the mouse when it moves
-			int iXpos = GET_X_LPARAM(_lParam);
-			int iYpos = GET_Y_LPARAM(_lParam);
-			CGameClient::GetInstance().SetMousePos(iXpos, iYpos);	
-		}
-		break;
-		case WM_LBUTTONDOWN:
-		{
-			// Tells the game the Left Mouse Button is currently down
-			CGameClient::GetInstance().SetLeftMouseClick(true);
-		}
-		break;
-		case WM_LBUTTONUP:
-		{
-			// Tells the game the Left Mouse Button is no longer down
-			CGameClient::GetInstance().SetLeftMouseClick(false);
-			CGameClient::GetInstance().ChangeMenuSelection();
-		}
+		//case WM_MOUSEMOVE:
+		//{
+		//	// Get the position of the mouse when it moves
+		//	int iXpos = GET_X_LPARAM(_lParam);
+		//	int iYpos = GET_Y_LPARAM(_lParam);
+		//	CGameClient::GetInstance().SetMousePos(iXpos, iYpos);	
+		//}
+		//break;
+		//case WM_LBUTTONDOWN:
+		//{
+		//	// Tells the game the Left Mouse Button is currently down
+		//	CGameClient::GetInstance().SetLeftMouseClick(true);
+		//}
+		//break;
+		//case WM_LBUTTONUP:
+		//{
+		//	// Tells the game the Left Mouse Button is no longer down
+		//	CGameClient::GetInstance().SetLeftMouseClick(false);
+		//}
 		break;
 		default: break;
 	} // End switch.
@@ -143,6 +152,8 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	int iScreenWidth = 1000;
 	int iScreenHeight = 1000;
 
+	g_hCursor = LoadCursor(_hInstance, MAKEINTRESOURCE(IDC_CROSSHAIR));
+
 	// Fills in the window class structure.
 	winClass.cbSize = sizeof(WNDCLASSEX);
 	winClass.style = CS_DBLCLKS | CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
@@ -150,12 +161,14 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	winClass.cbClsExtra = 0;
 	winClass.cbWndExtra = 0;
 	winClass.hInstance = _hInstance;
-	winClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	winClass.hIcon = NULL;
 	winClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	winClass.hbrBackground = (HBRUSH)COLOR_WINDOW;
 	winClass.lpszMenuName = NULL;
 	winClass.lpszClassName = WINDOW_CLASS_NAME;
 	winClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+
+	SetCursor(LoadCursor(NULL, MAKEINTRESOURCE(IDC_CROSSHAIR)));
 
 	// Registers the window class
 	if (!RegisterClassEx(&winClass))
@@ -163,11 +176,10 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		return (0);
 	}
 
-	RECT rect = { 0, 0, iScreenWidth, iScreenHeight };
-	AdjustWindowRect(&rect, WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU, false);
-	iScreenHeight = rect.bottom - rect.top;
-	iScreenWidth = rect.right - rect.left;
-
+	RECT adjustRect = { 0, 0, iScreenWidth, iScreenHeight };
+	AdjustWindowRect(&adjustRect, WS_VISIBLE | WS_CAPTION | WS_BORDER | WS_SYSMENU, false);
+	iScreenHeight = adjustRect.bottom - adjustRect.top;
+	iScreenWidth = adjustRect.right - adjustRect.left;
 
 	hWnd = CreateWindowEx(	NULL,								// Extended style.
 							WINDOW_CLASS_NAME,					// Class.
@@ -186,9 +198,16 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		return (0);
 	}
 
+	POINT point{ (iScreenWidth / 2), (iScreenHeight / 2) };
+	ClientToScreen(hWnd, &point);
+	SetCursorPos(point.x, point.y);
+
+	RECT clientRect;
+	GetClientRect(hWnd, &clientRect);
+
 	// Create the Game Object
 	CGameClient& rGameInstance = CGameClient::GetInstance();
-	rGameInstance.Initialise(hWnd, iScreenWidth, iScreenHeight);
+	rGameInstance.Initialise(_hInstance, hWnd, clientRect.right, clientRect.bottom);
 	bool bOnline = true;
 
 	// Enter main event loop.

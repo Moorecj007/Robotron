@@ -125,7 +125,7 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_pDirect3D->GetDeviceCaps(iAdapter, m_devType, &caps);
 
 	// Determine the Vertex processing Hardware or software
-	DWORD dwVertProcessing = (caps.VertexProcessingCaps != 0) ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE : D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+	DWORD dwVertProcessing = (caps.VertexProcessingCaps != 0) ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED | D3DCREATE_PUREDEVICE : D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED;
 
 	if (PopulatePresentParams(d3dpp, displayMode) == false)
 	{
@@ -215,8 +215,8 @@ bool CD3D9Renderer::PopulatePresentParams(D3DPRESENT_PARAMETERS& _rd3dpp, D3DDIS
 	_rd3dpp.BackBufferCount = 1;
 	_rd3dpp.EnableAutoDepthStencil = TRUE;
 	_rd3dpp.hDeviceWindow = m_hWindow;
-	_rd3dpp.BackBufferHeight = m_iScreenHeight;
-	_rd3dpp.BackBufferWidth = m_iScreenWidth;
+	_rd3dpp.BackBufferHeight = m_iScreenWidth;
+	_rd3dpp.BackBufferWidth = m_iScreenHeight;
 	_rd3dpp.Windowed = (!m_bFullscreen);
 	_rd3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
 
@@ -686,7 +686,7 @@ int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 	return m_iNextMaterialKey;
 }
 
-std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH)
+std::string CD3D9Renderer::RenderText(bool _bSelectable, POINT _ptMousePos, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH)
 {
 	ID3DXFont* pFont;
 	DWORD dwAllignment;
@@ -696,21 +696,20 @@ std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::stri
 	{
 		case H_LEFT:
 		{
-			dwAllignment = DT_LEFT | DT_VCENTER | DT_SINGLELINE;
+			dwAllignment = DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP;
 			break;
 		}
 		case H_CENTER:
 		{
-			dwAllignment = DT_CENTER | DT_VCENTER | DT_SINGLELINE;
+			dwAllignment = DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP;
 			break;
 		}
 		case H_RIGHT:
 		{
-			dwAllignment = DT_RIGHT | DT_VCENTER | DT_SINGLELINE;
+			dwAllignment = DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP;
 			break;
 		}
 	}	// End Switch (_eAllignment)
-
 
 	// Get pointer to the correct font
 	switch (_font)
@@ -749,7 +748,8 @@ std::string CD3D9Renderer::RenderText(bool _bSelectable, int _iMouseY, std::stri
 	if (_bSelectable == true)
 	{
 		// Check if the mouse position is within the Text Rect
-		if (_iMouseY + 20 >= rect.top && _iMouseY + 20 <= rect.bottom)
+		if (	_ptMousePos.x >= rect.left && _ptMousePos.x <= rect.right
+			&&	_ptMousePos.y >= rect.top && _ptMousePos.y <= rect.bottom )
 		{
 			// Highlight the Text to a differect color to show selection is available
 			_color = 0xff0000ff;
@@ -851,6 +851,7 @@ void CD3D9Renderer::CreateSubtitleFont()
 
 RECT CD3D9Renderer::RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFont)
 {
+	int iOffset = 20;
 	D3DXFONT_DESCA fontDesc;
 	_pFont->GetDescA(&fontDesc);
 	float fWidthCenter = (float)(m_iScreenWidth / 2);
@@ -858,8 +859,8 @@ RECT CD3D9Renderer::RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFo
 
 	rect.top = (LONG)_iYPos;
 	rect.bottom = (LONG)(_iYPos + fontDesc.Height);
-	rect.left = 0;
-	rect.right = m_iScreenWidth;
+	rect.left = 0 + iOffset;
+	rect.right = m_iScreenWidth - iOffset;
 
 
 	return rect;

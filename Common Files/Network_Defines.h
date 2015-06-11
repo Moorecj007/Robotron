@@ -17,15 +17,13 @@
 #ifndef __NETWORKDEFINES_H__
 #define __NETWORKDEFINES_H__
 
+// Local Includes
+#include "Generic_Defines.h"
+
 // Library Includes
-#pragma comment(lib, "Winmm.lib")
 #pragma comment(lib, "Ws2_32.lib")
-#include <string>
 #include <winsock2.h>
 #include <WS2tcpip.h>
-
-// Defines
-#define VALIDATE(a) if (!a) return (false)
 
 namespace network
 {
@@ -124,8 +122,5 @@ struct ServerToClient
 	int CurrentUserCount;
 	UserInfo UserInfos[network::MAX_CLIENTS];
 };
-
-
-
 
 #endif //__NETWORKDEFINES_H__
