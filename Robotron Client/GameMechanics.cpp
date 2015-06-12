@@ -39,13 +39,30 @@ CGameMechanics::~CGameMechanics()
 	// Delete the created meshes
 	delete m_pAvatarMesh;
 	m_pAvatarMesh = 0;
+
+	// Delete the Graphics 
+	delete m_pCamera;
+	m_pCamera = 0;
+	delete m_pTerrain;
+	m_pTerrain = 0;
 }
 
-bool CGameMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket)
+bool CGameMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName)
 {
 	// Store the pointer to the renderer
 	m_pRenderer = _pRenderer;
 	m_pServerPacket = _pServerPacket;
+	m_strUserName = _strUserName;
+
+	// Create the initial Projection Matrices and set them on the Renderer
+	m_pRenderer->CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
+
+	// Create a Terrain for the Game
+	m_pTerrain = new CTerrain();
+	VertexScalar TerrainScalar = { 1.0f, 0.05f, 1.0f };
+	std::string strImagePath = "Assets\\Basic Terrain.bmp";
+	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
+	m_pTerrain->SetCenter(0, 0, 0);
 
 	// Create the required meshes
 	m_pAvatarMesh = CreateCubeMesh(0.5);
@@ -54,11 +71,19 @@ bool CGameMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerP
 	m_pAvatars = new std::map < std::string, C3DObject*>;
 	CreateAvatars();
 
+	// Create and inititalise the Camera for the Game
+	m_pCamera = new CStaticCamera();
+	std::map< std::string, C3DObject*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+	D3DXVECTOR3 v3Pos = *(Avatar->second->GetPosition());
+	m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
+	m_pCamera->Process(m_pRenderer);
+
 	return true;
 }
 
 void CGameMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
 {
+
 	// save the current states of the delta tick and the Packet from the server
 	m_fDT = _fDT;
 	m_pServerPacket = _pServerPacket;
@@ -72,10 +97,19 @@ void CGameMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
 		currentAvatar->second->Process(_fDT);
 		currentAvatar++;
 	}
+
+	std::map<std::string, C3DObject*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+	D3DXVECTOR3 v3Pos = *(Avatar->second->GetPosition());
+	m_pCamera->SetPosition({ v3Pos.x, 100, v3Pos.z});
+	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 100, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
+	m_pCamera->Process(m_pRenderer);
 }
 
 void CGameMechanics::Draw()
 {
+	// Render the Terrain
+	m_pTerrain->Draw(m_pRenderer);
+
 	// Draw all the Avatars
 	std::map<std::string, C3DObject*>::iterator currentAvatar = m_pAvatars->begin();
 	while (currentAvatar != m_pAvatars->end())

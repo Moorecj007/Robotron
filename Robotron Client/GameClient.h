@@ -24,8 +24,6 @@
 // Local Includes
 #include "GameMechanics.h"
 #include "D3D9Renderer.h"
-#include "Terrain.h"
-#include "StaticCamera.h"
 #include "DInput.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/MySemaphore.h"
@@ -443,8 +441,6 @@ private:
 	IRenderer* m_pRenderer;
 
 	// Gameplay Information
-	CTerrain* m_pTerrain;
-	CStaticCamera* m_pCamera;
 	CGameMechanics* m_pGameMechanics;
 
 	// Time keeping variables

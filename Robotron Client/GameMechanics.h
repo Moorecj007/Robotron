@@ -25,6 +25,8 @@
 #include "C3DObject.h"
 #include "Mesh.h"
 #include "IRenderer.h"
+#include "Terrain.h"
+#include "StaticCamera.h"
 
 
 class CGameMechanics
@@ -55,9 +57,10 @@ public:
 	* @author: Callan Moore
 	* @parameter: _pRenderer: The pointer to the Renderer
 	* @parameter: _pServerPacket: The current Server Packet
+	* @parameter: _strUserName: The Username of the client user
 	* @return: void
 	********************/
-	bool Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket);
+	bool Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName);
 
 	/***********************
 	* CreateCubeMesh: Creates a Cube Mesh with origin in its very center
@@ -112,8 +115,12 @@ private:
 	ServerToClient* m_pServerPacket;
 	float m_fDT;
 
+	std::string m_strUserName;
+	CTerrain* m_pTerrain;
+	CStaticCamera* m_pCamera;
 	CMesh* m_pAvatarMesh;
 	std::map<std::string, C3DObject*>* m_pAvatars;
+
 };
 
 #endif // __GAMEMECHANICS_H__

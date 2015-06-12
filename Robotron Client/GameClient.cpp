@@ -84,12 +84,6 @@ CGameClient::~CGameClient()
 	delete m_pCurrentUsers;
 	m_pCurrentUsers = 0;
 
-	// Delete the Graphics 
-	delete m_pCamera;
-	m_pCamera = 0;
-	delete m_pTerrain;
-	m_pTerrain = 0;
-
 	// Delete the Game Mechanics handler
 	delete m_pGameMechanics;
 	m_pGameMechanics = 0;
@@ -172,10 +166,6 @@ bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	// Set User Information
 	m_pCurrentUsers = new std::map<std::string, UserInfo>;
 	m_bAlive = false;
-
-	// Gameplay Information for Rendering variables
-	m_pTerrain = 0;
-	m_pCamera = 0;
 
 	// Initialise the DirectInput
 	m_pDInput = new CDInput();
@@ -547,13 +537,8 @@ void CGameClient::ProcessScreenState(float _fDT)
 	{
 	case STATE_GAME_PLAY:
 	{
-
-		//m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
-		std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_strUserName);
-		m_pCamera->SetPosition({ User->second.fPosX, 100, User->second.fPosZ });
-		m_pCamera->SetCamera({ User->second.fPosX, User->second.fPosY, User->second.fPosZ }, { User->second.fPosX, 100, User->second.fPosZ }, { 0, 0, 1 }, { 0, -1, 0 });
-		m_pCamera->Process(m_pRenderer);
-
+		m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
+		
 		// Create Data packet for the user input
 		CreateDataPacket();
 		m_pClientNetwork->SendPacket(m_pClientToServer);
@@ -807,28 +792,11 @@ void CGameClient::ProcessGameLoading()
 	m_bGameLoading = true;
 	std::thread LoadingThread = std::thread(&CGameClient::DisplayGameLoading, this);
 
-	// Create the initial Projection Matrices and set them on the Renderer
-	m_pRenderer->CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
-
-	// Create a Terrain for the Game
-	m_pTerrain = new CTerrain();
-	VertexScalar TerrainScalar = { 1.0f, 0.05f, 1.0f };
-	std::string strImagePath = "Assets\\Basic Terrain.bmp";
-	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
-	m_pTerrain->SetCenter(0, 0, 0);
-
-	// Create and inititalise the Camera for the Game
-	m_pCamera = new CStaticCamera();
-	std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_strUserName);
-	m_pCamera->Initialise({ User->second.fPosX, 100, User->second.fPosZ }, { 0, -1, 0 }, true);
-	m_pCamera->Process(m_pRenderer);
-
 	// Create the GameMechanics Object for handling the mechanics of the game
 	m_pGameMechanics = new CGameMechanics();
-	m_pGameMechanics->Initialise(m_pRenderer, m_pPacketToProcess);
+	m_pGameMechanics->Initialise(m_pRenderer, m_pPacketToProcess, m_strUserName);
 
 	m_bGameLoading = false;
-
 	LoadingThread.join();
 	m_eScreenState = STATE_GAME_PLAY;
 }
@@ -844,7 +812,6 @@ void CGameClient::Draw()
 	{
 		case STATE_GAME_PLAY:
 		{
-			m_pTerrain->Draw(m_pRenderer);
 			m_pGameMechanics->Draw();
 			break;
 		}
