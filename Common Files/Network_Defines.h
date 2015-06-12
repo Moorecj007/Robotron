@@ -84,6 +84,7 @@ struct UserInfo
 	float fPosX;
 	float fPosY;
 	float fPosZ;
+	float fSpeed;
 };
 
 struct EnemyInfo
@@ -105,7 +106,7 @@ struct ClientToServer
 	char cAdditionalMessage[network::MAX_CHAR_LENGTH];
 
 	// Gameplay Information
-	//
+	Controls activatedControls;
 };
 
 struct ServerToClient

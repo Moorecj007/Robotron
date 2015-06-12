@@ -256,7 +256,8 @@ void C3DObject::Process(float _fDT)
 	m_fDT = _fDT;
 
 	// Update the Objects Position
-	m_v3Position += m_v3Velocity;
+	//m_v3Position += m_v3Velocity;
+	m_v3Position = { m_fX, m_fY, m_fZ };
 
 	// Reset the Velocity to stop continous movement
 	m_v3Velocity = { 0.0f, 0.0f, 0.0f };

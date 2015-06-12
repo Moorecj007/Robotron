@@ -186,6 +186,11 @@ bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 
 bool CGameClient::RenderOneFrame()
 {
+	// Snapshot Time at the beginning of the frame
+	m_iFrameTimeStart = (int)timeGetTime();
+	Sleep(1);
+
+	// Shut down the application if the netwoek goes offline
 	if (m_bNetworkOnline == false)
 	{
 		return false;
@@ -193,6 +198,10 @@ bool CGameClient::RenderOneFrame()
 
 	Process();
 	Draw();
+
+	// Snapshot Time at the end of the frame
+	m_iFrameTimeEnd = (int)timeGetTime();
+	FrameLimiter();
 
 	return true;
 }
@@ -208,6 +217,8 @@ void CGameClient::Process()
 	m_pDInput->Process();
 	m_activatedControls = m_pDInput->GetControls();
 	m_ptMousePos = m_pDInput->GetMousePos();
+
+	
 
 	// Determine if a Menu has been selected
 	if (m_strMenuTempSelection != "")
@@ -236,13 +247,6 @@ void CGameClient::Process()
 
 	// Reset the Menu Selection
 	m_strMenuSelection = "";
-
-	if (m_eScreenState == STATE_GAME_PLAY)
-	{
-		m_pCamera->SetPosition({ 0, 100, 0 });
-		m_pCamera->SetCamera({ 0, 0, 0 }, { 0, 100, 0 }, { 0, 0, 1 }, { 0, -1, 0 });
-		m_pCamera->Process(m_pRenderer);
-	}
 }
 
 void CGameClient::ProcessTextInput(WPARAM _wKeyPress)
@@ -543,6 +547,14 @@ void CGameClient::ProcessScreenState()
 	{
 	case STATE_GAME_PLAY:
 	{
+		m_pCamera->SetPosition({ 0, 100, 0 });
+		m_pCamera->SetCamera({ 0, 0, 0 }, { 0, 100, 0 }, { 0, 0, 1 }, { 0, -1, 0 });
+		m_pCamera->Process(m_pRenderer);
+
+		// Create Data packet for the user input
+		CreateDataPacket();
+		m_pClientNetwork->SendPacket(m_pClientToServer);
+
 		break;
 	}
 	case STATE_MAIN_MENU:
@@ -1302,7 +1314,17 @@ int CGameClient::PrintFullTitle(int _iYpos)
 // #Packets
 bool CGameClient::CreateDataPacket()
 {
-	// TO DO - create actual data
+	// Clear out old data from the Data Packet packet
+	ZeroMemory(*(&m_pClientToServer), sizeof(*m_pClientToServer));
+
+	// Add the Username of the Client to the Packet structure
+	if (!(StringToStruct(m_strUserName.c_str(), m_pClientToServer->cUserName, network::MAX_USERNAME_LENGTH)))
+	{
+		return false;	// Data invalid - Data Packet failed to create
+	}
+
+	m_pClientToServer->activatedControls = m_activatedControls;
+	
 	return true;
 }
 
@@ -1413,4 +1435,44 @@ void CGameClient::ResetGameData()
 	m_strServerHost = "";
 
 	m_pClientNetwork->Reset();
+}
+
+void CGameClient::FrameLimiter()
+{
+	// TO DO - change this so that sleep isnt used
+
+	// Calculate the Total time taken to complete frame
+	m_iFrameTimeDifference = m_iFrameTimeEnd - m_iFrameTimeStart;
+
+	// Increase the Second Counter by the Frame difference
+	m_iSecondCounter += m_iFrameTimeDifference;
+	m_iFrameCounter++;	// Increment the number of frames Rendered
+
+	// Calculate the the remaining time to render frames at 60 per Second
+	int iTimeToWait;
+
+	// Sleep function works in whole milliseconds and 1000/60 = 16.6667
+	if (m_iFrameCounter % 3 == 0)
+	{
+		// Every third frame wait 1 millisecond less to offset the 2 frames over the 16.667 mark
+		iTimeToWait = (16) - (m_iFrameTimeDifference);
+	}
+	else
+	{
+		iTimeToWait = (17) - (m_iFrameTimeDifference);
+	}
+
+	// Sleep only if the Rendering of the frame took less than 1/60 seconds
+	if (iTimeToWait > 0)
+	{
+		Sleep(iTimeToWait);
+		m_iSecondCounter += iTimeToWait;
+	}
+
+	if (m_iSecondCounter >= 1000)
+	{
+		m_iSecondCounter -= 1000;	// Remove one second of time from counter. Prevents integer wrap around
+		m_iFPS = m_iFrameCounter;	// FPS for this second is set to the number of frames rendered this second
+		m_iFrameCounter = 0;		// Reset the Frame counter
+	}
 }

@@ -332,7 +332,32 @@ void CGameServer::ProcessPacket()
 	}
 	else
 	{
-		// Process as normal client input
+		// Determine which user sent this message
+		std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+
+		// TO DO - Move to another location
+		D3DXVECTOR3 v3Movement = { 0, 0, 0};
+		if (m_pPacketToProcess->activatedControls.bUp == true)
+		{
+			v3Movement.z = 1;
+		}
+		if (m_pPacketToProcess->activatedControls.bDown == true)
+		{
+			v3Movement.z = -1;
+		}
+		if (m_pPacketToProcess->activatedControls.bRight == true)
+		{
+			v3Movement.x = 1;
+		}
+		if (m_pPacketToProcess->activatedControls.bLeft == true)
+		{
+			v3Movement.x = -1;
+		}
+		D3DXVec3Normalize(&v3Movement, &v3Movement);
+		User->second.fPosX += v3Movement.x;
+		User->second.fPosY += v3Movement.y;
+		User->second.fPosZ += v3Movement.z;
+		
 	}
 }
 
@@ -476,6 +501,7 @@ bool CGameServer::InsertUser(std::string _strUser)
 	tempUserInfo.fPosX = (float)iNumber * 5;
 	tempUserInfo.fPosY = 20;
 	tempUserInfo.fPosZ = 0;
+	tempUserInfo.fSpeed = 10;
 
 	std::pair<std::string, UserInfo> pairUser(_strUser, tempUserInfo);
 

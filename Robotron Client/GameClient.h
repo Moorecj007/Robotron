@@ -375,6 +375,13 @@ public:
 	********************/
 	void ResetGameData();
 
+	/***********************
+	* FrameLimiter: Limit the ammount of frames processes to 60
+	* @author: Callan Moore
+	* @return: void:
+	********************/
+	void FrameLimiter();
+
 private:
 	//Disallowing copies and extra constructions
 	CGameClient();
@@ -438,7 +445,15 @@ private:
 	CTerrain* m_pTerrain;
 	CStaticCamera* m_pCamera;
 	CGameMechanics* m_pGameMechanics;
-	
+
+	// Time keeping variables
+	int m_iFrameTimeStart;
+	int m_iFrameTimeEnd;
+	int m_iSecondCounter;
+	int m_iFPS;
+	int m_iFrameCounter;
+	int m_iFrameTimeDifference;
+
 };
 
 #endif //__GAMECLIENT_H__
