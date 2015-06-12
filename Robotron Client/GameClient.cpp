@@ -434,7 +434,7 @@ void CGameClient::ProcessPacket(float _fDT)
 				InsertUser(m_pPacketToProcess->UserInfos[i].cUserName, m_pPacketToProcess->UserInfos[i]);
 			}
 
-			m_eScreenState = STATE_GAME_LOBBY;	
+			m_eScreenState = STATE_GAMELOADING;	
 		}
 		// Reply if the chosen username is already in use on that server
 		else if (eProcessCommand == CREATEUSER_NAMEINUSE)
@@ -466,6 +466,7 @@ void CGameClient::ProcessPacket(float _fDT)
 				}
 
 				InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->UserInfos[iIndex]);
+				m_pGameMechanics->AddAvatar(m_pPacketToProcess);
 		}
 		// Delete users that have left
 		else if (eProcessCommand == USER_LEFT)
@@ -508,7 +509,7 @@ void CGameClient::ProcessPacket(float _fDT)
 		// All users are ready. Start the Game
 		else if (eProcessCommand == START_GAME)
 		{
-			m_eScreenState = STATE_GAMELOADING;
+			m_eScreenState = STATE_GAME_PLAY;
 		}
 		// The server has been terminated
 		else if (eProcessCommand == TERMINATE_SERVER)
@@ -798,12 +799,10 @@ void CGameClient::ProcessGameLoading()
 
 	m_bGameLoading = false;
 	LoadingThread.join();
-	m_eScreenState = STATE_GAME_PLAY;
+	m_eScreenState = STATE_GAME_LOBBY;
 }
 
-
-
-
+// #Draw
 void CGameClient::Draw()
 {
 	m_pRenderer->StartRender(true, true, false);
@@ -1355,7 +1354,7 @@ void CGameClient::CreateServer()
 	m_pClientNetwork->BroadcastToServers(m_pClientToServer);
 
 	m_strServerHost = m_strUserName;
-	m_eScreenState = STATE_GAME_LOBBY;
+	m_eScreenState = STATE_GAMELOADING;
 }
 
 bool CGameClient::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)

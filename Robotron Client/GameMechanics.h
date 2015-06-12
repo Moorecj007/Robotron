@@ -101,6 +101,14 @@ public:
 	void UpdateAvatars();
 
 	/***********************
+	* AddAvatar: Add an Avatar from the Container
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet that contains the data needed to create the new Avatar
+	* @return: void
+	********************/
+	void AddAvatar(ServerToClient* _pServerPacket);
+
+	/***********************
 	* RemoveAvatar: Remove an Avatar from the Container
 	* @author: Callan Moore
 	* @parameter: _strUserName: The username of the avatar to remove

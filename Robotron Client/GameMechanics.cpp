@@ -69,14 +69,14 @@ bool CGameMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerP
 
 	// Create the the container of avatars and populate
 	m_pAvatars = new std::map < std::string, C3DObject*>;
-	CreateAvatars();
+	//CreateAvatars();
 
 	// Create and inititalise the Camera for the Game
-	m_pCamera = new CStaticCamera();
-	std::map< std::string, C3DObject*>::iterator Avatar = m_pAvatars->find(m_strUserName);
-	D3DXVECTOR3 v3Pos = *(Avatar->second->GetPosition());
-	m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
-	m_pCamera->Process(m_pRenderer);
+	//m_pCamera = new CStaticCamera();
+	//std::map< std::string, C3DObject*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+	//D3DXVECTOR3 v3Pos = *(Avatar->second->GetPosition());
+	//m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
+	//m_pCamera->Process(m_pRenderer);
 
 	return true;
 }
@@ -213,6 +213,58 @@ void CGameMechanics::UpdateAvatars()
 		iterAvatar->second->SetX(userInfo.fPosX);
 		iterAvatar->second->SetY(userInfo.fPosY);
 		iterAvatar->second->SetZ(userInfo.fPosZ);
+	}
+}
+
+void CGameMechanics::AddAvatar(ServerToClient* _pServerPacket)
+{
+	// Create a material for the avatars to be made from
+	MaterialComponents matComponents;
+	matComponents.fAmbientRed = 0;
+	matComponents.fAmbientGreen = 0;
+	matComponents.fAmbientBlue = 1;
+	matComponents.fAmbientAlpha = 1;
+	matComponents.fDiffuseRed = 0;
+	matComponents.fDiffuseGreen = 0;
+	matComponents.fDiffuseBlue = 1;
+	matComponents.fDiffuseAlpha = 0;
+	matComponents.fEmissiveRed = 0;
+	matComponents.fEmissiveGreen = 0;
+	matComponents.fEmissiveBlue = 0;
+	matComponents.fEmissiveAlpha = 0;
+	matComponents.fSpecularRed = 1;
+	matComponents.fSpecularGreen = 1;
+	matComponents.fSpecularBlue = 0;
+	matComponents.fSpecularAlpha = 1;
+	matComponents.fPower = 0;
+
+	UserInfo currentUserInfo;
+	// Temporarily store the user data 
+	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
+	{
+		if ((std::string)(_pServerPacket->cUserName) == (std::string)(_pServerPacket->UserInfos[i].cUserName))
+		{
+			currentUserInfo = m_pServerPacket->UserInfos[i];
+		}
+	}
+
+	// Create a new avatar object
+	C3DObject* pTempAvatar = new  C3DObject();
+	pTempAvatar->Initialise(m_pAvatarMesh, currentUserInfo.fPosX, currentUserInfo.fPosY, currentUserInfo.fPosZ);	// Initialise the Avatar with the Cube Mesh and set its coordinates
+	pTempAvatar->SetMaterial(m_pRenderer, matComponents);
+
+	// Save the avatar in a vector
+	std::pair<std::string, C3DObject*> pairAvatar((std::string)(currentUserInfo.cUserName), pTempAvatar);
+	m_pAvatars->insert(pairAvatar);
+
+	if ((std::string)(_pServerPacket->cUserName) == m_strUserName)
+	{
+		// Create and inititalise the Camera for the Game
+		m_pCamera = new CStaticCamera();
+		std::map< std::string, C3DObject*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+		D3DXVECTOR3 v3Pos = *(Avatar->second->GetPosition());
+		m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
+		m_pCamera->Process(m_pRenderer);
 	}
 }
 
