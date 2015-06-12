@@ -336,7 +336,7 @@ void CGameServer::ProcessPacket()
 		std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
 
 		// TO DO - Move to another location
-		D3DXVECTOR3 v3Movement = { 0, 0, 0};
+		v3float v3Movement = { 0, 0, 0 };
 		if (m_pPacketToProcess->activatedControls.bUp == true)
 		{
 			v3Movement.z = 1;
@@ -353,11 +353,10 @@ void CGameServer::ProcessPacket()
 		{
 			v3Movement.x = -1;
 		}
-		D3DXVec3Normalize(&v3Movement, &v3Movement);
-		User->second.fPosX += v3Movement.x;
-		User->second.fPosY += v3Movement.y;
-		User->second.fPosZ += v3Movement.z;
-		
+		v3float normV3 = NormaliseV3Float(&v3Movement);
+		User->second.fPosX += normV3.x;
+		User->second.fPosY += normV3.y;
+		User->second.fPosZ += normV3.z;
 	}
 }
 
@@ -509,4 +508,19 @@ bool CGameServer::InsertUser(std::string _strUser)
 	pairReturn = m_pCurrentUsers->insert(pairUser);
 
 	return pairReturn.second;
+}
+
+v3float CGameServer::NormaliseV3Float(v3float* _v3)
+{
+	v3float normV3Float = { 0, 0, 0 };
+	float fMagnitude = sqrt(pow(_v3->x, 2) + pow(_v3->y, 2) + pow(_v3->z, 2));
+
+	if (fMagnitude > 0)
+	{
+		normV3Float.x = (_v3->x / fMagnitude);
+		normV3Float.y = (_v3->y / fMagnitude);
+		normV3Float.z = (_v3->z / fMagnitude);
+	}
+
+	return normV3Float;
 }

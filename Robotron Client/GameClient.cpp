@@ -231,7 +231,7 @@ void CGameClient::Process()
 	}
 	
 	// Determine the correct process dependent on the current screen state
-	ProcessScreenState();
+	ProcessScreenState(fDT);
 
 	// Process all Packets in the Work Queue
 	while (m_pWorkQueue->empty() == false)
@@ -538,7 +538,7 @@ void CGameClient::ProcessPacket(float _fDT)
 	}
 }
 
-void CGameClient::ProcessScreenState()
+void CGameClient::ProcessScreenState(float _fDT)
 {
 	m_bTextInput = false;
 
@@ -547,8 +547,11 @@ void CGameClient::ProcessScreenState()
 	{
 	case STATE_GAME_PLAY:
 	{
-		m_pCamera->SetPosition({ 0, 100, 0 });
-		m_pCamera->SetCamera({ 0, 0, 0 }, { 0, 100, 0 }, { 0, 0, 1 }, { 0, -1, 0 });
+
+		//m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
+		std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_strUserName);
+		m_pCamera->SetPosition({ User->second.fPosX, 100, User->second.fPosZ });
+		m_pCamera->SetCamera({ User->second.fPosX, User->second.fPosY, User->second.fPosZ }, { User->second.fPosX, 100, User->second.fPosZ }, { 0, 0, 1 }, { 0, -1, 0 });
 		m_pCamera->Process(m_pRenderer);
 
 		// Create Data packet for the user input
@@ -816,7 +819,8 @@ void CGameClient::ProcessGameLoading()
 
 	// Create and inititalise the Camera for the Game
 	m_pCamera = new CStaticCamera();
-	m_pCamera->Initialise({ 0, 100, 0 }, { 0, -1, 0 }, true);
+	std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_strUserName);
+	m_pCamera->Initialise({ User->second.fPosX, 100, User->second.fPosZ }, { 0, -1, 0 }, true);
 	m_pCamera->Process(m_pRenderer);
 
 	// Create the GameMechanics Object for handling the mechanics of the game

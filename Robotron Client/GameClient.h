@@ -140,9 +140,10 @@ public:
 	/***********************
 	* ProcessScreenState: Determine which process to run dependent on the current screen state
 	* @author: Callan Moore
+	* @parameter: _fDT: The current Delta tick
 	* @return: void
 	********************/
-	void ProcessScreenState();
+	void ProcessScreenState(float _fDT);
 
 	/***********************
 	* ProcessCreateUser: Process information from the Create User Menu

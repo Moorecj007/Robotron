@@ -171,6 +171,15 @@ public:
 	********************/
 	bool InsertUser(std::string _strUser);
 
+	/***********************
+	* NormaliseV3Float: Normalise a vector of 3 floats
+	* @author: Callan Moore
+	* @parameter: _v3: vecctor to normalise
+	* @return: v3float: the normalised vector
+	********************/
+	v3float NormaliseV3Float(v3float* _v3);
+
+
 
 private:
 	//Disallowing copies and extra constructions
