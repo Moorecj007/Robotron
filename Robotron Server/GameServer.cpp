@@ -55,6 +55,10 @@ CGameServer::~CGameServer()
 	// Delete the container of Users from the Heap Memory
 	delete m_pCurrentUsers;
 	m_pCurrentUsers = 0;
+
+	// Delete the Mechanics
+	delete m_pMechanics;
+	m_pMechanics = 0;
 }
 
 CGameServer& CGameServer::GetInstance()
@@ -121,8 +125,9 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	// Set the Initial ServerState
 	m_eServerState = STATE_LOBBY;
 
-	// Initialise Gameplay containers
-	m_v3TerrainPos = { 0, 0, 0 };
+	// Initialise Gameplay variables
+	m_pMechanics = new CServerMechanics();
+	VALIDATE(m_pMechanics->Initialise());
 
 	return true;
 }
