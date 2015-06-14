@@ -6,16 +6,16 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameMechanics.cpp
-* Description : Handles all the game mechanics
+* File Name : ClientMechanics.cpp
+* Description : Handles all the mechanics on the client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 #pragma once
 
-#ifndef __GAMEMECHANICS_H__
-#define __GAMEMECHANICS_H__
+#ifndef __CLIENT_MECHANICS_H__
+#define __CLIENT_MECHANICS_H__
 
 // Library Incudes
 #include <vector>
@@ -29,7 +29,7 @@
 #include "StaticCamera.h"
 
 
-class CGameMechanics
+class CClientMechanics
 {
 public:
 	// Constructors / Destructors
@@ -38,13 +38,13 @@ public:
 	* Game: Default Constructor for GameMechanics class
 	* @author: Callan Moore
 	********************/
-	CGameMechanics();
+	CClientMechanics();
 
 	/***********************
 	* ~Game: Default Destructor for GameMechanics class
 	* @author: Callan Moore
 	********************/
-	~CGameMechanics();
+	~CClientMechanics();
 
 	// Getters
 
@@ -101,12 +101,20 @@ public:
 	void UpdateAvatars();
 
 	/***********************
-	* AddAvatar: Add an Avatar from the Container
+	* AddAvatar: Add an Avatar to the Container
 	* @author: Callan Moore
 	* @parameter: _pServerPacket: Packet that contains the data needed to create the new Avatar
 	* @return: void
 	********************/
 	void AddAvatar(ServerToClient* _pServerPacket);
+
+	/***********************
+	* AddAllAvatars: Adds an avatar for all current server users for a user that just joined
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet that contains the data needed to create the new Avatars
+	* @return: void
+	********************/
+	void AddAllAvatars(ServerToClient* _pServerPacket);
 
 	/***********************
 	* RemoveAvatar: Remove an Avatar from the Container
@@ -131,4 +139,4 @@ private:
 
 };
 
-#endif // __GAMEMECHANICS_H__
+#endif // __CLIENT_MECHANICS_H__

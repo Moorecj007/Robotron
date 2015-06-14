@@ -85,8 +85,8 @@ CGameClient::~CGameClient()
 	m_pCurrentUsers = 0;
 
 	// Delete the Game Mechanics handler
-	delete m_pGameMechanics;
-	m_pGameMechanics = 0;
+	delete m_pMechanics;
+	m_pMechanics = 0;
 
 	// Destroy the DirectInput
 	m_pDInput->Shutdown();
@@ -390,6 +390,7 @@ void CGameClient::ProcessPacket(float _fDT)
 		if (eProcessCommand == HOST_SERVER)
 		{
 			InsertUser(m_strUserName, m_pPacketToProcess->UserInfos[0]);
+			m_pMechanics->AddAvatar(m_pPacketToProcess);
 		}
 		// Reply when a server is saying they are available for connection
 		else if (eProcessCommand == SERVER_CONNECTION_AVAILABLE)
@@ -432,9 +433,12 @@ void CGameClient::ProcessPacket(float _fDT)
 			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
 			{
 				InsertUser(m_pPacketToProcess->UserInfos[i].cUserName, m_pPacketToProcess->UserInfos[i]);
+				//m_pGameMechanics->AddAvatar(m_pPacketToProcess);
 			}
 
 			m_eScreenState = STATE_GAMELOADING;	
+			ProcessGameLoading();
+			m_pMechanics->AddAllAvatars(m_pPacketToProcess);
 		}
 		// Reply if the chosen username is already in use on that server
 		else if (eProcessCommand == CREATEUSER_NAMEINUSE)
@@ -455,6 +459,8 @@ void CGameClient::ProcessPacket(float _fDT)
 		// Add a user that has joined the server
 		else if (eProcessCommand == USER_JOINED)
 		{
+			if ((std::string)(m_pPacketToProcess->cUserName) != m_strUserName)
+			{
 				int iIndex;
 				// Find the Index of the new user within the UserInfo List
 				for (int i = 0; i < network::MAX_CLIENTS; i++)
@@ -466,18 +472,15 @@ void CGameClient::ProcessPacket(float _fDT)
 				}
 
 				InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->UserInfos[iIndex]);
-				m_pGameMechanics->AddAvatar(m_pPacketToProcess);
+				m_pMechanics->AddAvatar(m_pPacketToProcess);
+			}
 		}
 		// Delete users that have left
 		else if (eProcessCommand == USER_LEFT)
 		{
 			// Delete the User from the list
 			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
-
-			if (m_eScreenState == STATE_GAME_PLAY)
-			{
-				m_pGameMechanics->RemoveAvatar(m_pPacketToProcess->cUserName);
-			}
+			m_pMechanics->RemoveAvatar(m_pPacketToProcess->cUserName);
 
 		}
 		else if (eProcessCommand == YOUR_HOST)
@@ -524,7 +527,7 @@ void CGameClient::ProcessPacket(float _fDT)
 	{
 		if (m_eScreenState != STATE_GAMELOADING)
 		{
-			m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
+			m_pMechanics->Process(_fDT, m_pPacketToProcess);
 		}
 	}
 }
@@ -538,7 +541,7 @@ void CGameClient::ProcessScreenState(float _fDT)
 	{
 	case STATE_GAME_PLAY:
 	{
-		m_pGameMechanics->Process(_fDT, m_pPacketToProcess);
+		m_pMechanics->Process(_fDT, m_pPacketToProcess);
 		
 		// Create Data packet for the user input
 		CreateDataPacket();
@@ -794,8 +797,13 @@ void CGameClient::ProcessGameLoading()
 	std::thread LoadingThread = std::thread(&CGameClient::DisplayGameLoading, this);
 
 	// Create the GameMechanics Object for handling the mechanics of the game
-	m_pGameMechanics = new CGameMechanics();
-	m_pGameMechanics->Initialise(m_pRenderer, m_pPacketToProcess, m_strUserName);
+	m_pMechanics = new CClientMechanics();
+	m_pMechanics->Initialise(m_pRenderer, m_pPacketToProcess, m_strUserName);
+
+	//if (m_bHost == false)
+	//{
+	//	m_pGameMechanics->AddAvatar(m_pPacketToProcess);
+	//}
 
 	m_bGameLoading = false;
 	LoadingThread.join();
@@ -811,7 +819,7 @@ void CGameClient::Draw()
 	{
 		case STATE_GAME_PLAY:
 		{
-			m_pGameMechanics->Draw();
+			m_pMechanics->Draw();
 			break;
 		}
 		case STATE_MAIN_MENU:

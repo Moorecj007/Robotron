@@ -23,6 +23,7 @@
 
 // Local Includes
 #include "Server.h"
+#include "ServerMechanics.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/MySemaphore.h"
 #include "../Common Files/Graphics_Defines.h"
@@ -218,8 +219,8 @@ private:
 	// Server Users
 	std::map<std::string, UserInfo>* m_pCurrentUsers;
 
-	// Gameplay Containers
-	D3DXVECTOR3 m_v3TerrainPos;
+	// Gameplay
+	CServerMechanics* m_pMechanics;
 };
 
 #endif //__GAMESERVER_H__

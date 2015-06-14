@@ -22,7 +22,7 @@
 #include <queue>
 
 // Local Includes
-#include "GameMechanics.h"
+#include "ClientMechanics.h"
 #include "D3D9Renderer.h"
 #include "DInput.h"
 #include "../Common Files/Clock.h"
@@ -441,7 +441,7 @@ private:
 	IRenderer* m_pRenderer;
 
 	// Gameplay Information
-	CGameMechanics* m_pGameMechanics;
+	CClientMechanics* m_pMechanics;
 
 	// Time keeping variables
 	int m_iFrameTimeStart;

@@ -13,13 +13,13 @@
 */
 
 // Local Include
-#include "GameMechanics.h"
+#include "ClientMechanics.h"
 
-CGameMechanics::CGameMechanics()
+CClientMechanics::CClientMechanics()
 {
 }
 
-CGameMechanics::~CGameMechanics()
+CClientMechanics::~CClientMechanics()
 {
 	// Delete the Container of Avatars
 	if (m_pAvatars != 0)
@@ -47,7 +47,7 @@ CGameMechanics::~CGameMechanics()
 	m_pTerrain = 0;
 }
 
-bool CGameMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName)
+bool CClientMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName)
 {
 	// Store the pointer to the renderer
 	m_pRenderer = _pRenderer;
@@ -81,7 +81,7 @@ bool CGameMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerP
 	return true;
 }
 
-void CGameMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
+void CClientMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
 {
 
 	// save the current states of the delta tick and the Packet from the server
@@ -105,7 +105,7 @@ void CGameMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
 	m_pCamera->Process(m_pRenderer);
 }
 
-void CGameMechanics::Draw()
+void CClientMechanics::Draw()
 {
 	// Render the Terrain
 	m_pTerrain->Draw(m_pRenderer);
@@ -119,7 +119,7 @@ void CGameMechanics::Draw()
 	}
 }
 
-void CGameMechanics::CreateAvatars()
+void CClientMechanics::CreateAvatars()
 {
 	// Create a material for the avatars to be made from
 	MaterialComponents matComponents;
@@ -161,7 +161,7 @@ void CGameMechanics::CreateAvatars()
 	}
 }
 
-CMesh* CGameMechanics::CreateCubeMesh(float _fSize)
+CMesh* CClientMechanics::CreateCubeMesh(float _fSize)
 {
 	float fVertexfromOrigin = _fSize;
 	CMesh* meshCube = new CMesh(m_pRenderer);
@@ -198,7 +198,7 @@ CMesh* CGameMechanics::CreateCubeMesh(float _fSize)
 	return meshCube;
 }
 
-void CGameMechanics::UpdateAvatars()
+void CClientMechanics::UpdateAvatars()
 {
 	// Iterator to point at the found Avatar
 	std::map<std::string, C3DObject*>::iterator iterAvatar;
@@ -216,7 +216,7 @@ void CGameMechanics::UpdateAvatars()
 	}
 }
 
-void CGameMechanics::AddAvatar(ServerToClient* _pServerPacket)
+void CClientMechanics::AddAvatar(ServerToClient* _pServerPacket)
 {
 	// Create a material for the avatars to be made from
 	MaterialComponents matComponents;
@@ -244,12 +244,13 @@ void CGameMechanics::AddAvatar(ServerToClient* _pServerPacket)
 	{
 		if ((std::string)(_pServerPacket->cUserName) == (std::string)(_pServerPacket->UserInfos[i].cUserName))
 		{
-			currentUserInfo = m_pServerPacket->UserInfos[i];
+			currentUserInfo = _pServerPacket->UserInfos[i];
 		}
 	}
 
 	// Create a new avatar object
 	C3DObject* pTempAvatar = new  C3DObject();
+	pTempAvatar->SetMesh(m_pAvatarMesh);
 	pTempAvatar->Initialise(m_pAvatarMesh, currentUserInfo.fPosX, currentUserInfo.fPosY, currentUserInfo.fPosZ);	// Initialise the Avatar with the Cube Mesh and set its coordinates
 	pTempAvatar->SetMaterial(m_pRenderer, matComponents);
 
@@ -268,7 +269,57 @@ void CGameMechanics::AddAvatar(ServerToClient* _pServerPacket)
 	}
 }
 
-void CGameMechanics::RemoveAvatar(std::string _strUserName)
+void CClientMechanics::AddAllAvatars(ServerToClient* _pServerPacket)
+{
+	// Create a material for the avatars to be made from
+	MaterialComponents matComponents;
+	matComponents.fAmbientRed = 0;
+	matComponents.fAmbientGreen = 0;
+	matComponents.fAmbientBlue = 1;
+	matComponents.fAmbientAlpha = 1;
+	matComponents.fDiffuseRed = 0;
+	matComponents.fDiffuseGreen = 0;
+	matComponents.fDiffuseBlue = 1;
+	matComponents.fDiffuseAlpha = 0;
+	matComponents.fEmissiveRed = 0;
+	matComponents.fEmissiveGreen = 0;
+	matComponents.fEmissiveBlue = 0;
+	matComponents.fEmissiveAlpha = 0;
+	matComponents.fSpecularRed = 1;
+	matComponents.fSpecularGreen = 1;
+	matComponents.fSpecularBlue = 0;
+	matComponents.fSpecularAlpha = 1;
+	matComponents.fPower = 0;
+
+	UserInfo currentUserInfo;
+	// Temporarily store the user data 
+	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
+	{
+		currentUserInfo = _pServerPacket->UserInfos[i];
+
+		// Create a new avatar object
+		C3DObject* pTempAvatar = new  C3DObject();
+		pTempAvatar->SetMesh(m_pAvatarMesh);
+		pTempAvatar->Initialise(m_pAvatarMesh, currentUserInfo.fPosX, currentUserInfo.fPosY, currentUserInfo.fPosZ);	// Initialise the Avatar with the Cube Mesh and set its coordinates
+		pTempAvatar->SetMaterial(m_pRenderer, matComponents);
+
+		// Save the avatar in a vector
+		std::pair<std::string, C3DObject*> pairAvatar((std::string)(currentUserInfo.cUserName), pTempAvatar);
+		m_pAvatars->insert(pairAvatar);
+
+		if ((std::string)(currentUserInfo.cUserName) == m_strUserName)
+		{
+			// Create and inititalise the Camera for the Game
+			m_pCamera = new CStaticCamera();
+			std::map< std::string, C3DObject*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+			D3DXVECTOR3 v3Pos = *(Avatar->second->GetPosition());
+			m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
+			m_pCamera->Process(m_pRenderer);
+		}
+	}
+}
+
+void CClientMechanics::RemoveAvatar(std::string _strUserName)
 {
 	std::map<std::string, C3DObject*>::iterator iterAvatar;
 	iterAvatar = m_pAvatars->find(_strUserName);

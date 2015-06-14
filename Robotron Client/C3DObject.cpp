@@ -211,14 +211,16 @@ void C3DObject::SetZ(float _fZ)
 ********************/
 void C3DObject::Initialise(CMesh* _pMesh, float _fX, float _fY, float _fZ)
 {
+	m_v3Position.x = _fX;
+	m_v3Position.y = _fY;
+	m_v3Position.z = _fZ;
+
 	m_pMesh = _pMesh;
 	m_fX = _fX;
 	m_fY = _fY;
 	m_fZ = _fZ;
 
-	m_v3Position.x = _fX;
-	m_v3Position.y = _fY;
-	m_v3Position.z = _fZ;
+	
 
 	m_fSpeed = 250.0f;					// Movement Speed
 	m_fTurningSpeed = 0.5f * m_fSpeed;	// Turning Speed Based on the Movement Speed

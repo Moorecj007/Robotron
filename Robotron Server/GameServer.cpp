@@ -186,9 +186,11 @@ void CGameServer::Process()
 	}
 	else if ( m_eServerState == STATE_GAMEPLAY)
 	{
+		m_pMechanics->Process();
+
 		CreateDataPacket();
 		m_pServerNetwork->SendPacket(m_pServerToClient);
-		Sleep(16);	// TO DO - remove sleep
+		Sleep(16);	// TO DO - remove sleep add limiter without a sleep function more than 1 ms
 	}
 }
 
@@ -230,7 +232,7 @@ void CGameServer::ProcessPacket()
 					// This server will only reply to very first message with this command
 					if (m_bRepliedToHost == false)
 					{
-						CreateCommandPacket(HOST_SERVER);
+						CreateCommandPacket(HOST_SERVER, m_strHostUser);
 						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 						m_pServerNetwork->AddClientAddr(strCheckHost, m_pPacketToProcess->ClientAddr);
 						m_bRepliedToHost = true;
@@ -273,7 +275,7 @@ void CGameServer::ProcessPacket()
 					if (bAdded == true)
 					{
 						// If the User was successfully added send back that they were accepted
-						CreateCommandPacket(CREATEUSER_ACCEPTED);
+						CreateCommandPacket(CREATEUSER_ACCEPTED, (std::string)(m_pPacketToProcess->cUserName));
 						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 						m_pServerNetwork->AddClientAddr(strUser, m_pPacketToProcess->ClientAddr);
 
