@@ -217,7 +217,7 @@ private:
 	bool m_bRepliedToHost;
 
 	// Server Users
-	std::map<std::string, UserInfo>* m_pCurrentUsers;
+	std::map<std::string, AvatarInfo>* m_pCurrentUsers;
 
 	// Gameplay
 	CServerMechanics* m_pMechanics;

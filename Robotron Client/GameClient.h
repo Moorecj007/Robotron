@@ -365,7 +365,7 @@ public:
 	* @parameter: _UserInfo: The new users information
 	* @return: void: 
 	********************/
-	void InsertUser(std::string _strUser, UserInfo _UserInfo);
+	void InsertUser(std::string _strUser, AvatarInfo _AvatarInfo);
 
 	/***********************
 	* ResetGameData: Reset the game data linked to a particular server/game
@@ -431,7 +431,7 @@ private:
 	bool m_bAlive;
 	std::string m_strServerHost;
 	eNetworkCommand m_eUserNameFailed;
-	std::map<std::string, UserInfo>* m_pCurrentUsers;
+	std::map<std::string, AvatarInfo>* m_pCurrentUsers;
 		
 	// Server Information
 	std::string m_strServerName;

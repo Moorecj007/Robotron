@@ -157,11 +157,11 @@ void CClientMechanics::UpdateAvatars()
 	for (int i = 0; i < m_pServerPacket->CurrentUserCount; i++)
 	{
 		// Retrieve the username from the current UserInfo
-		UserInfo userInfo = (*m_pServerPacket).UserInfos[i];
-		std::string strUserName = (std::string)(userInfo.cUserName);
+		AvatarInfo avatarInfo = (*m_pServerPacket).Avatars[i];
+		std::string strUserName = (std::string)(avatarInfo.cUserName);
 		iterAvatar = m_pAvatars->find(strUserName);
 
-		iterAvatar->second->SetPosition({ userInfo.fPosX, userInfo.fPosY, userInfo.fPosZ });
+		iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y, avatarInfo.v3Pos.z });
 	}
 }
 
@@ -175,23 +175,23 @@ void CClientMechanics::AddAvatar(ServerToClient* _pServerPacket)
 	matComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
 	matComp.power = 0;
 
-	UserInfo currentUserInfo;
+	AvatarInfo currentAvatarInfo;
 	// Temporarily store the user data 
 	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
 	{
-		if ((std::string)(_pServerPacket->cUserName) == (std::string)(_pServerPacket->UserInfos[i].cUserName))
+		if ((std::string)(_pServerPacket->cUserName) == (std::string)(_pServerPacket->Avatars[i].cUserName))
 		{
-			currentUserInfo = _pServerPacket->UserInfos[i];
+			currentAvatarInfo = _pServerPacket->Avatars[i];
 		}
 	}
 
 	// Create a new avatar object
 	CAvatar* pTempAvatar = new  CAvatar();
-	v3float v3Pos = { currentUserInfo.fPosX, currentUserInfo.fPosY, currentUserInfo.fPosZ };
+	v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
 	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, matComp, v3Pos);
 
 	// Save the avatar in a vector
-	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentUserInfo.cUserName), pTempAvatar);
+	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
 	m_pAvatars->insert(pairAvatar);
 
 	if ((std::string)(_pServerPacket->cUserName) == m_strUserName)
@@ -215,22 +215,22 @@ void CClientMechanics::AddAllAvatars(ServerToClient* _pServerPacket)
 	matComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
 	matComp.power = 0;
 
-	UserInfo currentUserInfo;
+	AvatarInfo currentAvatarInfo;
 	// Temporarily store the user data 
 	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
 	{
-		currentUserInfo = _pServerPacket->UserInfos[i];
+		currentAvatarInfo = _pServerPacket->Avatars[i];
 
 		// Create a new avatar object
 		CAvatar* pTempAvatar = new  CAvatar();
-		v3float v3Pos = { currentUserInfo.fPosX, currentUserInfo.fPosY, currentUserInfo.fPosZ };
+		v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
 		pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, matComp, v3Pos);
 
 		// Save the avatar in a vector
-		std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentUserInfo.cUserName), pTempAvatar);
+		std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
 		m_pAvatars->insert(pairAvatar);
 
-		if ((std::string)(currentUserInfo.cUserName) == m_strUserName)
+		if ((std::string)(currentAvatarInfo.cUserName) == m_strUserName)
 		{
 			// Create and inititalise the Camera for the Game
 			m_pCamera = new CStaticCamera();

@@ -164,7 +164,7 @@ bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	m_bGameLoading = false;
 
 	// Set User Information
-	m_pCurrentUsers = new std::map<std::string, UserInfo>;
+	m_pCurrentUsers = new std::map<std::string, AvatarInfo>;
 	m_bAlive = false;
 
 	// Initialise the DirectInput
@@ -389,7 +389,7 @@ void CGameClient::ProcessPacket(float _fDT)
 		// Reply from the server when you have successfully gained control as the host
 		if (eProcessCommand == HOST_SERVER)
 		{
-			InsertUser(m_strUserName, m_pPacketToProcess->UserInfos[0]);
+			InsertUser(m_strUserName, m_pPacketToProcess->Avatars[0]);
 			m_pMechanics->AddAvatar(m_pPacketToProcess);
 		}
 		// Reply when a server is saying they are available for connection
@@ -432,7 +432,7 @@ void CGameClient::ProcessPacket(float _fDT)
 
 			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
 			{
-				InsertUser(m_pPacketToProcess->UserInfos[i].cUserName, m_pPacketToProcess->UserInfos[i]);
+				InsertUser(m_pPacketToProcess->Avatars[i].cUserName, m_pPacketToProcess->Avatars[i]);
 				//m_pGameMechanics->AddAvatar(m_pPacketToProcess);
 			}
 
@@ -465,13 +465,13 @@ void CGameClient::ProcessPacket(float _fDT)
 				// Find the Index of the new user within the UserInfo List
 				for (int i = 0; i < network::MAX_CLIENTS; i++)
 				{
-					if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->UserInfos[i].cUserName)
+					if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->Avatars[i].cUserName)
 					{
 						iIndex = i;
 					}
 				}
 
-				InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->UserInfos[iIndex]);
+				InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->Avatars[iIndex]);
 				m_pMechanics->AddAvatar(m_pPacketToProcess);
 			}
 		}
@@ -493,9 +493,9 @@ void CGameClient::ProcessPacket(float _fDT)
 			bool bAliveness;
 			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
 			{
-				if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->UserInfos[i].cUserName)
+				if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->Avatars[i].cUserName)
 				{
-					bAliveness = m_pPacketToProcess->UserInfos[i].bAlive;
+					bAliveness = m_pPacketToProcess->Avatars[i].bAlive;
 				}
 			}
 
@@ -506,7 +506,7 @@ void CGameClient::ProcessPacket(float _fDT)
 			}
 
 			// Find the user
-			std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+			std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
 			User->second.bAlive = bAliveness;
 		}
 		// All users are ready. Start the Game
@@ -1098,7 +1098,7 @@ void CGameClient::DisplayGameLobby()
 	m_pRenderer->RenderText(false, m_ptMousePos, "  Current Users", (iYpos += 30), SCREEN_FONT, colorRed, H_LEFT);
 	m_pRenderer->RenderText(false, m_ptMousePos, "Status", (iYpos), SCREEN_FONT, colorRed, H_RIGHT);
 
-	std::map<std::string, UserInfo>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
+	std::map<std::string, AvatarInfo>::iterator iterUsersCurrent = m_pCurrentUsers->begin();
 
 	while (iterUsersCurrent != m_pCurrentUsers->end())
 	{
@@ -1395,9 +1395,9 @@ void CGameClient::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)
 	}
 }
 
-void CGameClient::InsertUser(std::string _strUser, UserInfo _UserInfo)
+void CGameClient::InsertUser(std::string _strUser, AvatarInfo _AvatarInfo)
 {
-	std::pair<std::string, UserInfo> pairUser(_strUser, _UserInfo);
+	std::pair<std::string, AvatarInfo> pairUser(_strUser, _AvatarInfo);
 	m_pCurrentUsers->insert(pairUser);
 }
 

@@ -77,13 +77,11 @@ struct AvailableServer
 	sockaddr_in ServerAddr;
 };
 
-struct UserInfo
+struct AvatarInfo
 {
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	bool bAlive;
-	float fPosX;
-	float fPosY;
-	float fPosZ;
+	v3float v3Pos;
 	float fSpeed;
 };
 
@@ -121,7 +119,7 @@ struct ServerToClient
 
 	// Gameplay Information
 	int CurrentUserCount;
-	UserInfo UserInfos[network::MAX_CLIENTS];
+	AvatarInfo Avatars[network::MAX_CLIENTS];
 };
 
 #endif //__NETWORKDEFINES_H__

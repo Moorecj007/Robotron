@@ -119,7 +119,7 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	m_pWorkQueue = new std::queue<ClientToServer>;
 
 	// Create a vector to store current Users
-	m_pCurrentUsers = new std::map < std::string, UserInfo>;
+	m_pCurrentUsers = new std::map < std::string, AvatarInfo>;
 	InsertUser(m_strHostUser);
 
 	// Set the Initial ServerState
@@ -163,7 +163,7 @@ void CGameServer::Process()
 	{
 		if (m_pCurrentUsers->size() > 0)
 		{
-			std::map<std::string, UserInfo>::iterator iterCurrentUser = m_pCurrentUsers->begin();
+			std::map<std::string, AvatarInfo>::iterator iterCurrentUser = m_pCurrentUsers->begin();
 			bool bAllReady = true;
 
 			// Check if all users are ready/ alive
@@ -324,7 +324,7 @@ void CGameServer::ProcessPacket()
 		else if (eProcessCommand == ALIVE_SET)
 		{
 			// Determine which user sent this message
-			std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+			std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
 
 			// Update the state based on the additional message data
 			bool bAliveness = ((std::string)m_pPacketToProcess->cAdditionalMessage == "true") ? true : false;
@@ -340,7 +340,7 @@ void CGameServer::ProcessPacket()
 	else
 	{
 		// Determine which user sent this message
-		std::map<std::string, UserInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+		std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
 
 		// TO DO - Move to another location
 		v3float v3Movement = { 0, 0, 0 };
@@ -361,9 +361,9 @@ void CGameServer::ProcessPacket()
 			v3Movement.x = -1;
 		}
 		v3float normV3 = NormaliseV3Float(&v3Movement);
-		User->second.fPosX += normV3.x;
-		User->second.fPosY += normV3.y;
-		User->second.fPosZ += normV3.z;
+		User->second.v3Pos.x += normV3.x;
+		User->second.v3Pos.y += normV3.y;
+		User->second.v3Pos.z += normV3.z;
 	}
 }
 
@@ -384,11 +384,11 @@ bool CGameServer::CreateDataPacket()
 	}
 
 	// Add all the Users to the Packet with their information status
-	std::map<std::string, UserInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
+	std::map<std::string, AvatarInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
 	int iIndex = 0;
 	while (iterCurrent != m_pCurrentUsers->end())
 	{
-		m_pServerToClient->UserInfos[iIndex] = iterCurrent->second;
+		m_pServerToClient->Avatars[iIndex] = iterCurrent->second;
 
 		iIndex++;
 		iterCurrent++;
@@ -415,11 +415,11 @@ bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand)
 	}
 
 	// Add all the Users to the Packet with their information status
-	std::map<std::string, UserInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
+	std::map<std::string, AvatarInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
 	int iIndex = 0;
 	while (iterCurrent != m_pCurrentUsers->end())
 	{
-		m_pServerToClient->UserInfos[iIndex] = iterCurrent->second;
+		m_pServerToClient->Avatars[iIndex] = iterCurrent->second;
 
 		iIndex++;
 		iterCurrent++;
@@ -499,19 +499,17 @@ bool CGameServer::InsertUser(std::string _strUser)
 	int iNumber = (int)(m_pCurrentUsers->size());
 
 	// Create a new UserInfo with default information for the new user
-	UserInfo tempUserInfo;
+	AvatarInfo tempUserInfo;
 	tempUserInfo.bAlive = false;
 	StringToStruct(_strUser.c_str(), tempUserInfo.cUserName, network::MAX_USERNAME_LENGTH);
 
 	// Create the starting position based on the current number of users
-	tempUserInfo.fPosX = (float)iNumber * 5;
-	tempUserInfo.fPosY = 20;
-	tempUserInfo.fPosZ = 0;
+	tempUserInfo.v3Pos = {(float)iNumber * 5, 20, 5};
 	tempUserInfo.fSpeed = 10;
 
-	std::pair<std::string, UserInfo> pairUser(_strUser, tempUserInfo);
+	std::pair<std::string, AvatarInfo> pairUser(_strUser, tempUserInfo);
 
-	std::pair<std::map<std::string, UserInfo>::iterator, bool> pairReturn;
+	std::pair<std::map<std::string, AvatarInfo>::iterator, bool> pairReturn;
 	pairReturn = m_pCurrentUsers->insert(pairUser);
 
 	return pairReturn.second;
