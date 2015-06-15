@@ -20,6 +20,7 @@
 // Library Includes
 #pragma comment(lib, "Winmm.lib")
 #include <string>
+#include <cassert>
 
 // Defines
 #define VALIDATE(a) if (!a) return (false)
@@ -77,6 +78,67 @@ struct v3float
 	float x;
 	float y;
 	float z;
+
+	/***********************
+	* v3float: Constructor for the v3float struct
+	* @author: Callan Moore
+	* @parameter: x: X coordinate
+	* @parameter: y: Y coordinate
+	* @parameter: z: Z coordinate
+	********************/
+	v3float(float _x = 0, float _y = 0, float _z = 0)
+	{
+		x = _x;
+		y = _y;
+		z = _z;
+	}
+
+	/***********************
+	* operator=: Assignment Operator for the v3float struct
+	* @author: Callan Moore
+	* @parameter: _v3: v3float to be copied
+	* @return: v3float: the result of the assignment 
+	********************/
+	v3float& operator=(const v3float _v3)
+	{
+		x = _v3.x;
+		y = _v3.y;
+		z = _v3.z;
+		return *this;
+	}
+
+	/***********************
+	* operator+: Addition Operator for the v3float struct
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the addition
+	* @return: v3float: The result of the addition
+	********************/
+	v3float operator+ (const v3float _v3) const
+	{
+		return v3float{ _v3.x + x, _v3.y + y, _v3.z + z };
+	}
+
+	/***********************
+	* operator-: Subtraction Operator for the v3float struct
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the subtraction
+	* @return: v3float: The result of the subtraction
+	********************/
+	v3float operator- (const v3float _v3) const
+	{
+		return v3float{ _v3.x - x, _v3.y - y, _v3.z - z };
+	}
+
+	/***********************
+	* operator-: Multiplication Operator for the v3float struct
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the multiplication
+	* @return: v3float: The result of the multiplication
+	********************/
+	v3float operator* ( const v3float _v3) const
+	{
+		return v3float{ _v3.x * x, _v3.y * y, _v3.z * z };
+	}
 };
 
 struct Controls
@@ -87,6 +149,7 @@ struct Controls
 	bool bLeft;
 	bool bRight;
 	bool bEsc;
+	// TO DO - add Cursor pos as a point
 };
 
 #endif //__GENERICDEFINES_H__

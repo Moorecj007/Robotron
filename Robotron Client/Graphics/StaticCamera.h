@@ -6,8 +6,8 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Camera.h
-* Description : Declaration file for Camera class
+* File Name : CStaticCamera.h
+* Description : Declaration file for StaticCamera class
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
@@ -17,15 +17,15 @@
 #define __CAMERA_H__
 
 // Local Includes
-#include "IRenderer.h"
-#include "../Common Files/Graphics_Defines.h"
+#include "../../Common Files/Graphics/IRenderer.h"
+#include "../../Common Files/Graphics/Graphics_Defines.h"
 
-class CCamera
+class CStaticCamera
 {
 public:
 	// Constructor / Destructor
-	CCamera();
-	~CCamera();
+	CStaticCamera();
+	~CStaticCamera();
 
 	// Setters
 	void SetPosition(D3DXVECTOR3 _v3Position);
@@ -38,7 +38,7 @@ public:
 	D3DXVECTOR3* GetTarget();
 
 	// Prototypes
-	bool Initialise(D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3LookAt, bool m_bFirstPerson);
+	bool Initialise(D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3LookAt, bool _bFirstPerson);
 	void Process(IRenderer* _pRenderer);
 	void ToggleMode();
 

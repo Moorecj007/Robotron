@@ -18,7 +18,7 @@
 #define __GRAPHICSDEFINES_H__
 
 // Local Includes
-#include "Generic_Defines.h"
+#include "../Generic_Defines.h"
 
 // Library Includes
 #pragma comment(lib, "d3d9.lib")
@@ -27,8 +27,6 @@
 
 // Types
 typedef long VertexType;
-
-
 
 enum eIGPrimitiveType
 {
@@ -63,29 +61,21 @@ struct VertexScalar
 	float Depth;	// Z
 };
 
-struct MaterialComponents
+struct v4color
 {
-	float fAmbientRed;
-	float fAmbientGreen;
-	float fAmbientBlue;
-	float fAmbientAlpha;
+	float r;
+	float g;
+	float b;
+	float a;
+};
 
-	float fDiffuseRed;
-	float fDiffuseGreen;
-	float fDiffuseBlue;
-	float fDiffuseAlpha;
-
-	float fEmissiveRed;
-	float fEmissiveGreen;
-	float fEmissiveBlue;
-	float fEmissiveAlpha;
-
-	float fPower;
-
-	float fSpecularRed;
-	float fSpecularGreen;
-	float fSpecularBlue;
-	float fSpecularAlpha;
+struct MaterialComposition
+{
+	v4color ambient;
+	v4color diffuse;
+	v4color emissive;
+	v4color specular;
+	float power;
 };
 
 // Defines

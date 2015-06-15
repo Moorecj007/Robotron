@@ -23,10 +23,10 @@
 
 // Local Includes
 #include "ClientMechanics.h"
-#include "D3D9Renderer.h"
-#include "DInput.h"
+#include "../Common Files/Graphics/D3D9Renderer.h"
+#include "Graphics\DInput.h"
 #include "../Common Files/Clock.h"
-#include "../Common Files/MySemaphore.h"
+#include "../Common Files/Networking/MySemaphore.h"
 
 class CGameClient
 {

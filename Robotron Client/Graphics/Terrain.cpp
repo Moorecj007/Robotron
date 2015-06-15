@@ -84,26 +84,15 @@ bool CTerrain::Initialise(IRenderer* _pRenderer, std::string _strImagePath, Vert
 	}
 
 	// Create Material for terrain
-	MaterialComponents matComponents;
-	matComponents.fAmbientRed = 0;
-	matComponents.fAmbientGreen = 0.2f;
-	matComponents.fAmbientBlue = 0;
-	matComponents.fAmbientAlpha = 0;
-	matComponents.fDiffuseRed = 0.85f;
-	matComponents.fDiffuseGreen = 1;
-	matComponents.fDiffuseBlue = 1;
-	matComponents.fDiffuseAlpha = 0;
-	matComponents.fEmissiveRed = 0;
-	matComponents.fEmissiveGreen = 0;
-	matComponents.fEmissiveBlue = 0;
-	matComponents.fEmissiveAlpha = 0;
-	matComponents.fSpecularRed = 1;
-	matComponents.fSpecularGreen = 0.2f;
-	matComponents.fSpecularBlue = 0;
-	matComponents.fSpecularAlpha = 1;
-	matComponents.fPower = 0;
+	MaterialComposition matComp;
 
-	m_iMaterialID = _pRenderer->CreateMaterial(matComponents);
+	matComp.ambient = { 0.0f, 0.2f, 0.0f, 0.0f };
+	matComp.diffuse = { 0.85f, 1.0f, 1.0f, 0.0f };
+	matComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	matComp.specular = { 1.0f, 0.2f, 0.1f, 0.0f };
+	matComp.power = 0;
+
+	m_iMaterialID = _pRenderer->CreateMaterial(matComp);
 
 	return true;
 }

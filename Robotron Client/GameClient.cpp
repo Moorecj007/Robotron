@@ -1357,7 +1357,7 @@ void CGameClient::CreateServer()
 	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
 	// Sleep to give the server time to start up
-	Sleep(200);
+	Sleep(500);
 	CreateCommandPacket(QUERY_HOST, m_strServerName);
 	m_pClientNetwork->BroadcastToServers(m_pClientToServer);
 

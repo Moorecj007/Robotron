@@ -18,7 +18,7 @@
 #define __NETWORKDEFINES_H__
 
 // Local Includes
-#include "Generic_Defines.h"
+#include "../Generic_Defines.h"
 
 // Library Includes
 #pragma comment(lib, "Ws2_32.lib")

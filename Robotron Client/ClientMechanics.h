@@ -21,12 +21,12 @@
 #include <vector>
 
 // Local Includes
-#include "Client.h"
-#include "C3DObject.h"
-#include "Mesh.h"
-#include "IRenderer.h"
-#include "Terrain.h"
-#include "StaticCamera.h"
+#include "Networking/Client.h"
+#include "../Common Files/Graphics/Mesh.h"
+#include "../Common Files/Graphics/IRenderer.h"
+#include "../Common Files/Graphics/Avatar.h"
+#include "Graphics/Terrain.h"
+#include "Graphics/StaticCamera.h"
 
 
 class CClientMechanics
@@ -79,13 +79,6 @@ public:
 	void Draw();
 
 	/***********************
-	* CreateAvatars: Create the Controllable Avatar for the game
-	* @author: Callan Moore
-	* @return: void
-	********************/
-	void CreateAvatars();
-
-	/***********************
 	* CreateCubeMesh: Creates a Cube Mesh with origin in its very center
 	* @author: Callan Moore
 	* @parameter: _fSize: Size of the cube mesh to create from origin to edge
@@ -134,8 +127,10 @@ private:
 	std::string m_strUserName;
 	CTerrain* m_pTerrain;
 	CStaticCamera* m_pCamera;
+
+	// Avatars
 	CMesh* m_pAvatarMesh;
-	std::map<std::string, C3DObject*>* m_pAvatars;
+	std::map<std::string, CAvatar*>* m_pAvatars;
 
 };
 

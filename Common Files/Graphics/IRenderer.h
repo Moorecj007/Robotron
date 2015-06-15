@@ -22,7 +22,7 @@
 #include <vector>
 
 // Local Includes
-#include "../Common Files/Graphics_Defines.h"
+#include "Graphics_Defines.h"
 
 class CVertex;
 class IRenderer
@@ -69,8 +69,8 @@ public:
 	virtual void SetLight(int _iLightID) = 0;
 	virtual void LightEnable(int _iLightID, bool bOn) = 0;
 
-	virtual int CreateMaterial(MaterialComponents _MaterialComponents) = 0;
-	virtual void SetMaterial(int _iMaterialID) = 0;
+	virtual int CreateMaterial(MaterialComposition _MatComp) = 0;
+	virtual bool SetMaterial(int _iMaterialID) = 0;
 
 	virtual std::string RenderText(bool _bSelectable, POINT _ptMousePos, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH) = 0;
 	virtual void RenderColor(D3DXCOLOR _color) = 0;

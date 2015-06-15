@@ -22,7 +22,7 @@
 
 
 // Local Includes
-#include "../Common Files/Network_Defines.h"
+#include "../../Common Files/Networking/Network_Defines.h"
 
 class CServer
 {

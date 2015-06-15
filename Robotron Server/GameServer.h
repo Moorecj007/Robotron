@@ -22,11 +22,11 @@
 #include <queue>
 
 // Local Includes
-#include "Server.h"
+#include "Networking/Server.h"
 #include "ServerMechanics.h"
 #include "../Common Files/Clock.h"
-#include "../Common Files/MySemaphore.h"
-#include "../Common Files/Graphics_Defines.h"
+#include "../Common Files/Networking/MySemaphore.h"
+#include "../Common Files/Graphics/Graphics_Defines.h"
 
 class CGameServer
 {

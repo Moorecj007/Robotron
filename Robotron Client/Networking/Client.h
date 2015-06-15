@@ -18,7 +18,7 @@
 #define __CLIENTNETWORK_H__
 
 // Local Includes
-#include "../Common Files/Network_Defines.h"
+#include "../../Common Files/Networking/Network_Defines.h"
 #include <map>
 
 

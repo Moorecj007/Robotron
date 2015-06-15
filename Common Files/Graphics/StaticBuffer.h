@@ -22,7 +22,7 @@
 #include <vector>
 
 // Local Includes
-#include "../Common Files/Graphics_Defines.h"
+#include "Graphics_Defines.h"
 #include "Vertex.h"
 
 

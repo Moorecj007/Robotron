@@ -15,66 +15,31 @@
 // Local Includes
 #include "Mesh.h"
 
-/***********************
-* CMesh: Contructor for Mesh class
-* @author: Callan Moore
-* @parameter: _pRenderer: Pointer to the Renderer for this application
-********************/
-CMesh::CMesh(IRenderer* _pRenderer)
+CMesh::CMesh(IRenderer* _pRenderer, float _fSize)
 {
 	// Initialise all Pointers
 	m_pRenderer = _pRenderer;
 
 	// Initial Primitive Type
 	m_primitiveType = IGPT_TRIANGLELIST;
+
+	m_fSize = _fSize;
 }
 
-/***********************
-* ~CMesh: Default Destructor for Mesh class
-* @author: Callan Moore
-********************/
 CMesh::~CMesh()
 {
 }
 
-/***********************
-* SetPrimitiveType: Set the Primitive Type for this Mesh
-* @author: Callan Moore
-* @parameter: _primType: New Primitive Type
-* @return: void
-********************/
-void CMesh::SetPrimitiveType(eIGPrimitiveType _primType)
-{
-	m_primitiveType = _primType;
-}
-
-/***********************
-* AddVertex: Add a vertex to this Mesh
-* @author: Callan Moore
-* @parameter: _vert: Vertex to be added
-* @return: void
-********************/
 void CMesh::AddVertex(CVertex _vert)
 {
 	m_vecVertices.push_back(_vert);
 }
 
-/***********************
-* AddIndices: Add a Indice list(vector) to this mesh
-* @author: Callan Moore
-* @parameter: _vecIndices: List of Indices to become the Meshes Indices
-* @return: void
-********************/
 void CMesh::AddIndices(std::vector<int> _vecIndices)
 {
 	m_vecIndices = _vecIndices;
 }
 
-/***********************
-* CreateStaticBuffer: Creates the Static Buffer for the Mesh
-* @author: Callan Moore
-* @return: void
-********************/
 void CMesh::CreateStaticBuffer()
 {
 	// Determine the Index Type
@@ -102,11 +67,6 @@ void CMesh::CreateStaticBuffer()
 										
 }
 
-/***********************
-* Draw: Draws the Mesh 
-* @author: Callan Moore
-* @return: void
-********************/
 void CMesh::Draw()
 {
 	m_pRenderer->Render(m_iBufferID);

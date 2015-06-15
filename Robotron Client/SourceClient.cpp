@@ -30,7 +30,7 @@
 
 #ifdef _DEBUG
 	// Visual Leak Detector to be run only if in DEBUG mode
-	//#include "vld.h"
+	#include "vld.h"
 	#define D3D_DEBUG_INFO
 #endif // _DEBUG
 
@@ -107,26 +107,7 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 			CGameClient::GetInstance().m_pbKeyDown[_wParam] = false;
 		}
 		break;
-		//case WM_MOUSEMOVE:
-		//{
-		//	// Get the position of the mouse when it moves
-		//	int iXpos = GET_X_LPARAM(_lParam);
-		//	int iYpos = GET_Y_LPARAM(_lParam);
-		//	CGameClient::GetInstance().SetMousePos(iXpos, iYpos);	
-		//}
-		//break;
-		//case WM_LBUTTONDOWN:
-		//{
-		//	// Tells the game the Left Mouse Button is currently down
-		//	CGameClient::GetInstance().SetLeftMouseClick(true);
-		//}
-		//break;
-		//case WM_LBUTTONUP:
-		//{
-		//	// Tells the game the Left Mouse Button is no longer down
-		//	CGameClient::GetInstance().SetLeftMouseClick(false);
-		//}
-		break;
+
 		default: break;
 	} // End switch.
 

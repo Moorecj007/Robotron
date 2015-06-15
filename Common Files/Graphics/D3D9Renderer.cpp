@@ -647,29 +647,29 @@ void CD3D9Renderer::LightEnable(int _iLightID, bool bOn)
 	m_pDevice->LightEnable(_iLightID, bOn);
 }
 
-int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
+int CD3D9Renderer::CreateMaterial(MaterialComposition _MatComp)
 {
-	D3DXCOLOR ambient = D3DXCOLOR(	_MaterialComponents.fAmbientRed,
-									_MaterialComponents.fAmbientGreen,
-									_MaterialComponents.fAmbientBlue,
-									_MaterialComponents.fAmbientAlpha);
+	D3DXCOLOR ambient = D3DXCOLOR(	_MatComp.ambient.r,
+									_MatComp.ambient.g,
+									_MatComp.ambient.b,
+									_MatComp.ambient.a);
 	
-	D3DXCOLOR diffuse = D3DXCOLOR(	_MaterialComponents.fDiffuseRed,
-									_MaterialComponents.fDiffuseGreen,
-									_MaterialComponents.fDiffuseBlue,
-									_MaterialComponents.fDiffuseAlpha);
+	D3DXCOLOR diffuse = D3DXCOLOR(	_MatComp.diffuse.r,
+									_MatComp.diffuse.r,
+									_MatComp.diffuse.r,
+									_MatComp.diffuse.r);
 
-	D3DXCOLOR emissive = D3DXCOLOR(	_MaterialComponents.fEmissiveRed,
-									_MaterialComponents.fEmissiveGreen,
-									_MaterialComponents.fEmissiveBlue,
-									_MaterialComponents.fEmissiveAlpha);
+	D3DXCOLOR emissive = D3DXCOLOR(	_MatComp.emissive.r,
+									_MatComp.emissive.r,
+									_MatComp.emissive.r,
+									_MatComp.emissive.r);
 
-	float power = _MaterialComponents.fPower;
+	float power = _MatComp.power;
 
-	D3DXCOLOR specular = D3DXCOLOR(	_MaterialComponents.fSpecularRed,
-									_MaterialComponents.fSpecularGreen,
-									_MaterialComponents.fSpecularBlue,
-									_MaterialComponents.fSpecularAlpha);
+	D3DXCOLOR specular = D3DXCOLOR(	_MatComp.specular.r,
+									_MatComp.specular.r,
+									_MatComp.specular.r,
+									_MatComp.specular.r);
 
 	// Create the Material
 	D3DMATERIAL9* pMaterial = new D3DMATERIAL9;
@@ -679,7 +679,6 @@ int CD3D9Renderer::CreateMaterial(MaterialComponents _MaterialComponents)
 	pMaterial->Emissive = emissive;
 	pMaterial->Power = power;
 	pMaterial->Specular = specular;
-
 
 	// Add the material to the Map containing all surfaces
 	m_pMapMaterials->insert(std::pair<int, D3DMATERIAL9*>(++m_iNextMaterialKey, pMaterial));
@@ -779,12 +778,20 @@ void CD3D9Renderer::RenderColor(D3DXCOLOR _color)
 	pBackBuffer->Release();
 }
 
-void CD3D9Renderer::SetMaterial(int _iMaterialID)
+bool CD3D9Renderer::SetMaterial(int _iMaterialID)
 {
 	std::map<int, D3DMATERIAL9*>::iterator iterMaterial = m_pMapMaterials->find(_iMaterialID);
-	D3DMATERIAL9* pMaterial = iterMaterial->second;
 
+	if (iterMaterial == m_pMapMaterials->end())
+	{
+		bool UnableToFindMaterial = false;
+		assert(UnableToFindMaterial);
+		return false;
+	}
+
+	D3DMATERIAL9* pMaterial = iterMaterial->second;
 	m_pDevice->SetMaterial(pMaterial);
+	return true;
 }
 
 int CD3D9Renderer::ExtractRed(D3DCOLOR _color)

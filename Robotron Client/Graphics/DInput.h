@@ -23,9 +23,7 @@
 #include <dinput.h>
 
 // Local Includes
-#include "../Common Files/Generic_Defines.h"
-
-
+#include "../../Common Files/Generic_Defines.h"
 
 class CDInput
 {

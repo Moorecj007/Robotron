@@ -211,7 +211,7 @@ public:
 	* @parameter: _MaterialComponents: Struct holding all necessary values to create a DX9 Material
 	* @return: int: ID value for the map where the material is stored
 	********************/
-	virtual int CreateMaterial(MaterialComponents _MaterialComponents);
+	virtual int CreateMaterial(MaterialComposition _MatComp);
 
 	/***********************
 	* RenderText: Render Text to the Screen
@@ -249,9 +249,9 @@ public:
 	* SetMaterial: Set the Material on the Device
 	* @author: Callan Moore
 	* @parameter: _iMaterialID: The ID key for the Material
-	* @return: void
+	* @return: bool: Successful set (or not)
 	********************/
-	virtual void SetMaterial(int _iMaterialID);
+	virtual bool SetMaterial(int _iMaterialID);
 
 	// Getters
 
