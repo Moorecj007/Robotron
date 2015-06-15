@@ -41,5 +41,5 @@ void CServerMechanics::Process()
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
 
-
+	
 }

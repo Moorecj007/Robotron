@@ -499,15 +499,15 @@ bool CGameServer::InsertUser(std::string _strUser)
 	int iNumber = (int)(m_pCurrentUsers->size());
 
 	// Create a new UserInfo with default information for the new user
-	AvatarInfo tempUserInfo;
-	tempUserInfo.bAlive = false;
-	StringToStruct(_strUser.c_str(), tempUserInfo.cUserName, network::MAX_USERNAME_LENGTH);
+	AvatarInfo tempAvatarInfo;
+	tempAvatarInfo.bAlive = false;
+	StringToStruct(_strUser.c_str(), tempAvatarInfo.cUserName, network::MAX_USERNAME_LENGTH);
 
 	// Create the starting position based on the current number of users
-	tempUserInfo.v3Pos = {(float)iNumber * 5, 20, 5};
-	tempUserInfo.fSpeed = 10;
+	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 20, 5 };
+	tempAvatarInfo.fSpeed = 10;
 
-	std::pair<std::string, AvatarInfo> pairUser(_strUser, tempUserInfo);
+	std::pair<std::string, AvatarInfo> pairUser(_strUser, tempAvatarInfo);
 
 	std::pair<std::map<std::string, AvatarInfo>::iterator, bool> pairReturn;
 	pairReturn = m_pCurrentUsers->insert(pairUser);

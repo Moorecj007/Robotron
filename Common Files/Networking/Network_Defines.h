@@ -82,6 +82,10 @@ struct AvatarInfo
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	bool bAlive;
 	v3float v3Pos;
+	v3float v3Dir;
+	v3float v3Vel;
+	// Collision Box
+	int iHealth;
 	float fSpeed;
 };
 
