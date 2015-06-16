@@ -360,10 +360,8 @@ void CGameServer::ProcessPacket()
 		{
 			v3Movement.x += -1;
 		}
-		v3float normV3 = NormaliseV3Float(&v3Movement);
-		User->second.v3Pos.x += normV3.x;
-		User->second.v3Pos.y += normV3.y;
-		User->second.v3Pos.z += normV3.z;
+		NormaliseV3Float(&v3Movement);
+		User->second.v3Pos += v3Movement;
 	}
 }
 
@@ -513,19 +511,4 @@ bool CGameServer::InsertUser(std::string _strUser)
 	pairReturn = m_pCurrentUsers->insert(pairUser);
 
 	return pairReturn.second;
-}
-
-v3float CGameServer::NormaliseV3Float(v3float* _v3)
-{
-	v3float normV3Float = { 0, 0, 0 };
-	float fMagnitude = sqrt(pow(_v3->x, 2) + pow(_v3->y, 2) + pow(_v3->z, 2));
-
-	if (fMagnitude > 0)
-	{
-		normV3Float.x = (_v3->x / fMagnitude);
-		normV3Float.y = (_v3->y / fMagnitude);
-		normV3Float.z = (_v3->z / fMagnitude);
-	}
-
-	return normV3Float;
 }

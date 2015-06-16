@@ -15,7 +15,6 @@
 // Local Includes
 #include "C3DObject.h"
 
-
 C3DObject::C3DObject()
 {
 	// Set the Pointers to NULL

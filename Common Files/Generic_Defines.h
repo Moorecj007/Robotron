@@ -70,6 +70,12 @@ enum eAllignmentH
 	H_RIGHT
 };
 
+enum eEnemyType
+{
+	ET_DEMON,		// Classic grunt
+	ET_SENTINEL,	// Big Passive wanderer. Attacks only when hit first
+	ET_DEATHSQUAD	// Leader Following
+};
 
 // Structs
 
@@ -137,6 +143,17 @@ struct v3float
 	}
 
 	/***********************
+	* operator+=: Addition Assignment Operator for the v3float struct
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the addition
+	* @return: v3float: The result of the addition assignment
+	********************/
+	v3float operator+= (const v3float _v3)
+	{
+		return v3float{ x += _v3.x, y += _v3.x, z += _v3.x };
+	}
+
+	/***********************
 	* operator-: Subtraction Operator for the v3float struct
 	* @author: Callan Moore
 	* @parameter: _v3: Right hand side of the subtraction
@@ -157,6 +174,11 @@ struct v3float
 	{
 		return v3float{ _v3.x * x, _v3.y * y, _v3.z * z };
 	}
+
+	float Magnitude()
+	{
+		return ( sqrt( pow(x, 2) + pow(x, 2) + pow(x, 2)));
+	}
 };
 
 struct Controls
@@ -169,5 +191,27 @@ struct Controls
 	bool bEsc;
 	// TO DO - add Cursor pos as a point
 };
+
+// Functions
+
+/***********************
+* NormaliseV3Float: Normalise a vector of 3 floats
+* @author: Callan Moore
+* @parameter: _v3: vecctor to normalise
+* @return: v3float: the normalised vector
+********************/
+inline bool NormaliseV3Float(v3float* _v3)
+{
+	float fMagnitude = _v3->Magnitude();
+
+	if (fMagnitude != 0)
+	{
+		_v3->x = (_v3->x / fMagnitude);
+		_v3->y = (_v3->y / fMagnitude);
+		_v3->z = (_v3->z / fMagnitude);
+		return true;
+	}
+	return false;
+}
 
 #endif //__GENERICDEFINES_H__

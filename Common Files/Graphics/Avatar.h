@@ -7,7 +7,7 @@
 * (c) 2005 - 2015 Media Design School
 *
 * File Name : Avatar.h
-* Description : Declarations for the functions of the Avatar class
+* Description : Declarations for the functions of the Avatar Object
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
@@ -57,23 +57,23 @@ public:
 	/***********************
 	* GetMaxHealth: Retrieve the Maximum health for this avatar
 	* @author: Callan Moore
-	* @return: int: Max Health value
+	* @return: UINT: Max Health value
 	********************/
-	int GetMaxHealth() { return m_iMaxHealth;};
+	UINT GetMaxHealth() { return m_iMaxHealth; };
 
 	/***********************
 	* GetHealth: Retrieve the avatars current Health
 	* @author: Callan Moore
-	* @return: int: Current health value
+	* @return: UINT: Current health value
 	********************/
-	int GetHealth() { return m_iCurrentHealth;};
+	UINT GetHealth() { return m_iCurrentHealth; };
 
 	/***********************
 	* GetScore: Retrieve the avatars current score
 	* @author: Callan Moore
-	* @return: int: The avatars score
+	* @return: UINT: The avatars score
 	********************/
-	int GetScore() { return m_iScore;};
+	UINT GetScore() { return m_iScore; };
 	
 	// Setters
 
@@ -91,7 +91,7 @@ public:
 	* @parameter: _iMaxHealth: The update to the maximum health allowed to the avatar
 	* @return: void
 	********************/
-	void SetMaxHealth(int _iMaxHealth);
+	void SetMaxHealth(UINT _iMaxHealth);
 
 	/***********************
 	* SetHealth: Change the avatars current health
@@ -99,7 +99,7 @@ public:
 	* @parameter: _iHealth: The update to the current health of the avatar
 	* @return: void
 	********************/
-	void SetHealth(int _iHealth);
+	void SetHealth(UINT _iHealth);
 
 	/***********************
 	* SetScore: Change the avatars current score
@@ -107,7 +107,7 @@ public:
 	* @parameter: _bAlive: The update to the avatars current score
 	* @return: void
 	********************/
-	void SetScore(int _iScore);
+	void SetScore(UINT _iScore);
 
 	// Prototypes
 
@@ -117,9 +117,9 @@ private:
 
 	bool m_bAlive;
 
-	int m_iMaxHealth;
-	int m_iCurrentHealth;
-	int m_iScore;
+	UINT m_iMaxHealth;
+	UINT m_iCurrentHealth;
+	UINT m_iScore;
 
 	// LIGHT - TO DO
 
