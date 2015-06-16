@@ -112,10 +112,12 @@ public:
 	********************/
 	void C3DObject::SetMaxSpeed(float _fSpeed) { m_fMaxSpeed = _fSpeed;};
 
+	
+
 	// Prototypes
 
 	/***********************
-	* C3DObject: Contructor for 3DObject class
+	* Initialise: Initialise the 3D Object for use
 	* @author: Callan Moore
 	* @parameter: _pRenderer: Pointer to the Renderer for this application
 	* @parameter: _pMesh: Mesh for this 3D Object
@@ -139,6 +141,14 @@ public:
 	* @return: void
 	********************/
 	void Process(float _fDT);
+
+	/***********************
+	* CreateTexture: Create a texture for the Object
+	* @author: Callan Moore
+	* @parameter: strFilePath: File path for the file to create the texture from
+	* @return: bool: Successful creation (or not)
+	********************/
+	bool CreateTexture(std::string strFilePath);
 
 	
 protected:

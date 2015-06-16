@@ -15,7 +15,7 @@
 // Local Includes
 #include "Mesh.h"
 
-CMesh::CMesh(IRenderer* _pRenderer, float _fSize)
+CMesh::CMesh(IRenderer* _pRenderer, float _fSize, int _iTexID)
 {
 	// Initialise all Pointers
 	m_pRenderer = _pRenderer;
@@ -24,6 +24,7 @@ CMesh::CMesh(IRenderer* _pRenderer, float _fSize)
 	m_primitiveType = IGPT_TRIANGLELIST;
 
 	m_fSize = _fSize;
+	m_iTextureID = _iTexID;
 }
 
 CMesh::~CMesh()
@@ -69,6 +70,7 @@ void CMesh::CreateStaticBuffer()
 
 void CMesh::Draw()
 {
+	m_pRenderer->SetTexture(m_iTextureID);
 	m_pRenderer->Render(m_iBufferID);
 }
 

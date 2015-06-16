@@ -56,6 +56,11 @@ void C3DObject::Initialise(IRenderer* _pRenderer, CMesh* _pMesh, MaterialComposi
 	m_iMaterialID = m_pRenderer->CreateMaterial(_MatComp);
 }
 
+bool C3DObject::CreateTexture(std::string strFilePath)
+{
+	return true;
+}
+
 void C3DObject::Draw()
 {
 	// Calculates the World Matrix for this 3D Object

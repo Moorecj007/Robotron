@@ -31,6 +31,7 @@ CD3D9Renderer::CD3D9Renderer()
 	// Map of materials Setup
 	m_pMapMaterials = 0;
 	m_iNextMaterialKey = 0;
+	m_iNextTextureKey = 0;
 }
 
 CD3D9Renderer::~CD3D9Renderer()
@@ -79,6 +80,22 @@ CD3D9Renderer::~CD3D9Renderer()
 		}
 		delete m_pMapMaterials;
 		m_pMapMaterials = 0;
+	}
+
+	// Delete the Map of Textures
+	if (m_pMapTextures != 0)
+	{
+		std::map<int, IDirect3DTexture9*>::iterator iterCurrent = m_pMapTextures->begin();
+		std::map<int, IDirect3DTexture9*>::iterator iterEnd = m_pMapTextures->end();
+
+		while (iterCurrent != iterEnd)
+		{
+			iterCurrent->second->Release();
+			iterCurrent->second = 0;
+			iterCurrent++;
+		}
+		delete m_pMapTextures;
+		m_pMapTextures = 0;
 	}
 
 	// Delete all the static buffers
@@ -142,6 +159,7 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_pVecBuffers = new std::vector < CStaticBuffer* > ;
 	m_pMapSurfaces = new std::map < int, IDirect3DSurface9* > ;
 	m_pMapMaterials = new std::map < int, D3DMATERIAL9* > ;
+	m_pMapTextures = new std::map < int, IDirect3DTexture9* >;
 
 	// Create a font
 	CreateScreenFont();
@@ -150,10 +168,13 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	CreateSubtitleFont();
 
 	// Setup the Device to handle lighting
-	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL);
+	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1);
 	m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
 	m_pDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE);
 	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+	//m_pDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+	//m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+	//m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 
 	// Create and set up a global Material to be used
 	D3DMATERIAL9 material;    
@@ -607,7 +628,9 @@ void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, in
 			D3DXVec3Normalize(&v3Normal, &tempNormal);
 
 			// Create a Vertex
-			CVertex pTempVertex(fWidth, fHeight, fDepth, v3Normal.x, v3Normal.y, v3Normal.z);
+
+			v2float v3UV = { ((1.0f / (float)_pImageInfo.Width) * fWidth), ((1.0f / (float)_pImageInfo.Height) * fDepth) };
+			CVertex pTempVertex({ fWidth, fHeight, fDepth }, { v3Normal.x, v3Normal.y, v3Normal.z }, v3UV);
 			_pVertices->push_back(pTempVertex);
 		}
 	}
@@ -776,6 +799,42 @@ void CD3D9Renderer::RenderColor(D3DXCOLOR _color)
 	m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	m_pDevice->ColorFill(pBackBuffer, 0, _color);
 	pBackBuffer->Release();
+}
+
+int CD3D9Renderer::CreateTexture(std::string strFilePath)
+{
+	IDirect3DTexture9* pTempTexture;
+	if (FAILED(D3DXCreateTextureFromFileA(m_pDevice, strFilePath.c_str(), &pTempTexture)))
+	{
+		bool UnableToCreateTexture = false;
+		assert(UnableToCreateTexture);
+		return -1;
+	}
+
+	// Add the material to the Map containing all surfaces
+	m_pMapTextures->insert(std::pair<int, IDirect3DTexture9*>(++m_iNextTextureKey, pTempTexture));
+	return m_iNextTextureKey;
+}
+
+bool CD3D9Renderer::SetTexture(int _iTexID)
+{
+	std::map<int, IDirect3DTexture9*>::iterator iterTexture = m_pMapTextures->find(_iTexID);
+
+	if (iterTexture == m_pMapTextures->end())
+	{
+		bool UnableToFindTexture= false;
+		assert(UnableToFindTexture);
+		return false;
+	}
+
+	IDirect3DTexture9* pTexture = iterTexture->second;
+	m_pDevice->SetTexture(0, pTexture);
+
+	//m_pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+	//m_pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	//m_pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+  
+	return true;
 }
 
 bool CD3D9Renderer::SetMaterial(int _iMaterialID)

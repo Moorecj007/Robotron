@@ -234,6 +234,22 @@ public:
 	* @return: void
 	********************/
 	virtual void RenderColor(D3DXCOLOR _color);
+
+	/***********************
+	* CreateTexture: Creates a texture from a file and stores it with the Renderer
+	* @author: Callan Moore
+	* @parameter: strFilePath: File path to the texture file
+	* @return: int: The ID for the texture created
+	********************/
+	virtual int CreateTexture(std::string strFilePath);
+
+	/***********************
+	* SetTexture: Sets the Texture corresponding to the input ID on the device
+	* @author: Callan Moore
+	* @parameter: _iTexID: ID for the the desired texture
+	* @return: bool: Successful (or not)
+	********************/
+	virtual bool SetTexture(int _iTexID);
 	
 	// Setters
 
@@ -350,6 +366,9 @@ protected:
 	
 	std::map<int, D3DMATERIAL9*>* m_pMapMaterials;
 	unsigned int m_iNextMaterialKey;
+
+	std::map<int, IDirect3DTexture9*>* m_pMapTextures;
+	unsigned int m_iNextTextureKey;
 
 	ID3DXFont* m_pScreenFont;
 	ID3DXFont* m_pTitleFont;

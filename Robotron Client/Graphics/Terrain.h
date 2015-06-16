@@ -69,6 +69,7 @@ private:
 	float m_fZ;
 
 	int m_iMaterialID;
+	int m_iTextureID;
 };
 
 #endif // __TERRAIN_H__

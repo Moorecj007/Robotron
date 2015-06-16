@@ -75,6 +75,9 @@ public:
 	virtual std::string RenderText(bool _bSelectable, POINT _ptMousePos, std::string _str, int _iYpos, eFontType _font, D3DXCOLOR _color, eAllignmentH _eAllignmentH) = 0;
 	virtual void RenderColor(D3DXCOLOR _color) = 0;
 
+	virtual int CreateTexture(std::string strFilePath) = 0;
+	virtual bool SetTexture(int _iTexID) = 0;
+
 	// Setters
 	virtual void SetWorldMatrix(D3DXMATRIX& _rWorld) = 0;
 

@@ -90,10 +90,11 @@ void CClientMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
 		currentAvatar++;
 	}
 
+	// Process the camera to keep it following the Avatar
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
 	v3float v3Pos = *(Avatar->second->GetPosition());
 	m_pCamera->SetPosition({ v3Pos.x, 100, v3Pos.z});
-	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 100, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
+	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x - 20, 50, v3Pos.z- 20}, { 0, 1, 0 }, { 0, -1, 0 });
 	m_pCamera->Process(m_pRenderer);
 }
 
@@ -114,32 +115,76 @@ void CClientMechanics::Draw()
 
 CMesh* CClientMechanics::CreateCubeMesh(float _fSize)
 {
+	// Create a Texture for the Mesh
+	std::string strTexPath = "Assets//Crate Side.bmp";
+	int iTexID = m_pRenderer->CreateTexture(strTexPath);
+
 	float fVertexfromOrigin = _fSize;
-	CMesh* meshCube = new CMesh(m_pRenderer, _fSize);
+	CMesh* meshCube = new CMesh(m_pRenderer, _fSize, iTexID);
 
 	// Add Vertices to the Mesh in shape of a Cube
-	meshCube->AddVertex(CVertex(-fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin, -1.0f, 1.0f, -1.0f));
-	meshCube->AddVertex(CVertex(fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin, 1.0f, 1.0f, -1.0f));
-	meshCube->AddVertex(CVertex(fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin, 1.0f, -1.0f, -1.0f));
-	meshCube->AddVertex(CVertex(-fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin, -1.0f, -1.0f, -1.0f));
-	meshCube->AddVertex(CVertex(-fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin, -1.0f, 1.0f, 1.0f));
-	meshCube->AddVertex(CVertex(fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin, 1.0f, 1.0f, 1.0f));
-	meshCube->AddVertex(CVertex(fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin, 1.0f, -1.0f, 1.0f));
-	meshCube->AddVertex(CVertex(-fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin, -1.0f, -1.0f, 1.0f));
+	// Front Face
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin }, { -1.0f, 1.0f, -1.0f }, { 0.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin }, { 1.0f, 1.0f, -1.0f }, { 1.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin }, { 1.0f, -1.0f, -1.0f }, { 1.0f, 1.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin }, { -1.0f, -1.0f, -1.0f }, { 0.0f, 1.0f }));
+
+	// Left Face
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin }, { -1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, fVertexfromOrigin,- fVertexfromOrigin }, { -1.0f, 1.0f, -1.0f }, { 1.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin }, { -1.0f, -1.0f, -1.0f }, { 1.0f, 1.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin }, { -1.0f, -1.0f, 1.0f }, { 0.0f, 1.0f }));
+
+	// Right Face
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin }, { 1.0f, 1.0f, -1.0f }, { 0.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin }, { 1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin }, { 1.0f, -1.0f, -1.0f }, { 0.0f, 1.0f }));
+
+	// Back Face
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin }, { -1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin }, { -1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin }, { 1.0f, -1.0f, 1.0f }, { 0.0f, 1.0f }));
+
+	// Top Face
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin }, { -1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, fVertexfromOrigin, fVertexfromOrigin }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin }, { 1.0f, 1.0f, -1.0f }, { 1.0f, 1.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, fVertexfromOrigin, -fVertexfromOrigin }, { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }));
+
+	// Bottom Face
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin }, { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, -fVertexfromOrigin, -fVertexfromOrigin }, { 1.0f, -1.0f, -1.0f }, { 1.0f, 0.0f }));
+	meshCube->AddVertex(CVertex({ fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin }, { 1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }));
+	meshCube->AddVertex(CVertex({ -fVertexfromOrigin, -fVertexfromOrigin, fVertexfromOrigin }, { -1.0f, -1.0f, 1.0f }, { 0.0f, 1.0f }));
 
 	// Set the Indice of the Cube in a Triangle List format
-	std::vector<int> vecIndices = { 0, 1, 3,
-		1, 2, 3,
-		1, 5, 2,
-		5, 6, 2,
-		5, 4, 6,
-		4, 7, 6,
-		4, 0, 7,
-		0, 3, 7,
-		4, 5, 0,
-		5, 1, 0,
-		3, 2, 7,
-		2, 6, 7 };
+	std::vector<int> vecIndices = { 
+		// Front Face
+		0, 1, 2,
+		0, 2, 3,
+
+		// Left Face
+		4, 5, 6,
+		4, 6, 7,
+
+		// Right Face
+		8, 9, 10,
+		8, 10, 11,
+
+		// Back Face
+		12, 13, 14,
+		12, 14, 15,
+
+		// Top Face
+		16, 17, 18,
+		16, 18, 19,
+
+		// Bottom Face
+		20, 21, 22,
+		20, 22, 23
+	};
 	meshCube->AddIndices(vecIndices);
 
 	meshCube->SetPrimitiveType(IGPT_TRIANGLELIST);
@@ -169,8 +214,8 @@ void CClientMechanics::AddAvatar(ServerToClient* _pServerPacket)
 {
 	// Create a material for the avatars to be made from
 	MaterialComposition matComp;
-	matComp.ambient = { 0.0f, 0.0f, 1.0f, 1.0f };
-	matComp.diffuse = { 0.0f, 0.0f, 1.0f, 0.0f };
+	matComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	matComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	matComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
 	matComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
 	matComp.power = 0;
@@ -209,8 +254,8 @@ void CClientMechanics::AddAllAvatars(ServerToClient* _pServerPacket)
 {
 	// Create a material for the avatars to be made from
 	MaterialComposition matComp;
-	matComp.ambient = { 0.0f, 0.0f, 1.0f, 1.0f };
-	matComp.diffuse = { 0.0f, 0.0f, 1.0f, 0.0f };
+	matComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	matComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	matComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
 	matComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
 	matComp.power = 0;

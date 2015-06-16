@@ -18,35 +18,68 @@
 #define __VERTEX_H__
 
 // Library Includes
-//#include <Windows.h>	// for: DWORD
 #include <d3d9.h>
+
+// Local Includes
+#include "../Generic_Defines.h"
 
 class CVertex
 {
 public:
 	// Constructors / Destructors
+
+	/***********************
+	* CVertex: Default Contructor for Vertex class
+	* @author: Callan Moore
+	********************/
 	CVertex();
+
+	/***********************
+	* ~CVertex: Default Destructor for Vertex class
+	* @author: Callan Moore
+	********************/
 	~CVertex();
-	CVertex(float _fX, float _fY, float _fZ, float _normalX, float _normalY, float _normalZ);
+
+	/***********************
+	* CVertex: Contructor for Vertex class
+	* @author: Callan Moore
+	* @parameter: _v3Pos: The position of the vertex relative to the center of the mesh it is a part of
+	* @parameter: _v3Normal: The normal of the vertex for lighting calculations
+	* @parameter: _v2UV: The UV coordinates of the vertex for Texture mapping
+	********************/
+	CVertex(v3float _v3Pos, v3float _v3Normal, v2float _v2UV);
 
 	// Getters
-	float GetX();
-	float GetY();
-	float GetZ();
+
+	/***********************
+	* GetPos: Retrieve the position vector of the vertex
+	* @author: Callan Moore
+	* @return: v3float: the position vector as 3 floats
+	********************/
+	v3float GetPos() { return m_v3Pos; };
+
+	/***********************
+	* GetUV: Retrieve the UV coordinates of the vertex
+	* @author: Callan Moore
+	* @return: v2float: The coodinates of UV as 2 floats
+	********************/
+	v2float GetUV() { return m_v2UV; };
 
 	// Setters
-	void SetX(float _fX);
-	void SetY(float _fX);
-	void SetZ(float _fX);
+
+	/***********************
+	* SetPosition: Sets the position of the vertex relative to the center of the mesh it is part of
+	* @author: Callan Moore
+	* @parameter: _v3Pos: The position of the vertex relative to the center
+	* @return: void
+	********************/
+	void SetPosition(v3float _v3Pos) { m_v3Pos = _v3Pos; };
 
 private:
 	// Member Variables
-	float m_fX;
-	float m_fY;
-	float m_fZ;
-	float m_NormalX;
-	float m_NormalY;
-	float m_NormalZ;
+	v3float m_v3Pos;
+	v3float m_v3Normal;
+	v2float m_v2UV;
 };
 
 #endif //__VERTEX_H__

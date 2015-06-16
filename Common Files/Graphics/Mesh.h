@@ -35,8 +35,9 @@ public:
 	* @author: Callan Moore
 	* @parameter: _pRenderer: Pointer to the Renderer for this application
 	* @parameter: _fSize: Size of the mesh from center to the edge
+	* @parameter: _iTexID: ID for the Texture to use
 	********************/
-	CMesh(IRenderer* _pRenderer, float _fSize);
+	CMesh(IRenderer* _pRenderer, float _fSize, int _iTexID);
 
 	/***********************
 	* ~CMesh: Default Destructor for Mesh class
@@ -62,6 +63,14 @@ public:
 	* @return: void
 	********************/
 	void SetPrimitiveType(eIGPrimitiveType _primType) { m_primitiveType = _primType; };
+
+	/***********************
+	* SetTextureID: Set the Texture ID
+	* @author: Callan Moore
+	* @parameter: _iTextureID: The new Texture ID
+	* @return: void
+	********************/
+	void SetTextureID(int _iTextureID) { m_iTextureID = _iTextureID; };
 
 	//Prototypes
 
@@ -102,6 +111,8 @@ private:
 	std::vector<CVertex> m_vecVertices;
 	std::vector<int> m_vecIndices;
 	eIGPrimitiveType m_primitiveType;
+
+	int m_iTextureID;
 
 	float m_fSize;
 };

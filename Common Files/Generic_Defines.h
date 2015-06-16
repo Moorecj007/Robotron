@@ -73,6 +73,24 @@ enum eAllignmentH
 
 // Structs
 
+struct v2float
+{
+	float u;
+	float v;
+
+	/***********************
+	* v2float: Constructor for the v2float struct
+	* @author: Callan Moore
+	* @parameter: u: U coordinate
+	* @parameter: v: V coordinate
+	********************/
+	v2float(float _u = 0, float _v = 0)
+	{
+		u = _u;
+		v = _v;
+	}
+};
+
 struct v3float
 {
 	float x;

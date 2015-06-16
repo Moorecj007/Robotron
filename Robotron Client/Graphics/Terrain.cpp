@@ -94,6 +94,10 @@ bool CTerrain::Initialise(IRenderer* _pRenderer, std::string _strImagePath, Vert
 
 	m_iMaterialID = _pRenderer->CreateMaterial(matComp);
 
+	std::string strTexturePath = "Assets\\Basic Terrain.bmp";
+	m_iTextureID = _pRenderer->CreateTexture(strTexturePath);
+
+
 	return true;
 }
 
@@ -168,6 +172,10 @@ void CTerrain::Draw(IRenderer* _pRenderer)
 	// Calculate and Set on the Renderer the Terrains World Matrix
 	CalcWorldMatrix(_pRenderer);
 	_pRenderer->SetMaterial(m_iMaterialID);
+
+	// Set the Texture for the Terrain
+	_pRenderer->SetTexture(m_iTextureID);
+
 	_pRenderer->Render(m_iBufferID);
 }
 

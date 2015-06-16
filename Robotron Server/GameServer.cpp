@@ -346,19 +346,19 @@ void CGameServer::ProcessPacket()
 		v3float v3Movement = { 0, 0, 0 };
 		if (m_pPacketToProcess->activatedControls.bUp == true)
 		{
-			v3Movement.z = 1;
+			v3Movement.z += 1;
 		}
 		if (m_pPacketToProcess->activatedControls.bDown == true)
 		{
-			v3Movement.z = -1;
+			v3Movement.z += -1;
 		}
 		if (m_pPacketToProcess->activatedControls.bRight == true)
 		{
-			v3Movement.x = 1;
+			v3Movement.x += 1;
 		}
 		if (m_pPacketToProcess->activatedControls.bLeft == true)
 		{
-			v3Movement.x = -1;
+			v3Movement.x += -1;
 		}
 		v3float normV3 = NormaliseV3Float(&v3Movement);
 		User->second.v3Pos.x += normV3.x;
