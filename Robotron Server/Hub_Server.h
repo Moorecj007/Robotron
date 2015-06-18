@@ -28,7 +28,6 @@
 #include "../Common Files/Networking/MySemaphore.h"
 #include "../Common Files/Graphics/Graphics_Defines.h"
 
-
 class CHub_Server
 {
 public:
