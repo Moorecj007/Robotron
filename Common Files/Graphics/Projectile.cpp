@@ -16,9 +16,9 @@
 #include "Projectile.h"
 
 
-CProjectile::CProjectile(std::string _strAvatar, v3float _v3Pos, v3float _v3Dir)
+CProjectile::CProjectile(std::string _strAvatarCreator, v3float _v3Pos, v3float _v3Dir)
 {
-	m_strAvatar = _strAvatar;
+	m_strAvatarCreator = _strAvatarCreator;
 	m_v3Position = _v3Pos;
 	m_v3Direction = _v3Dir;
 
@@ -26,7 +26,6 @@ CProjectile::CProjectile(std::string _strAvatar, v3float _v3Pos, v3float _v3Dir)
 	// mesh
 	// other shit
 }
-
 
 CProjectile::~CProjectile()
 {

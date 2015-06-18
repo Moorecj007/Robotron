@@ -70,6 +70,13 @@ public:
 	********************/
 	float GetMaxSpeed() { return m_fMaxSpeed;};
 
+	/***********************
+	* GetDamage: Retrieves this objects Damage capabilities
+	* @author: Callan Moore
+	* @return: UINT: The Damage this objects can inflict
+	********************/
+	UINT GetDamage() { return m_iDamage; };
+
 	// Setters
 
 	/***********************
@@ -112,7 +119,13 @@ public:
 	********************/
 	void C3DObject::SetMaxSpeed(float _fSpeed) { m_fMaxSpeed = _fSpeed;};
 
-	
+	/***********************
+	* SetDamage: Sets the damage of the object
+	* @author: Callan Moore
+	* @parameter: _iDamage: The damage of the object
+	* @return: void
+	********************/
+	void SetDamage(UINT _iDamage) { m_iDamage = _iDamage; };
 
 	// Prototypes
 
@@ -175,8 +188,7 @@ protected:
 	float m_fSize;	// Might not be needed, used only in Collision box
 	float m_fRotation; // Yaw in radians
 	float m_fMaxSpeed;
-
-	
+	UINT m_iDamage;
 };
 
 #endif // __C3DOBJECT_H__ 

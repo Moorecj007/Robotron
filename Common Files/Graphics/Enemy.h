@@ -49,13 +49,6 @@ public:
 	eEnemyType GetEnemyType() { return m_eType; };
 
 	/***********************
-	* GetDamage: Retrieves this enemies Damage capabilities
-	* @author: Callan Moore
-	* @return: UINT: The Damage this enemy can inflict
-	********************/
-	UINT GetDamage() { return m_iDamage; };
-
-	/***********************
 	* GetHealth: Retrieves this enemies health
 	* @author: Callan Moore
 	* @return: UINT: The Health of this enemy
@@ -70,14 +63,6 @@ public:
 	UINT GetMaxHealth() { return m_iMaxHealth; };
 
 	// Setters
-
-	/***********************
-	* SetDamage: Sets the damage of the enemy
-	* @author: Callan Moore
-	* @parameter: _iDamage: The damage of the enemy
-	* @return: void
-	********************/
-	void SetDamage(UINT _iDamage) { m_iDamage = _iDamage; };
 
 	/***********************
 	* SetHealth: Set the health of the enemy
@@ -100,11 +85,8 @@ public:
 private:
 	// Member Variables
 	eEnemyType m_eType;
-	UINT m_iDamage;
 	UINT m_iHealth;
 	UINT m_iMaxHealth;
-
-
 };
 #endif // __ENEMY_H__
 

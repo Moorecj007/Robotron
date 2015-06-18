@@ -29,8 +29,8 @@ public:
 	/***********************
 	* CProjectile: Contructor for Projectile class
 	* @author: Callan Moore
-	* @parameter: _strAvatar: The Username of the Avatar that created this projectile
-	* @parameter: _v3Pos: The starting positionof the projectile
+	* @parameter: _strAvatarCreator: The Username of the Avatar that created this projectile
+	* @parameter: _v3Pos: The starting position of the projectile
 	* @parameter: _v3Dir: Direction the projectile is fired in
 	********************/
 	CProjectile(std::string _strAvatar, v3float _v3Pos, v3float _v3Dir);
@@ -42,32 +42,21 @@ public:
 	~CProjectile();
 
 	// Getters
-	
+
 	/***********************
-	* GetDamage: Retrieves this projectile Damage 
+	* GetAvatarCreator: Retrieve the usersname of the avatar that fired this projectile
 	* @author: Callan Moore
-	* @return: UINT: The Damage this enemy can inflict
+	* @return: std::string: The username of the avatar that created this projectile
 	********************/
-	UINT GetDamage() { return m_iDamage; };
-
-
+	std::string GetAvatarCreator() { return m_strAvatarCreator; };
 	
 	// Setters
-
-	/***********************
-	* SetDamage: Sets the damage of the projectile
-	* @author: Callan Moore
-	* @parameter: _iDamage: The damage of the projectile
-	* @return: void
-	********************/
-	void SetDamage(UINT _iDamage) { m_iDamage = _iDamage; };
 
 	// Prototypes
 
 private:
 	// Member Variables
-	UINT m_iDamage;
-	std::string m_strAvatar;
+	std::string m_strAvatarCreator;
 	
 };
 

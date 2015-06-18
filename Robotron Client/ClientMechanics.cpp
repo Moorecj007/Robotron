@@ -112,7 +112,6 @@ void CClientMechanics::Draw()
 	}
 }
 
-
 CMesh* CClientMechanics::CreateCubeMesh(float _fSize)
 {
 	// Create a Texture for the Mesh
