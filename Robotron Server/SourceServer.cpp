@@ -23,7 +23,7 @@
 //#include <windowsx.h>		// Include useful macros.
 
 // Local Includes
-#include "GameServer.h"
+#include "Hub_Server.h"
 
 // Defines and Macros
 #define WINDOW_CLASS_NAME L"ROBOTRON"
@@ -148,8 +148,8 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	wstrArgList = CommandLineToArgvW(GetCommandLine(), &iArgCount);
 
 	// Create the Game Object
-	CGameServer& rGameInstance = CGameServer::GetInstance();
-	rGameInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight, wstrArgList);
+	CHub_Server& rApplicationInstance = CHub_Server::GetInstance();
+	rApplicationInstance.Initialise(hWnd, kiScreenWidth, kiScreenHeight, wstrArgList);
 	bool bOnline = true;
 
 	// Enter main event loop.
@@ -165,11 +165,11 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 		{
 			break;
 		}
-		bOnline = rGameInstance.ExecuteOneFrame();
+		bOnline = rApplicationInstance.ExecuteOneFrame();
 	}
 
 	// Delete the Game Instance
-	rGameInstance.DestroyInstance();
+	rApplicationInstance.DestroyInstance();
 
 	// Return to Windows
 	return (static_cast<int>(uiMsg.wParam));

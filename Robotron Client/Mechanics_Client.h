@@ -6,30 +6,30 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : ClientMechanics.cpp
-* Description : Handles all the mechanics on the client
+* File Name : Mechanics_Client.h
+* Description : Handles all the game mechanics on the client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 #pragma once
 
-#ifndef __CLIENT_MECHANICS_H__
-#define __CLIENT_MECHANICS_H__
+#ifndef __MECHANICSCLIENT_H__
+#define __MECHANICSCLIENT_H__
 
 // Library Incudes
 #include <vector>
 
 // Local Includes
-#include "Networking/Client.h"
+#include "Networking/Network_Client.h"
 #include "../Common Files/Graphics/Mesh.h"
 #include "../Common Files/Graphics/IRenderer.h"
 #include "../Common Files/Graphics/Avatar.h"
+#include "../Common Files/Graphics/Enemy.h"
 #include "Graphics/Terrain.h"
 #include "Graphics/StaticCamera.h"
 
-
-class CClientMechanics
+class CMechanics_Client
 {
 public:
 	// Constructors / Destructors
@@ -38,13 +38,13 @@ public:
 	* Game: Default Constructor for GameMechanics class
 	* @author: Callan Moore
 	********************/
-	CClientMechanics();
+	CMechanics_Client();
 
 	/***********************
 	* ~Game: Default Destructor for GameMechanics class
 	* @author: Callan Moore
 	********************/
-	~CClientMechanics();
+	~CMechanics_Client();
 
 	// Getters
 
@@ -82,9 +82,10 @@ public:
 	* CreateCubeMesh: Creates a Cube Mesh with origin in its very center
 	* @author: Callan Moore
 	* @parameter: _fSize: Size of the cube mesh to create from origin to edge
+	* @parameter: _iTexID: ID of the Texure for the cube mesh
 	* @return: CMesh*: Pointer to a created Cube Mesh
 	********************/
-	CMesh* CreateCubeMesh(float _fSize);
+	CMesh* CreateCubeMesh(float _fSize, int _iTexID);
 
 	/***********************
 	* UpdateAvatars: Update the Avatar Information from the Packet from the server
@@ -117,6 +118,20 @@ public:
 	********************/
 	void RemoveAvatar(std::string _strUserName);
 
+	/***********************
+	* CreateAvatarAsset: Create all required assets for the creation of Avatars
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateAvatarAsset();
+
+	/***********************
+	* CreateDemonAsset: Create all required assets for the creation of Demon Enemies
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateDemonAsset();
+
 
 private:
 	// Member Variables
@@ -128,10 +143,21 @@ private:
 	CTerrain* m_pTerrain;
 	CStaticCamera* m_pCamera;
 
+	// TO DO - Create Blank material and texture
+	// Put safe guard on draw methods if tex or mat ID = -1
+
 	// Avatars
 	CMesh* m_pAvatarMesh;
+	int m_iAvatarMaterialID;
+	int m_iAvatarTexID;
 	std::map<std::string, CAvatar*>* m_pAvatars;
 
+	// Enemies
+	CMesh* m_pDemonMesh;
+	int m_iDemonMaterialID;
+	int m_iDemonTexID;
+
+	std::map<UINT, CEnemy*>* m_pEnemies;
 };
 
-#endif // __CLIENT_MECHANICS_H__
+#endif // __MECHANICSCLIENT_H__

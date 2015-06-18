@@ -15,6 +15,9 @@
 // Local Includes
 #include "C3DObject.h"
 
+// Static Variables
+UINT C3DObject::m_siNextID = 0;
+
 C3DObject::C3DObject()
 {
 	// Set the Pointers to NULL
@@ -33,13 +36,16 @@ C3DObject::C3DObject()
 
 	// Set the material ID to -1 ( doesn't exist)
 	m_iMaterialID = -1;
+
+	// Set the ID of the Object
+	m_iID = m_siNextID++;
 }
 
 C3DObject::~C3DObject()
 {
 }
 
-void C3DObject::Initialise(IRenderer* _pRenderer, CMesh* _pMesh, MaterialComposition _MatComp, v3float _v3Pos)
+void C3DObject::Initialise(IRenderer* _pRenderer, CMesh* _pMesh, int _MaterialID, v3float _v3Pos)
 { 
 	// Initialise the Pointers
 	m_pRenderer = _pRenderer;
@@ -52,7 +58,7 @@ void C3DObject::Initialise(IRenderer* _pRenderer, CMesh* _pMesh, MaterialComposi
 	m_fSize = m_pMesh->GetSize();
 
 	// Set the Material
-	m_iMaterialID = m_pRenderer->CreateMaterial(_MatComp);
+	m_iMaterialID = _MaterialID;
 }
 
 bool C3DObject::CreateTexture(std::string strFilePath)

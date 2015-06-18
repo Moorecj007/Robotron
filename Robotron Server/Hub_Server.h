@@ -6,7 +6,7 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameServer.h
+* File Name : Hub_Server.h
 * Description : Declaration file for the main game functions of the server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
@@ -14,21 +14,22 @@
 
 #pragma once
 
-#ifndef __GAMESERVER_H__
-#define __GAMESERVER_H__
+#ifndef __Hub_Server_H__
+#define __Hub_Server_H__
 
 // Library Includes
 #include <thread>
 #include <queue>
 
 // Local Includes
-#include "Networking/Server.h"
-#include "ServerMechanics.h"
+#include "Networking/Network_Server.h"
+#include "Mechanics_Server.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/Networking/MySemaphore.h"
 #include "../Common Files/Graphics/Graphics_Defines.h"
 
-class CGameServer
+
+class CHub_Server
 {
 public:
 
@@ -44,7 +45,7 @@ public:
 	* ~Game: Default Destructor for Game class
 	* @author: Callan Moore
 	********************/
-	~CGameServer();
+	~CHub_Server();
 
 	// Singleton Methods
 
@@ -53,7 +54,7 @@ public:
 	* @author: Callan Moore
 	* @return: CGame&: The current instance of the game
 	********************/
-	static CGameServer& GetInstance();
+	static CHub_Server& GetInstance();
 
 	/***********************
 	* DestroyInstance: Deletes the instance of the game.
@@ -174,17 +175,17 @@ public:
 
 private:
 	//Disallowing copies and extra constructions
-	CGameServer();
-	CGameServer(const CGameServer& _kr);
-	CGameServer& operator= (const CGameServer& _kr);
+	CHub_Server();
+	CHub_Server(const CHub_Server& _kr);
+	CHub_Server& operator= (const CHub_Server& _kr);
 
 public:
 	// Static Variables
-	static CMySemaphore* m_pServerMutex;
+	static CMySemaphore* m_pMutexServer;
 
 private:
 	// Singleton Instance
-	static CGameServer* s_pGame;
+	static CHub_Server* s_pGame;
 
 	// Window Variables
 	HWND m_hWnd;
@@ -194,7 +195,7 @@ private:
 	// Server Network Variables
 	bool m_bNetworkOnline;
 	eServerState m_eServerState;
-	CServer* m_pServerNetwork;
+	CNetwork_Server* m_pNetworkServer;
 	ClientToServer* m_pClientToServer;
 	ClientToServer* m_pPacketToProcess;
 	ServerToClient* m_pServerToClient;
@@ -210,7 +211,7 @@ private:
 	std::map<std::string, AvatarInfo>* m_pCurrentUsers;
 
 	// Gameplay
-	CServerMechanics* m_pMechanics;
+	CMechanics_Server* m_pMechanics;
 };
 
-#endif //__GAMESERVER_H__
+#endif //__Hub_Server_H__

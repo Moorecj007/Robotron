@@ -6,7 +6,7 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Server.h
+* File Name : Network_Server.h
 * Description : Server side of the network - responsible for sending and recieving messages to the Client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
@@ -24,22 +24,22 @@
 // Local Includes
 #include "../../Common Files/Networking/Network_Defines.h"
 
-class CServer
+class CNetwork_Server
 {
 public:
 	// Constructors / Destructors
 
 	/***********************
-	* CServer: Default Constructor for Server class
+	* CNetwork_Server: Default Constructor for Server class
 	* @author: Callan Moore
 	********************/
-	CServer();
+	CNetwork_Server();
 
 	/***********************
-	* ~CServer: Default Constructor for Server class
+	* ~CNetwork_Server: Default Constructor for Server class
 	* @author: Callan Moore
 	********************/
-	~CServer();
+	~CNetwork_Server();
 
 	// Getters
 
@@ -98,8 +98,8 @@ public:
 
 private:
 	//Disallowing copies and extra constructions
-	CServer(const CServer& _kr);
-	CServer& operator= (const CServer& _kr);
+	CNetwork_Server(const CNetwork_Server& _kr);
+	CNetwork_Server& operator= (const CNetwork_Server& _kr);
 
 private:
 	SOCKET m_ServerSocket;

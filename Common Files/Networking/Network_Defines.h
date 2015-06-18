@@ -36,6 +36,7 @@ namespace network
 	unsigned const	MAX_CHAR_LENGTH			= 30;
 	unsigned const	MAX_USERNAME_LENGTH		= 13;
 	unsigned const  MAX_SERVERNAME_LENGTH	= 16;
+	unsigned const  MAX_ENEMY_SPAWNED		= 30;	// TO DO - calculate properly using % increase per player
 }
 
 // Enums
@@ -64,7 +65,10 @@ enum eNetworkCommand
 
 	ALIVE_SET,
 
-	START_GAME
+	START_GAME,
+
+	SPAWN_ENEMY,
+	KILL_ENEMY
 };
 
 // Structs
@@ -84,17 +88,28 @@ struct AvatarInfo
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
-	// Collision Box
-	int iHealth;
 	float fSpeed;
+
+	// TO DO - Add other variables
 };
 
 struct EnemyInfo
 {
-
+	UINT iID;
+	eEnemyType eType;
+	v3float v3Pos;
+	v3float v3Dir;
+	v3float v3Vel;
+	
+	// TO DO: Add Other Variables
 };
 
 struct PowerUpInfo
+{
+
+};
+
+struct ProjectileInfo
 {
 
 };
@@ -114,16 +129,15 @@ struct ClientToServer
 struct ServerToClient
 {
 	sockaddr_in ServerAddr;
-
 	bool bCommand;
 	eNetworkCommand eCommand;
 	char cServerName[network::MAX_SERVERNAME_LENGTH];
 	char cUserName[network::MAX_USERNAME_LENGTH];
-	//char cAdditionalMessage[network::MAX_CHAR_LENGTH];
 
 	// Gameplay Information
 	int CurrentUserCount;
 	AvatarInfo Avatars[network::MAX_CLIENTS];
+	EnemyInfo Enemies[network::MAX_ENEMY_SPAWNED];
 };
 
 #endif //__NETWORKDEFINES_H__

@@ -6,36 +6,36 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameClient.cpp
+* File Name : Hub_Client.cpp
 * Description : Runs the main game functions for the Client - The game manager
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 // Local Includes
-#include "GameClient.h"
+#include "Hub_Client.h"
 
 // Static Variables
-CGameClient* CGameClient::s_pGame = 0;
-CMySemaphore* CGameClient::m_pClientMutex = new CMySemaphore(1);
+CHub_Client* CHub_Client::s_pGame = 0;
+CMySemaphore* CHub_Client::m_pClientMutex = new CMySemaphore(1);
 
 // #Constructors/Destructors
-CGameClient::CGameClient()
+CHub_Client::CHub_Client()
 {
 }
 
-CGameClient::~CGameClient()
+CHub_Client::~CHub_Client()
 {
 	if (m_bHost == true)
 	{
 		// Send a Terminate command to the Server
 		CreateCommandPacket(TERMINATE_SERVER);
-		m_pClientNetwork->SendPacket(m_pClientToServer);
+		m_pNetworkClient->SendPacket(m_pClientToServer);
 	}
 
 	// Send a left user packet - Invalid send if the user is not connected
 	CreateCommandPacket(LEAVE_SERVER);
-	m_pClientNetwork->SendPacket(m_pClientToServer);
+	m_pNetworkClient->SendPacket(m_pClientToServer);
 
 	// Turn the Network off so the Receive thread can exit
 	m_bNetworkOnline = false;
@@ -46,8 +46,8 @@ CGameClient::~CGameClient()
 	m_pClock = 0;
 
 	// Delete Client Network
-	delete m_pClientNetwork;
-	m_pClientNetwork = 0;
+	delete m_pNetworkClient;
+	m_pNetworkClient = 0;
 
 	// Delete the Networking Packets
 	delete m_pClientToServer;
@@ -94,29 +94,29 @@ CGameClient::~CGameClient()
 	m_pDInput = 0;
 }
 
-CGameClient& CGameClient::GetInstance()
+CHub_Client& CHub_Client::GetInstance()
 {
 	if (s_pGame == 0)
 	{
-		s_pGame = new CGameClient();
+		s_pGame = new CHub_Client();
 	}
 	return (*s_pGame);
 }
 
-void CGameClient::DestroyInstance()
+void CHub_Client::DestroyInstance()
 {
 	delete s_pGame;
 	s_pGame = 0;
 }
 
 // #Setters
-void CGameClient::SetMousePos(int _iX, int _iY)
+void CHub_Client::SetMousePos(int _iX, int _iY)
 {
 	m_ptMousePos.x = _iX;
 	m_ptMousePos.y = _iY;
 }
 
-bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
+bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth, int _iScreenHeight)
 {
 	// Populate window variables
 	m_hWnd = _hWnd;
@@ -132,12 +132,12 @@ bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	m_pClock = new CClock();
 
 	// Create and Initialise the Client-side Network
-	m_pClientNetwork = new CClient;
-	VALIDATE(m_pClientNetwork->Initialise());
+	m_pNetworkClient = new CNetwork_Client;
+	VALIDATE(m_pNetworkClient->Initialise());
 	m_bNetworkOnline = true;
 
 	// Create a thread to receive data from the Server
-	m_ReceiveThread = std::thread(&CGameClient::ReceiveDataFromNetwork,(this), m_pServerToClient);
+	m_ReceiveThread = std::thread(&CHub_Client::ReceiveDataFromNetwork,(this), m_pServerToClient);
 
 	// Create the WorkQueue
 	m_pWorkQueue = new std::queue<ServerToClient>;
@@ -174,7 +174,7 @@ bool CGameClient::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	return true;
 }
 
-bool CGameClient::RenderOneFrame()
+bool CHub_Client::RenderOneFrame()
 {
 	// Snapshot Time at the beginning of the frame
 	m_iFrameTimeStart = (int)timeGetTime();
@@ -197,7 +197,7 @@ bool CGameClient::RenderOneFrame()
 }
 
 // #Processes
-void CGameClient::Process()
+void CHub_Client::Process()
 {
 	// Process the Clock and get the new Delta Tick
 	m_pClock->Process();
@@ -239,7 +239,7 @@ void CGameClient::Process()
 	m_strMenuSelection = "";
 }
 
-void CGameClient::ProcessTextInput(WPARAM _wKeyPress)
+void CHub_Client::ProcessTextInput(WPARAM _wKeyPress)
 {
 	switch (m_eScreenState)
 	{
@@ -257,7 +257,7 @@ void CGameClient::ProcessTextInput(WPARAM _wKeyPress)
 	}	// End Switch (m_eScreenState)
 }
 
-void CGameClient::ProcessServerNameInput(WPARAM _wKeyPress)
+void CHub_Client::ProcessServerNameInput(WPARAM _wKeyPress)
 {
 	bool bAddLetter = false;
 	char cInput = (char)(_wKeyPress);
@@ -312,7 +312,7 @@ void CGameClient::ProcessServerNameInput(WPARAM _wKeyPress)
 	}
 }
 
-void CGameClient::ProcessUserNameInput(WPARAM _wKeyPress)
+void CHub_Client::ProcessUserNameInput(WPARAM _wKeyPress)
 {
 	bool bAddLetter = false;
 	char cInput = (char)(_wKeyPress);
@@ -365,7 +365,7 @@ void CGameClient::ProcessUserNameInput(WPARAM _wKeyPress)
 			else
 			{
 				CreateCommandPacket(CREATEUSER);
-				m_pClientNetwork->SendPacket(m_pClientToServer);
+				m_pNetworkClient->SendPacket(m_pClientToServer);
 				Sleep(50);
 			}
 			return;
@@ -379,7 +379,7 @@ void CGameClient::ProcessUserNameInput(WPARAM _wKeyPress)
 	}
 }
 
-void CGameClient::ProcessPacket(float _fDT)
+void CHub_Client::ProcessPacket(float _fDT)
 {
 	if (m_pPacketToProcess->bCommand == true)
 	{
@@ -532,7 +532,7 @@ void CGameClient::ProcessPacket(float _fDT)
 	}
 }
 
-void CGameClient::ProcessScreenState(float _fDT)
+void CHub_Client::ProcessScreenState(float _fDT)
 {
 	m_bTextInput = false;
 
@@ -545,7 +545,7 @@ void CGameClient::ProcessScreenState(float _fDT)
 		
 		// Create Data packet for the user input
 		CreateDataPacket();
-		m_pClientNetwork->SendPacket(m_pClientToServer);
+		m_pNetworkClient->SendPacket(m_pClientToServer);
 
 		break;
 	}
@@ -609,7 +609,7 @@ void CGameClient::ProcessScreenState(float _fDT)
 	}	// End Switch(m_eScreenState)
 }
 
-void CGameClient::ProcessCreateUser()
+void CHub_Client::ProcessCreateUser()
 {
 	m_bTextInput = true;
 
@@ -627,7 +627,7 @@ void CGameClient::ProcessCreateUser()
 	}
 }
 
-void CGameClient::ProcessCreateServer()
+void CHub_Client::ProcessCreateServer()
 {
 	m_bTextInput = true;
 
@@ -644,7 +644,7 @@ void CGameClient::ProcessCreateServer()
 	}
 }
 
-void CGameClient::ProcessMainMenu()
+void CHub_Client::ProcessMainMenu()
 {
 	m_bHost = false;
 
@@ -670,12 +670,12 @@ void CGameClient::ProcessMainMenu()
 	}
 }
 
-void CGameClient::ProcessSingleMenu()
+void CHub_Client::ProcessSingleMenu()
 {
 
 }
 
-void CGameClient::ProcessMultiMenu()
+void CHub_Client::ProcessMultiMenu()
 {
 	m_eUserNameFailed = ERROR_COMMAND;
 
@@ -696,7 +696,7 @@ void CGameClient::ProcessMultiMenu()
 	}
 }
 
-void CGameClient::ProcessInstructionsMenu()
+void CHub_Client::ProcessInstructionsMenu()
 {
 	if (m_strMenuSelection == "Back")
 	{
@@ -704,7 +704,7 @@ void CGameClient::ProcessInstructionsMenu()
 	}
 }
 
-void CGameClient::ProcessOptionsMenu()
+void CHub_Client::ProcessOptionsMenu()
 {
 	if (m_strMenuSelection == "Back")
 	{
@@ -712,7 +712,7 @@ void CGameClient::ProcessOptionsMenu()
 	}
 }
 
-void CGameClient::ProcessGameLobby()
+void CHub_Client::ProcessGameLobby()
 {
 	if (m_strMenuSelection == "Exit")
 	{
@@ -721,12 +721,12 @@ void CGameClient::ProcessGameLobby()
 		if (m_bHost == true)
 		{
 			CreateCommandPacket(TERMINATE_SERVER);
-			m_pClientNetwork->SendPacket(m_pClientToServer);
+			m_pNetworkClient->SendPacket(m_pClientToServer);
 		}
 		else
 		{
 			CreateCommandPacket(LEAVE_SERVER);
-			m_pClientNetwork->SendPacket(m_pClientToServer);
+			m_pNetworkClient->SendPacket(m_pClientToServer);
 		}
 
 		ResetGameData();
@@ -734,16 +734,16 @@ void CGameClient::ProcessGameLobby()
 	else if (m_strMenuSelection == "I am Ready!")
 	{
 		CreateCommandPacket(ALIVE_SET, "true");
-		m_pClientNetwork->SendPacket(m_pClientToServer);
+		m_pNetworkClient->SendPacket(m_pClientToServer);
 	}
 	else if (m_strMenuSelection == "Actually I'm not ready!")
 	{
 		CreateCommandPacket(ALIVE_SET, "false");
-		m_pClientNetwork->SendPacket(m_pClientToServer);
+		m_pNetworkClient->SendPacket(m_pClientToServer);
 	}
 }
 
-void CGameClient::ProcessSelectServer()
+void CHub_Client::ProcessSelectServer()
 {
 	m_eUserNameFailed = ERROR_COMMAND;
 
@@ -752,7 +752,7 @@ void CGameClient::ProcessSelectServer()
 	{
 		// Determine what server was selected
 		m_strServerName = (*m_pAvailableServers)[m_iServerIndex].cServerName;
-		m_pClientNetwork->SelectServer((*m_pAvailableServers)[m_iServerIndex].ServerAddr);
+		m_pNetworkClient->SelectServer((*m_pAvailableServers)[m_iServerIndex].ServerAddr);
 		m_eScreenState = STATE_CREATEUSER;
 
 		m_iServerIndex = -1;
@@ -773,7 +773,7 @@ void CGameClient::ProcessSelectServer()
 	
 	// Broadcast to check which servers are available
 	CreateCommandPacket(QUERY_CLIENT_CONNECTION);
-	m_pClientNetwork->BroadcastToServers(m_pClientToServer);
+	m_pNetworkClient->BroadcastToServers(m_pClientToServer);
 	// TO DO - take this off a sleep function so it can be done less often ( like once every 5 secs or so)
 	// Broadcast only 10 times a second to allow server responce
 	Sleep(100);
@@ -781,7 +781,7 @@ void CGameClient::ProcessSelectServer()
 	
 }
 
-void CGameClient::ProcessTerminatedServer()
+void CHub_Client::ProcessTerminatedServer()
 {
 	if (m_strMenuSelection == "Back to Main Menu")
 	{
@@ -790,20 +790,15 @@ void CGameClient::ProcessTerminatedServer()
 	}
 }
 
-void CGameClient::ProcessGameLoading()
+void CHub_Client::ProcessGameLoading()
 {
 	// Multithreaded loading screen
 	m_bGameLoading = true;
-	std::thread LoadingThread = std::thread(&CGameClient::DisplayGameLoading, this);
+	std::thread LoadingThread = std::thread(&CHub_Client::DisplayGameLoading, this);
 
 	// Create the GameMechanics Object for handling the mechanics of the game
-	m_pMechanics = new CClientMechanics();
+	m_pMechanics = new CMechanics_Client();
 	m_pMechanics->Initialise(m_pRenderer, m_pPacketToProcess, m_strUserName);
-
-	//if (m_bHost == false)
-	//{
-	//	m_pGameMechanics->AddAvatar(m_pPacketToProcess);
-	//}
 
 	m_bGameLoading = false;
 	LoadingThread.join();
@@ -811,7 +806,7 @@ void CGameClient::ProcessGameLoading()
 }
 
 // #Draw
-void CGameClient::Draw()
+void CHub_Client::Draw()
 {
 	m_pRenderer->StartRender(true, true, false);
 
@@ -886,7 +881,7 @@ void CGameClient::Draw()
 }
 
 // #DisplayMenus
-void CGameClient::CreateUserName()
+void CHub_Client::CreateUserName()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -929,7 +924,7 @@ void CGameClient::CreateUserName()
 	}
 }
 
-void CGameClient::CreateServerName()
+void CHub_Client::CreateServerName()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -959,7 +954,7 @@ void CGameClient::CreateServerName()
 	}
 }
 
-void CGameClient::DisplayMainMenu()
+void CHub_Client::DisplayMainMenu()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -991,7 +986,7 @@ void CGameClient::DisplayMainMenu()
 	}
 }
 
-void CGameClient::DisplayMultiplayerMenu()
+void CHub_Client::DisplayMultiplayerMenu()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -1021,7 +1016,7 @@ void CGameClient::DisplayMultiplayerMenu()
 	}
 }
 
-void CGameClient::DisplayInstructionsMenu()
+void CHub_Client::DisplayInstructionsMenu()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -1050,7 +1045,7 @@ void CGameClient::DisplayInstructionsMenu()
 	}
 }
 
-void CGameClient::DisplayOptionsMenu()
+void CHub_Client::DisplayOptionsMenu()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -1079,7 +1074,7 @@ void CGameClient::DisplayOptionsMenu()
 	}
 }
 
-void CGameClient::DisplayGameLobby()
+void CHub_Client::DisplayGameLobby()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -1130,7 +1125,7 @@ void CGameClient::DisplayGameLobby()
 	}
 }
 
-void CGameClient::DisplaySelectServer()
+void CHub_Client::DisplaySelectServer()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -1209,7 +1204,7 @@ void CGameClient::DisplaySelectServer()
 	
 }
 
-void CGameClient::DisplayTerminatedServer()
+void CHub_Client::DisplayTerminatedServer()
 {
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
@@ -1240,7 +1235,7 @@ void CGameClient::DisplayTerminatedServer()
 	}
 }
 
-void CGameClient::DisplayGameLoading()
+void CHub_Client::DisplayGameLoading()
 {
 	D3DXCOLOR colorRed = 0xffff0000;
 	D3DXCOLOR colorWhite = 0xffffffff;
@@ -1278,7 +1273,7 @@ void CGameClient::DisplayGameLoading()
 	}
 }
 
-int CGameClient::PrintFullTitle(int _iYpos)
+int CHub_Client::PrintFullTitle(int _iYpos)
 {
 	// Print the Title Text
 	m_pRenderer->RenderText(false, m_ptMousePos, "ROBOTRON", (_iYpos += 50), SUBTITLE_FONT, 0xff450000, H_CENTER);
@@ -1290,7 +1285,7 @@ int CGameClient::PrintFullTitle(int _iYpos)
 }
 
 // #Packets
-bool CGameClient::CreateDataPacket()
+bool CHub_Client::CreateDataPacket()
 {
 	// Clear out old data from the Data Packet packet
 	ZeroMemory(*(&m_pClientToServer), sizeof(*m_pClientToServer));
@@ -1306,7 +1301,7 @@ bool CGameClient::CreateDataPacket()
 	return true;
 }
 
-bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand)
+bool CHub_Client::CreateCommandPacket(eNetworkCommand _eCommand)
 {
 	// Clear out old data from the Data Packet packet
 	ZeroMemory(*(&m_pServerToClient), sizeof(*m_pServerToClient));
@@ -1326,7 +1321,7 @@ bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand)
 	return true;
 }
 
-bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage)
+bool CHub_Client::CreateCommandPacket(eNetworkCommand _eCommand, std::string _strMessage)
 {
 	// Create a general command packet
 	CreateCommandPacket(_eCommand);
@@ -1341,7 +1336,7 @@ bool CGameClient::CreateCommandPacket(eNetworkCommand _eCommand, std::string _st
 }
 
 // #Extras
-void CGameClient::CreateServer()
+void CHub_Client::CreateServer()
 {
 	std::string strFilename;
 	#ifdef _DEBUG
@@ -1359,13 +1354,13 @@ void CGameClient::CreateServer()
 	// Sleep to give the server time to start up
 	Sleep(500);
 	CreateCommandPacket(QUERY_HOST, m_strServerName);
-	m_pClientNetwork->BroadcastToServers(m_pClientToServer);
+	m_pNetworkClient->BroadcastToServers(m_pClientToServer);
 
 	m_strServerHost = m_strUserName;
 	m_eScreenState = STATE_GAMELOADING;
 }
 
-bool CGameClient::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
+bool CHub_Client::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
 {
 	// Ensure no buffer overrun will occur when copying directly to memory
 	if ((strlen(_pcData) + 1) <= (_iMaxLength))
@@ -1381,11 +1376,11 @@ bool CGameClient::StringToStruct(const char* _pcData, char* _pcStruct, unsigned 
 	return true;
 }
 
-void CGameClient::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)
+void CHub_Client::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)
 {
 	while (m_bNetworkOnline)
 	{
-		if (m_pClientNetwork->ReceivePacket(_pReceiveData) == true)
+		if (m_pNetworkClient->ReceivePacket(_pReceiveData) == true)
 		{
 			// Add the Received Packet to the Work Queue
 			m_pClientMutex->Wait();
@@ -1395,13 +1390,13 @@ void CGameClient::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)
 	}
 }
 
-void CGameClient::InsertUser(std::string _strUser, AvatarInfo _AvatarInfo)
+void CHub_Client::InsertUser(std::string _strUser, AvatarInfo _AvatarInfo)
 {
 	std::pair<std::string, AvatarInfo> pairUser(_strUser, _AvatarInfo);
 	m_pCurrentUsers->insert(pairUser);
 }
 
-void CGameClient::ResetGameData()
+void CHub_Client::ResetGameData()
 {
 	m_bHost = false;
 	m_bAlive = false;
@@ -1412,10 +1407,10 @@ void CGameClient::ResetGameData()
 	m_strServerName = "";
 	m_strServerHost = "";
 
-	m_pClientNetwork->Reset();
+	m_pNetworkClient->Reset();
 }
 
-void CGameClient::FrameLimiter()
+void CHub_Client::FrameLimiter()
 {
 	// TO DO - change this so that sleep isnt used
 

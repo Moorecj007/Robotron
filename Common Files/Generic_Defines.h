@@ -25,8 +25,6 @@
 // Defines
 #define VALIDATE(a) if (!a) return (false)
 
-// Enums
-
 // Enumerators
 enum eScreenState
 {

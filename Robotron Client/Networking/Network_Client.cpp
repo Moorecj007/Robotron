@@ -6,28 +6,28 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Client.cpp
+* File Name : Network_Client.cpp
 * Description : Client side of the network - responsible for sending and recieving messages to the server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 // Local Includes
-#include "Client.h"
+#include "Network_Client.h"
 
 
-CClient::CClient()
+CNetwork_Client::CNetwork_Client()
 {
 }
 
-CClient::~CClient()
+CNetwork_Client::~CNetwork_Client()
 {
 	// Free the char arrays on the heap memory
 	delete m_cReceiveData;
 	m_cReceiveData = 0;
 }
 
-bool CClient::Initialise()
+bool CNetwork_Client::Initialise()
 {
 	// Clear out the ClientAddr memory for use
 	ZeroMemory(&m_ClientAddr, sizeof(m_ClientAddr));
@@ -92,7 +92,7 @@ bool CClient::Initialise()
 	return true;
 }
 
-bool CClient::SendPacket(ClientToServer* _pSendPacket)
+bool CNetwork_Client::SendPacket(ClientToServer* _pSendPacket)
 {
 	ClientToServer SendPacket = *_pSendPacket;
 	int iPacketSize = sizeof(SendPacket) + 1;
@@ -120,7 +120,7 @@ bool CClient::SendPacket(ClientToServer* _pSendPacket)
 	return true;
 }
 
-bool CClient::BroadcastToServers(ClientToServer* _pSendPacket)
+bool CNetwork_Client::BroadcastToServers(ClientToServer* _pSendPacket)
 {
 	ClientToServer SendPacket = *_pSendPacket;
 	int iPacketSize = sizeof(SendPacket) + 1;
@@ -159,7 +159,7 @@ bool CClient::BroadcastToServers(ClientToServer* _pSendPacket)
 	return true;
 }
 
-bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
+bool CNetwork_Client::ReceivePacket(ServerToClient* _pReceivePacket)
 {
 	// Create some local variables
 	sockaddr_in receivedSockAddr;
@@ -197,12 +197,12 @@ bool CClient::ReceivePacket(ServerToClient* _pReceivePacket)
 	return true;
 }
 
-void CClient::SelectServer(sockaddr_in _ServerAddr)
+void CNetwork_Client::SelectServer(sockaddr_in _ServerAddr)
 {
 	m_ServerAddr = _ServerAddr;
 }
 
-void CClient::Reset()
+void CNetwork_Client::Reset()
 {
 	ZeroMemory(&m_ServerAddr, sizeof(m_ServerAddr));
 }

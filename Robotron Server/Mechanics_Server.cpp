@@ -6,28 +6,27 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : ServerMechanics.cpp
+* File Name : Mechanics_Server.cpp
 * Description : Handles all the Mechanics on the server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 // Local Includes
-#include "ServerMechanics.h"
+#include "Mechanics_Server.h"
 
-CServerMechanics::CServerMechanics()
+CMechanics_Server::CMechanics_Server()
 {
 }
 
-
-CServerMechanics::~CServerMechanics()
+CMechanics_Server::~CMechanics_Server()
 {
 	// Delete the clock
 	delete m_pClock;
 	m_pClock = 0;
 }
 
-bool CServerMechanics::Initialise()
+bool CMechanics_Server::Initialise()
 {
 	// Create and initialise the clock
 	m_pClock = new CClock();
@@ -36,10 +35,18 @@ bool CServerMechanics::Initialise()
 	return true;
 }
 
-void CServerMechanics::Process()
+void CMechanics_Server::Process()
 {
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
+}
 
+void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
+{
+	
+}
+
+void CMechanics_Server::RemoveAvatar(std::string _strUserName)
+{
 	
 }

@@ -43,6 +43,13 @@ public:
 	// Getters
 
 	/***********************
+	* GetID: Retrieves this objects ID code
+	* @author: Callan Moore
+	* @return: UINT: The Objects ID code
+	********************/
+	UINT GetID() { return m_iID; };
+
+	/***********************
 	* GetPosition: Retrieves the Objects Position in 3D model space
 	* @author: Callan Moore
 	* @return: v3float*: The Objects Position in 3D model space
@@ -134,11 +141,11 @@ public:
 	* @author: Callan Moore
 	* @parameter: _pRenderer: Pointer to the Renderer for this application
 	* @parameter: _pMesh: Mesh for this 3D Object
-	* @parameter: _MatComponents: The composition for the material the object will have
+	* @parameter: _MaterialID: ID for the material stored on the Renderer
 	* @parameter: _v3Pos: Starting position for the object
 	* @return: void
 	********************/
-	void Initialise(IRenderer* _pRenderer, CMesh* _pMesh, MaterialComposition _MatComp, v3float _v3Pos = { 0, 0, 0 });
+	void Initialise(IRenderer* _pRenderer, CMesh* _pMesh, int _MaterialID, v3float _v3Pos = { 0, 0, 0 });
 
 	/***********************
 	* Draw: Draws the 3D Object
@@ -174,6 +181,9 @@ protected:
 
 protected:
 	// Member Variables
+	static UINT m_siNextID;
+	UINT m_iID;
+
 	IRenderer* m_pRenderer;
 	CMesh* m_pMesh;
 	int m_iMaterialID;

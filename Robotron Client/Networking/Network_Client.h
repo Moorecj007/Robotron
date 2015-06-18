@@ -6,7 +6,7 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Client.h
+* File Name : Network_Client.h
 * Description : Client side of the network - responsible for sending and recieving messages to the server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
@@ -14,30 +14,30 @@
 
 #pragma once
 
-#ifndef __CLIENTNETWORK_H__
-#define __CLIENTNETWORK_H__
+#ifndef __NETWORKCLIENT_H__
+#define __NETWORKCLIENT_H__
 
 // Local Includes
 #include "../../Common Files/Networking/Network_Defines.h"
 #include <map>
 
 
-class CClient
+class CNetwork_Client
 {
 public:
 	// Constructors / Destructors
 
 	/***********************
-	* CClient: Default Constructor for Client class
+	* CNetwork_Client: Default Constructor for Client class
 	* @author: Callan Moore
 	********************/
-	CClient();
+	CNetwork_Client();
 
 	/***********************
-	* ~CClient: Default Destructor for Client class
+	* ~CNetwork_Client: Default Destructor for Client class
 	* @author: Callan Moore
 	********************/
-	~CClient();
+	~CNetwork_Client();
 
 	// Getters
 
@@ -94,8 +94,8 @@ public:
 
 private:
 	//Disallowing copies and extra constructions
-	CClient(const CClient& _kr);
-	CClient& operator= (const CClient& _kr);
+	CNetwork_Client(const CNetwork_Client& _kr);
+	CNetwork_Client& operator= (const CNetwork_Client& _kr);
 
 private:
 	SOCKET m_ClientSocket;
@@ -106,4 +106,4 @@ private:
 
 	sockaddr_in m_ServerAddr;
 };
-#endif //__CLIENTNETWORK_H__
+#endif //__NETWORKCLIENT_H__

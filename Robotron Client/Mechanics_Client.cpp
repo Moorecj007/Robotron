@@ -6,20 +6,20 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameMechanics.h
-* Description : Handles all the game mechanics
+* File Name : Mechanics_Client.cpp
+* Description : Handles all the game mechanics for the Client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 // Local Include
-#include "ClientMechanics.h"
+#include "Mechanics_Client.h"
 
-CClientMechanics::CClientMechanics()
+CMechanics_Client::CMechanics_Client()
 {
 }
 
-CClientMechanics::~CClientMechanics()
+CMechanics_Client::~CMechanics_Client()
 {
 	// Delete the Container of Avatars
 	if (m_pAvatars != 0)
@@ -36,9 +36,26 @@ CClientMechanics::~CClientMechanics()
 		m_pAvatars = 0;
 	}
 
+	// Delete the Container of Enemies
+	if (m_pEnemies != 0)
+	{
+		std::map<UINT, CEnemy*>::iterator currentEnemies = m_pEnemies->begin();
+		while (currentEnemies != m_pEnemies->end())
+		{
+			delete currentEnemies->second;
+			currentEnemies->second = 0;
+			currentEnemies++;
+		}
+
+		delete m_pEnemies;
+		m_pEnemies = 0;
+	}
+
 	// Delete the created meshes
 	delete m_pAvatarMesh;
 	m_pAvatarMesh = 0;
+	delete m_pDemonMesh;
+	m_pDemonMesh = 0;
 
 	// Delete the Graphics 
 	delete m_pCamera;
@@ -47,7 +64,7 @@ CClientMechanics::~CClientMechanics()
 	m_pTerrain = 0;
 }
 
-bool CClientMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName)
+bool CMechanics_Client::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName)
 {
 	// Store the pointer to the renderer
 	m_pRenderer = _pRenderer;
@@ -64,16 +81,18 @@ bool CClientMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServe
 	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
 	m_pTerrain->SetCenter(0, 0, 0);
 
-	// Create the required meshes
-	m_pAvatarMesh = CreateCubeMesh(0.5);
-
-	// Create the the container of avatars and populate
+	// Create the the containers for assets
 	m_pAvatars = new std::map < std::string, CAvatar*>;
+	m_pEnemies = new std::map < UINT, CEnemy*>;
+
+	// Create the required Assets
+	CreateAvatarAsset();
+	CreateDemonAsset();
 
 	return true;
 }
 
-void CClientMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
+void CMechanics_Client::Process(float _fDT, ServerToClient* _pServerPacket)
 {
 
 	// save the current states of the delta tick and the Packet from the server
@@ -98,7 +117,7 @@ void CClientMechanics::Process(float _fDT, ServerToClient* _pServerPacket)
 	m_pCamera->Process(m_pRenderer);
 }
 
-void CClientMechanics::Draw()
+void CMechanics_Client::Draw()
 {
 	// Render the Terrain
 	m_pTerrain->Draw(m_pRenderer);
@@ -112,14 +131,10 @@ void CClientMechanics::Draw()
 	}
 }
 
-CMesh* CClientMechanics::CreateCubeMesh(float _fSize)
+CMesh* CMechanics_Client::CreateCubeMesh(float _fSize, int _iTexID)
 {
-	// Create a Texture for the Mesh
-	std::string strTexPath = "Assets//Crate Side.bmp";
-	int iTexID = m_pRenderer->CreateTexture(strTexPath);
-
 	float fVertexfromOrigin = _fSize;
-	CMesh* meshCube = new CMesh(m_pRenderer, _fSize, iTexID);
+	CMesh* meshCube = new CMesh(m_pRenderer, _fSize, _iTexID);
 
 	// Add Vertices to the Mesh in shape of a Cube
 	// Front Face
@@ -193,7 +208,7 @@ CMesh* CClientMechanics::CreateCubeMesh(float _fSize)
 	return meshCube;
 }
 
-void CClientMechanics::UpdateAvatars()
+void CMechanics_Client::UpdateAvatars()
 {
 	// Iterator to point at the found Avatar
 	std::map<std::string, CAvatar*>::iterator iterAvatar;
@@ -209,16 +224,8 @@ void CClientMechanics::UpdateAvatars()
 	}
 }
 
-void CClientMechanics::AddAvatar(ServerToClient* _pServerPacket)
+void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 {
-	// Create a material for the avatars to be made from
-	MaterialComposition matComp;
-	matComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
-	matComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	matComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
-	matComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
-	matComp.power = 0;
-
 	AvatarInfo currentAvatarInfo;
 	// Temporarily store the user data 
 	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
@@ -232,7 +239,7 @@ void CClientMechanics::AddAvatar(ServerToClient* _pServerPacket)
 	// Create a new avatar object
 	CAvatar* pTempAvatar = new  CAvatar();
 	v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, matComp, v3Pos);
+	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, m_iAvatarMaterialID, v3Pos);
 
 	// Save the avatar in a vector
 	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
@@ -249,16 +256,8 @@ void CClientMechanics::AddAvatar(ServerToClient* _pServerPacket)
 	}
 }
 
-void CClientMechanics::AddAllAvatars(ServerToClient* _pServerPacket)
+void CMechanics_Client::AddAllAvatars(ServerToClient* _pServerPacket)
 {
-	// Create a material for the avatars to be made from
-	MaterialComposition matComp;
-	matComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
-	matComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	matComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
-	matComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
-	matComp.power = 0;
-
 	AvatarInfo currentAvatarInfo;
 	// Temporarily store the user data 
 	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
@@ -268,7 +267,7 @@ void CClientMechanics::AddAllAvatars(ServerToClient* _pServerPacket)
 		// Create a new avatar object
 		CAvatar* pTempAvatar = new  CAvatar();
 		v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-		pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, matComp, v3Pos);
+		pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, m_iAvatarMaterialID, v3Pos);
 
 		// Save the avatar in a vector
 		std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
@@ -286,7 +285,7 @@ void CClientMechanics::AddAllAvatars(ServerToClient* _pServerPacket)
 	}
 }
 
-void CClientMechanics::RemoveAvatar(std::string _strUserName)
+void CMechanics_Client::RemoveAvatar(std::string _strUserName)
 {
 	std::map<std::string, CAvatar*>::iterator iterAvatar;
 	iterAvatar = m_pAvatars->find(_strUserName);
@@ -297,3 +296,34 @@ void CClientMechanics::RemoveAvatar(std::string _strUserName)
 	m_pAvatars->erase(_strUserName);
 }
 
+void CMechanics_Client::CreateAvatarAsset()
+{
+	// Create a material for the avatars to be made from
+	MaterialComposition AvatarMatComp;
+	AvatarMatComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	AvatarMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	AvatarMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	AvatarMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	AvatarMatComp.power = 0;
+	m_iAvatarMaterialID = m_pRenderer->CreateMaterial(AvatarMatComp);
+
+	// Avatar Mesh and Texture
+	m_iAvatarTexID = m_pRenderer->CreateTexture("Assets//Crate Side.bmp");
+	m_pAvatarMesh = CreateCubeMesh(0.5f, m_iAvatarTexID);
+}
+
+void CMechanics_Client::CreateDemonAsset()
+{
+	// Create the Material for the Demons to use
+	MaterialComposition DemonMatComp;
+	DemonMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	DemonMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DemonMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	DemonMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	DemonMatComp.power = 0;
+	m_iDemonMaterialID = m_pRenderer->CreateMaterial(DemonMatComp);
+
+	// Demon Enemy Mesh and Texture
+	m_iDemonTexID = m_pRenderer->CreateTexture("Assets//Demon.bmp");
+	m_pDemonMesh = CreateCubeMesh(1.0f, m_iDemonTexID);
+}

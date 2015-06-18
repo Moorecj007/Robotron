@@ -6,7 +6,7 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameClient.h
+* File Name : Hub_Client.h
 * Description : Declaration file for the main game functions of the client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
@@ -14,21 +14,21 @@
 
 #pragma once
 
-#ifndef __GAMECLIENT_H__
-#define __GAMECLIENT_H__
+#ifndef __HUB_CLIENT_H__
+#define __HUB_CLIENT_H__
 
 // Library Includes
 #include <thread>
 #include <queue>
 
 // Local Includes
-#include "ClientMechanics.h"
+#include "Mechanics_Client.h"
 #include "../Common Files/Graphics/D3D9Renderer.h"
 #include "Graphics\DInput.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/Networking/MySemaphore.h"
 
-class CGameClient
+class CHub_Client
 {
 public:
 	// Constructors / Destructors
@@ -37,7 +37,7 @@ public:
 	* ~Game: Default Destructor for Game class
 	* @author: Callan Moore
 	********************/
-	~CGameClient();
+	~CHub_Client();
 
 	// Singleton Methods
 
@@ -46,7 +46,7 @@ public:
 	* @author: Callan Moore
 	* @return: CGame&: The current instance of the game
 	********************/
-	static CGameClient& GetInstance();
+	static CHub_Client& GetInstance();
 
 	/***********************
 	* DestroyInstance: Deletes the instance of the game.
@@ -235,14 +235,14 @@ public:
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void CGameClient::CreateUserName();
+	void CHub_Client::CreateUserName();
 
 	/***********************
 	* CreateUserName: Allows the User to Create a Server Name
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void CGameClient::CreateServerName();
+	void CHub_Client::CreateServerName();
 
 	/***********************
 	* DisplayMainMenu: Displays the Games Main Menu
@@ -383,9 +383,9 @@ public:
 
 private:
 	//Disallowing copies and extra constructions
-	CGameClient();
-	CGameClient(const CGameClient& _kr);
-	CGameClient& operator= (const CGameClient& _kr);
+	CHub_Client();
+	CHub_Client(const CHub_Client& _kr);
+	CHub_Client& operator= (const CHub_Client& _kr);
 
 public:
 	// Static Variables
@@ -394,7 +394,7 @@ public:
 
 private:
 	// Singleton Instance
-	static CGameClient* s_pGame;
+	static CHub_Client* s_pGame;
 
 	// Menu Variables
 	CClock* m_pClock;
@@ -419,7 +419,7 @@ private:
 
 	// Client Network Variables
 	bool m_bNetworkOnline;
-	CClient* m_pClientNetwork;
+	CNetwork_Client* m_pNetworkClient;
 	ClientToServer* m_pClientToServer;
 	ServerToClient* m_pPacketToProcess;
 	ServerToClient* m_pServerToClient;
@@ -441,7 +441,7 @@ private:
 	IRenderer* m_pRenderer;
 
 	// Gameplay Information
-	CClientMechanics* m_pMechanics;
+	CMechanics_Client* m_pMechanics;
 
 	// Time keeping variables
 	int m_iFrameTimeStart;
@@ -453,4 +453,4 @@ private:
 
 };
 
-#endif //__GAMECLIENT_H__
+#endif //__HUB_CLIENT_H__

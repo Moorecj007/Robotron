@@ -23,7 +23,6 @@ CEnemy::CEnemy(eEnemyType _eType)
 	{
 	case ET_DEMON:
 	{
-		m_fSize = 0.5f;
 		m_iMaxHealth = 100;
 		m_iHealth = m_iMaxHealth;
 		m_iDamage = 20;

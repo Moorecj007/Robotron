@@ -25,7 +25,7 @@
 #include <windowsx.h>		// Include useful macros.
 
 // Local Includes
-#include "GameClient.h"
+#include "Hub_Client.h"
 #include "resource.h"
 
 #ifdef _DEBUG
@@ -85,26 +85,26 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 		break;
 		case WM_KEYDOWN:
 		{
-			if (CGameClient::GetInstance().GetTextInput() == true)
+			if (CHub_Client::GetInstance().GetTextInput() == true)
 			{
 				if (_wParam == 16)	// Shift Key
 				{
-					CGameClient::GetInstance().m_pbKeyDown[_wParam] = true;
+					CHub_Client::GetInstance().m_pbKeyDown[_wParam] = true;
 				}
 				if (((_lParam >> 30) & 1) != 1)
 				{
-					CGameClient::GetInstance().ProcessTextInput(_wParam);
+					CHub_Client::GetInstance().ProcessTextInput(_wParam);
 				}
 			}
 			//else
 			//{
-			//	CGameClient::GetInstance().m_pbKeyDown[_wParam] = true;
+			//	CHub_Client::GetInstance().m_pbKeyDown[_wParam] = true;
 			//}
 		}
 		break;
 		case WM_KEYUP:
 		{
-			CGameClient::GetInstance().m_pbKeyDown[_wParam] = false;
+			CHub_Client::GetInstance().m_pbKeyDown[_wParam] = false;
 		}
 		break;
 
@@ -187,8 +187,8 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 	GetClientRect(hWnd, &clientRect);
 
 	// Create the Game Object
-	CGameClient& rGameInstance = CGameClient::GetInstance();
-	rGameInstance.Initialise(_hInstance, hWnd, clientRect.right, clientRect.bottom);
+	CHub_Client& rApplicationInstance = CHub_Client::GetInstance();
+	rApplicationInstance.Initialise(_hInstance, hWnd, clientRect.right, clientRect.bottom);
 	bool bOnline = true;
 
 	// Enter main event loop.
@@ -205,11 +205,11 @@ int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdL
 			break;
 		}
 
-		bOnline = rGameInstance.RenderOneFrame();
+		bOnline = rApplicationInstance.RenderOneFrame();
 	}
 
 	// Delete the Game Instance
-	rGameInstance.DestroyInstance();
+	rApplicationInstance.DestroyInstance();
 
 	// Return to Windows
 	return (static_cast<int>(uiMsg.wParam));

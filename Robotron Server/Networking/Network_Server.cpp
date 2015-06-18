@@ -6,20 +6,20 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Server.cpp
+* File Name : Network_Server.cpp
 * Description : Server side of the network - responsible for sending and recieving messages to the Client
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 // Local Includes
-#include "Server.h"
+#include "Network_Server.h"
 
-CServer::CServer()
+CNetwork_Server::CNetwork_Server()
 {
 }
 
-CServer::~CServer()
+CNetwork_Server::~CNetwork_Server()
 {
 	// Delete the Map of Users
 	delete m_pServerUsers;
@@ -30,7 +30,7 @@ CServer::~CServer()
 	m_cReceiveData = 0;
 }
 
-bool CServer::Initialise()
+bool CNetwork_Server::Initialise()
 {
 	// Clear out the ClientAddr memory for use
 	ZeroMemory(&m_ServerAddr, sizeof(m_ServerAddr));
@@ -95,7 +95,7 @@ bool CServer::Initialise()
 	return true;
 }
 
-bool CServer::SendPacket(ServerToClient* _pSendPacket)
+bool CNetwork_Server::SendPacket(ServerToClient* _pSendPacket)
 {
 	std::map < std::string, sockaddr_in>::iterator iterCurrentUser = m_pServerUsers->begin();
 	std::map < std::string, sockaddr_in>::iterator iterUsersEnd = m_pServerUsers->end();
@@ -131,7 +131,7 @@ bool CServer::SendPacket(ServerToClient* _pSendPacket)
 	return true;
 }
 
-bool CServer::SendPacket(sockaddr_in _clientAddr, ServerToClient* _pSendPacket)
+bool CNetwork_Server::SendPacket(sockaddr_in _clientAddr, ServerToClient* _pSendPacket)
 {
 	ServerToClient PacketToSend = *_pSendPacket;
 	int iPacketSize = sizeof(PacketToSend) + 1;
@@ -158,7 +158,7 @@ bool CServer::SendPacket(sockaddr_in _clientAddr, ServerToClient* _pSendPacket)
 	return true;
 }
 
-bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
+bool CNetwork_Server::ReceivePacket(ClientToServer* _pReceivePacket)
 {
 	// Create some local variables
 	int iSizeOfAddr = sizeof(m_ClientAddr);
@@ -191,7 +191,7 @@ bool CServer::ReceivePacket(ClientToServer* _pReceivePacket)
 	return true;
 }
 
-void CServer::AddClientAddr(std::string _strUser, sockaddr_in _clientAddr)
+void CNetwork_Server::AddClientAddr(std::string _strUser, sockaddr_in _clientAddr)
 {
 	// Create a pair
 	std::pair < std::string, sockaddr_in> pairInsert(_strUser, _clientAddr);
@@ -200,7 +200,7 @@ void CServer::AddClientAddr(std::string _strUser, sockaddr_in _clientAddr)
 	m_pServerUsers->insert(pairInsert);
 }
 
-void CServer::RemoveClientAddr(std::string _strUser)
+void CNetwork_Server::RemoveClientAddr(std::string _strUser)
 {
 	m_pServerUsers->erase(_strUser);
 }

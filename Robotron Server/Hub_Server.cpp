@@ -6,35 +6,35 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : GameServer.cpp
+* File Name : Hub_Server.cpp
 * Description : Runs the main game functions for the Server - The game manager
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
 // Local Includes
-#include "GameServer.h"
+#include "Hub_Server.h"
 
 // Static Variables
-CGameServer* CGameServer::s_pGame = 0;
-CMySemaphore* CGameServer::m_pServerMutex = new CMySemaphore(1);
+CHub_Server* CHub_Server::s_pGame = 0;
+CMySemaphore* CHub_Server::m_pMutexServer = new CMySemaphore(1);
 
-CGameServer::CGameServer()
+CHub_Server::CHub_Server()
 {
 }
 
-CGameServer::~CGameServer()
+CHub_Server::~CHub_Server()
 {
 	m_bNetworkOnline = false;
 	m_ReceiveThread.join();
 
 	// Send a message to all connected clients that the server is terminating
 	CreateCommandPacket(TERMINATE_SERVER, m_strHostUser);
-	m_pServerNetwork->SendPacket(m_pServerToClient);
+	m_pNetworkServer->SendPacket(m_pServerToClient);
 
 	// Delete Client Network
-	delete m_pServerNetwork;
-	m_pServerNetwork = 0;
+	delete m_pNetworkServer;
+	m_pNetworkServer = 0;
 
 	// Delete the Networking Packets
 	delete m_pClientToServer;
@@ -45,8 +45,8 @@ CGameServer::~CGameServer()
 	m_pPacketToProcess = 0;
 
 	// Delete the ServerMutex
-	delete m_pServerMutex;
-	m_pServerMutex = 0;
+	delete m_pMutexServer;
+	m_pMutexServer = 0;
 
 	// Delete the WorkQueue
 	delete m_pWorkQueue;
@@ -61,22 +61,22 @@ CGameServer::~CGameServer()
 	m_pMechanics = 0;
 }
 
-CGameServer& CGameServer::GetInstance()
+CHub_Server& CHub_Server::GetInstance()
 {
 	if (s_pGame == 0)
 	{
-		s_pGame = new CGameServer();
+		s_pGame = new CHub_Server();
 	}
 	return (*s_pGame);
 }
 
-void CGameServer::DestroyInstance()
+void CHub_Server::DestroyInstance()
 {
 	delete s_pGame;
 	s_pGame = 0;
 }
 
-bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, LPWSTR* _wstrArgs)
+bool CHub_Server::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, LPWSTR* _wstrArgs)
 {
 	// Populate window variables
 	m_hWnd = _hWnd;
@@ -108,12 +108,12 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	m_pServerToClient = new ServerToClient();
 
 	// Create and Initialise the Server-side Network
-	m_pServerNetwork = new CServer();
-	VALIDATE(m_pServerNetwork->Initialise());
+	m_pNetworkServer = new CNetwork_Server();
+	VALIDATE(m_pNetworkServer->Initialise());
 	m_bNetworkOnline = true;
 
 	// Create a thread to receive data from the Server
-	m_ReceiveThread = std::thread(&CGameServer::ReceiveDataFromNetwork, (this), m_pClientToServer);
+	m_ReceiveThread = std::thread(&CHub_Server::ReceiveDataFromNetwork, (this), m_pClientToServer);
 
 	// Create the WorkQueue
 	m_pWorkQueue = new std::queue<ClientToServer>;
@@ -126,13 +126,13 @@ bool CGameServer::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	m_eServerState = STATE_LOBBY;
 
 	// Initialise Gameplay variables
-	m_pMechanics = new CServerMechanics();
+	m_pMechanics = new CMechanics_Server();
 	VALIDATE(m_pMechanics->Initialise());
 
 	return true;
 }
 
-bool CGameServer::ExecuteOneFrame()
+bool CHub_Server::ExecuteOneFrame()
 {
 	if (m_bNetworkOnline == false)
 	{
@@ -145,14 +145,14 @@ bool CGameServer::ExecuteOneFrame()
 
 }
 
-void CGameServer::Process()
+void CHub_Server::Process()
 {
 	while (m_pWorkQueue->empty() == false)
 	{
-		m_pServerMutex->Wait();
+		m_pMutexServer->Wait();
 		*m_pPacketToProcess = m_pWorkQueue->front();
 		m_pWorkQueue->pop();
-		m_pServerMutex->Signal();
+		m_pMutexServer->Signal();
 
 		// Process the Pulled Packet
 		ProcessPacket();
@@ -185,7 +185,7 @@ void CGameServer::Process()
 				m_eServerState = STATE_GAMEPLAY;
 
 				CreateCommandPacket(START_GAME);
-				m_pServerNetwork->SendPacket(m_pServerToClient);
+				m_pNetworkServer->SendPacket(m_pServerToClient);
 			}
 		}
 	}
@@ -194,12 +194,12 @@ void CGameServer::Process()
 		m_pMechanics->Process();
 
 		CreateDataPacket();
-		m_pServerNetwork->SendPacket(m_pServerToClient);
+		m_pNetworkServer->SendPacket(m_pServerToClient);
 		Sleep(16);	// TO DO - remove sleep add limiter without a sleep function more than 1 ms
 	}
 }
 
-void CGameServer::ProcessPacket()
+void CHub_Server::ProcessPacket()
 {
 	if (m_pPacketToProcess->bCommand == true)
 	{
@@ -238,8 +238,8 @@ void CGameServer::ProcessPacket()
 					if (m_bRepliedToHost == false)
 					{
 						CreateCommandPacket(HOST_SERVER, m_strHostUser);
-						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
-						m_pServerNetwork->AddClientAddr(strCheckHost, m_pPacketToProcess->ClientAddr);
+						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						m_pNetworkServer->AddClientAddr(strCheckHost, m_pPacketToProcess->ClientAddr);
 						m_bRepliedToHost = true;
 					}
 				}
@@ -247,7 +247,7 @@ void CGameServer::ProcessPacket()
 				else
 				{
 					CreateCommandPacket(NOT_HOST);
-					m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+					m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 				}
 			}
 			return;
@@ -260,7 +260,7 @@ void CGameServer::ProcessPacket()
 			{
 				// return message saying this server is available
 				CreateCommandPacket(SERVER_CONNECTION_AVAILABLE, m_strHostUser);
-				m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+				m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 			}
 			return;
 		}
@@ -281,29 +281,29 @@ void CGameServer::ProcessPacket()
 					{
 						// If the User was successfully added send back that they were accepted
 						CreateCommandPacket(CREATEUSER_ACCEPTED, (std::string)(m_pPacketToProcess->cUserName));
-						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
-						m_pServerNetwork->AddClientAddr(strUser, m_pPacketToProcess->ClientAddr);
+						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						m_pNetworkServer->AddClientAddr(strUser, m_pPacketToProcess->ClientAddr);
 
 						// Send to all current users that a user has joined with their details
 						CreateCommandPacket(USER_JOINED, (std::string)m_pPacketToProcess->cUserName);
-						m_pServerNetwork->SendPacket(m_pServerToClient);
+						m_pNetworkServer->SendPacket(m_pServerToClient);
 
 						// Send the new user the name of the Host user
 						CreateCommandPacket(YOUR_HOST, m_strHostUser);
-						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 					}
 					else
 					{
 						// If the Insert failed then the username was already in use
 						CreateCommandPacket(CREATEUSER_NAMEINUSE);
-						m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 					}
 				}
 				else
 				{
 					// reply to the user that the server is currently full
 					CreateCommandPacket(CREATEUSER_SERVERFULL);
-					m_pServerNetwork->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+					m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
 				}
 			}	
 
@@ -315,8 +315,8 @@ void CGameServer::ProcessPacket()
 			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
 
 			CreateCommandPacket(USER_LEFT, m_pPacketToProcess->cUserName);
-			m_pServerNetwork->RemoveClientAddr(m_pPacketToProcess->cUserName);
-			m_pServerNetwork->SendPacket(m_pServerToClient);
+			m_pNetworkServer->RemoveClientAddr(m_pPacketToProcess->cUserName);
+			m_pNetworkServer->SendPacket(m_pServerToClient);
 
 			return;
 		}
@@ -332,7 +332,7 @@ void CGameServer::ProcessPacket()
 
 			// Send to all users the new State for that user
 			CreateCommandPacket(ALIVE_SET, m_pPacketToProcess->cUserName);
-			m_pServerNetwork->SendPacket(m_pServerToClient);
+			m_pNetworkServer->SendPacket(m_pServerToClient);
 
 			return;
 		}
@@ -365,7 +365,7 @@ void CGameServer::ProcessPacket()
 	}
 }
 
-bool CGameServer::CreateDataPacket()
+bool CHub_Server::CreateDataPacket()
 {
 	// Erase old data
 	ZeroMemory(*(&m_pServerToClient), sizeof(*m_pServerToClient));
@@ -395,7 +395,7 @@ bool CGameServer::CreateDataPacket()
 	return true;
 }
 
-bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand)
+bool CHub_Server::CreateCommandPacket(eNetworkCommand _eCommand)
 {
 	// Clear out old data from the Data Packet packet
 	ZeroMemory(*(&m_pServerToClient), sizeof(*m_pServerToClient));
@@ -429,7 +429,7 @@ bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand)
 	return true;
 }
 
-bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName)
+bool CHub_Server::CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName)
 {
 	// Create a general command packet
 	CreateCommandPacket(_eCommand);
@@ -443,7 +443,7 @@ bool CGameServer::CreateCommandPacket(eNetworkCommand _eCommand, std::string _st
 	return true;
 }
 
-bool CGameServer::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
+bool CHub_Server::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
 {
 	// Ensure no buffer overrun will occur when copying directly to memory
 	if ((strlen(_pcData) + 1) <= (_iMaxLength))
@@ -459,21 +459,21 @@ bool CGameServer::StringToStruct(const char* _pcData, char* _pcStruct, unsigned 
 	return true;
 }
 
-void CGameServer::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
+void CHub_Server::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
 {
 	while (m_bNetworkOnline)
 	{
-		if (m_pServerNetwork->ReceivePacket(_pReceiveData))
+		if (m_pNetworkServer->ReceivePacket(_pReceiveData))
 		{
 			// Add the Received Packet to the Work Queue
-			m_pServerMutex->Wait();
+			m_pMutexServer->Wait();
 			m_pWorkQueue->push(*_pReceiveData);
-			m_pServerMutex->Signal();
+			m_pMutexServer->Signal();
 		}
 	}
 }
 
-std::string CGameServer::WideStringToString(wchar_t* _wstr)
+std::string CHub_Server::WideStringToString(wchar_t* _wstr)
 {
 	// Convert the Wide String to a standard string
 	size_t lengthWstr = (wcslen(_wstr) + 1);
@@ -491,7 +491,7 @@ std::string CGameServer::WideStringToString(wchar_t* _wstr)
 	return strConverted;
 }
 
-bool CGameServer::InsertUser(std::string _strUser)
+bool CHub_Server::InsertUser(std::string _strUser)
 {
 	// Retrieve the number of the current users
 	int iNumber = (int)(m_pCurrentUsers->size());
