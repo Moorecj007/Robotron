@@ -150,7 +150,7 @@ struct v3float
 	********************/
 	v3float operator+= (const v3float _v3)
 	{
-		return v3float{ x += _v3.x, y += _v3.x, z += _v3.x };
+		return v3float{ x += _v3.x, y += _v3.y, z += _v3.z };
 	}
 
 	/***********************

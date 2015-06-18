@@ -502,7 +502,7 @@ bool CGameServer::InsertUser(std::string _strUser)
 	StringToStruct(_strUser.c_str(), tempAvatarInfo.cUserName, network::MAX_USERNAME_LENGTH);
 
 	// Create the starting position based on the current number of users
-	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 20, 5 };
+	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.fSpeed = 10;
 
 	std::pair<std::string, AvatarInfo> pairUser(_strUser, tempAvatarInfo);

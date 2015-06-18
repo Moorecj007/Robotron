@@ -59,7 +59,7 @@ bool CClientMechanics::Initialise(IRenderer* _pRenderer, ServerToClient* _pServe
 
 	// Create a Terrain for the Game
 	m_pTerrain = new CTerrain();
-	VertexScalar TerrainScalar = { 1.0f, 0.05f, 1.0f };
+	VertexScalar TerrainScalar = { 1.0f, 0.0f, 1.0f };
 	std::string strImagePath = "Assets\\Basic Terrain.bmp";
 	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
 	m_pTerrain->SetCenter(0, 0, 0);

@@ -102,7 +102,7 @@ private:
 	eEnemyType m_eType;
 	UINT m_iDamage;
 	UINT m_iHealth;
-	UINT m_iMaxHealth
+	UINT m_iMaxHealth;
 
 
 };

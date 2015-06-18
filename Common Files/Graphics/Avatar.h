@@ -122,6 +122,7 @@ private:
 	UINT m_iScore;
 
 	// LIGHT - TO DO
+	// DAMAGE - TO DO - put in object
 
 };
 
