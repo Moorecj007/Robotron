@@ -87,7 +87,7 @@ bool CTerrain::Initialise(IRenderer* _pRenderer, std::string _strImagePath, Vert
 	MaterialComposition matComp;
 
 	matComp.ambient = { 0.0f, 0.2f, 0.0f, 0.0f };
-	matComp.diffuse = { 0.85f, 1.0f, 1.0f, 0.0f };
+	matComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	matComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
 	matComp.specular = { 1.0f, 0.2f, 0.1f, 0.0f };
 	matComp.power = 0;
@@ -96,7 +96,6 @@ bool CTerrain::Initialise(IRenderer* _pRenderer, std::string _strImagePath, Vert
 
 	std::string strTexturePath = "Assets\\Basic Terrain.bmp";
 	m_iTextureID = _pRenderer->CreateTexture(strTexturePath);
-
 
 	return true;
 }

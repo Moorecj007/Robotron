@@ -141,6 +141,7 @@ private:
 	// Member Variables
 	std::string m_strServerName;
 	CClock* m_pClock;
+	UINT m_iNextObjectID;
 
 	std::map<std::string, AvatarInfo>* m_pAvatars;
 	std::map<UINT, EnemyInfo>* m_pEnemies;

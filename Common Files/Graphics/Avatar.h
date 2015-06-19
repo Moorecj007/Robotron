@@ -27,10 +27,11 @@ public:
 	// Constructors / Destructors
 
 	/***********************
-	* CAvatar: Default Contructor for Avatar class
+	* CAvatar: Contructor for Avatar class
 	* @author: Callan Moore
+	* @parameter: _pRenderer: The Renderer for this application
 	********************/
-	CAvatar();
+	CAvatar(IRenderer* _pRenderer);
 
 	/***********************
 	* ~CAvatar: Default Contructor for Avatar class
@@ -74,6 +75,13 @@ public:
 	* @return: UINT: The avatars score
 	********************/
 	UINT GetScore() { return m_iScore; };
+
+	/***********************
+	* GetTorchID: Retrieve the avatars Torch ID
+	* @author: Callan Moore
+	* @return: int: The avatars Torch ID
+	********************/
+	int GetTorchID() { return m_iTorchID; };
 	
 	// Setters
 
@@ -121,9 +129,7 @@ private:
 	UINT m_iCurrentHealth;
 	UINT m_iScore;
 
-	// LIGHT - TO DO
-	// DAMAGE - TO DO - put in object
-
+	int m_iTorchID;
 };
 
 #endif // __AVATAR_H__

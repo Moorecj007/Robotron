@@ -17,13 +17,13 @@
 #ifndef __NETWORKDEFINES_H__
 #define __NETWORKDEFINES_H__
 
-// Local Includes
-#include "../Generic_Defines.h"
-
 // Library Includes
 #pragma comment(lib, "Ws2_32.lib")
 #include <winsock2.h>
 #include <WS2tcpip.h>
+
+// Local Includes
+#include "../Generic_Defines.h"
 
 namespace network
 {
@@ -83,6 +83,7 @@ struct AvailableServer
 
 struct AvatarInfo
 {
+	UINT iID;
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	bool bAlive;
 	v3float v3Pos;

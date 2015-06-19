@@ -84,6 +84,9 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 
 	m_strServerName = _strServerName;
 
+	// Set up the Object ID
+	m_iNextObjectID = 0;
+
 	// Create the Container for the Avatars
 	m_pAvatars = new std::map<std::string, AvatarInfo>;
 
@@ -94,7 +97,7 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// TO DO - remove to wave spawing function
 	EnemyInfo tempEnemyInfo;
 	tempEnemyInfo.eType = ET_DEMON;
-	tempEnemyInfo.iID = 0;
+	tempEnemyInfo.iID = m_iNextObjectID++;
 	tempEnemyInfo.v3Dir = { 0.0f, 0.0f, -1.0f };
 	tempEnemyInfo.v3Pos = { 10.0f, 0.0f, 10.0f };
 	tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
@@ -114,7 +117,7 @@ void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
 {
 	std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find(_pClientPacket->cUserName);
 
-	// TO DO - Move to another location
+	// Process the Avatars movement for Position
 	v3float v3Movement = { 0, 0, 0 };
 	if (_pClientPacket->activatedControls.bUp == true)
 	{
@@ -134,6 +137,15 @@ void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
 	}
 	NormaliseV3Float(&v3Movement);
 	Avatar->second.v3Pos += v3Movement;
+
+	// Calculate the Avatars Look direction
+	POINT pt = _pClientPacket->activatedControls.ptMouse;
+	pt.x -= 500;
+	pt.y -= 500;
+
+	v3float v3Dir = { (float)pt.x, 0.1f, (float)(-pt.y) };
+	NormaliseV3Float(&v3Dir);
+	Avatar->second.v3Dir = v3Dir;
 }
 
 bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
@@ -178,6 +190,7 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 
 	// Create the starting position based on the current number of users
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
+	tempAvatarInfo.iID = m_iNextObjectID++;
 
 	std::pair<std::string, AvatarInfo> newAvatar((std::string)_pClientPacket->cUserName, tempAvatarInfo);
 	m_pAvatars->insert(newAvatar);

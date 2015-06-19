@@ -56,11 +56,10 @@ public:
 	* Initialise: Initialise the GameMechanics for use
 	* @author: Callan Moore
 	* @parameter: _pRenderer: The pointer to the Renderer
-	* @parameter: _pServerPacket: The current Server Packet
 	* @parameter: _strUserName: The Username of the client user
 	* @return: void
 	********************/
-	bool Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName);
+	bool Initialise(IRenderer* _pRenderer , std::string _strUserName);
 
 	/***********************
 	* CreateCubeMesh: Creates a Cube Mesh with origin in its very center

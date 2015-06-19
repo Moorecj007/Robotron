@@ -15,7 +15,7 @@
 // Local Includes
 #include "Avatar.h"
 
-CAvatar::CAvatar()
+CAvatar::CAvatar(IRenderer* _pRenderer)
 {
 	// Set the starting values for the vectors
 	m_v3Position	= { 0.0f, 0.0f, 0.0f };
@@ -35,6 +35,9 @@ CAvatar::CAvatar()
 
 	// Avatars start with no score
 	m_iScore = 0;
+
+	// Create the Avatars Torch Light
+	m_iTorchID = _pRenderer->CreateTorchLight();
 }
 
 CAvatar::~CAvatar()

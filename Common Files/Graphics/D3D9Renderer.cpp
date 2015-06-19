@@ -98,6 +98,22 @@ CD3D9Renderer::~CD3D9Renderer()
 		m_pMapTextures = 0;
 	}
 
+	// Delete the Map of Lights
+	if (m_pMapLight != 0)
+	{
+		std::map<int, D3DLIGHT9*>::iterator iterCurrent = m_pMapLight->begin();
+		std::map<int, D3DLIGHT9*>::iterator iterEnd = m_pMapLight->end();
+
+		while (iterCurrent != iterEnd)
+		{
+			delete iterCurrent->second;
+			iterCurrent->second = 0;
+			iterCurrent++;
+		}
+		delete m_pMapLight;
+		m_pMapLight = 0;
+	}
+
 	// Delete all the static buffers
 	if (m_pVecBuffers != 0)
 	{
@@ -156,10 +172,11 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	SetClearColour(1, 1, 0);
 
 	// Create Containers
-	m_pVecBuffers = new std::vector < CStaticBuffer* > ;
-	m_pMapSurfaces = new std::map < int, IDirect3DSurface9* > ;
-	m_pMapMaterials = new std::map < int, D3DMATERIAL9* > ;
-	m_pMapTextures = new std::map < int, IDirect3DTexture9* >;
+	m_pVecBuffers = new std::vector<CStaticBuffer*>;
+	m_pMapSurfaces = new std::map<int, IDirect3DSurface9*>;
+	m_pMapMaterials = new std::map<int, D3DMATERIAL9*>;
+	m_pMapTextures = new std::map<int, IDirect3DTexture9*>;
+	m_pMapLight = new std::map<int, D3DLIGHT9*>;
 
 	// Create a font
 	CreateScreenFont();
@@ -169,12 +186,9 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 
 	// Setup the Device to handle lighting
 	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1);
-	m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
+//	m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
 	m_pDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE);
 	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
-	//m_pDevice->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
-	//m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	//m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 
 	// Create and set up a global Material to be used
 	D3DMATERIAL9 material;    
@@ -191,8 +205,11 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_DirectionLight.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	m_DirectionLight.Direction = D3DXVECTOR3(-1.0f, -1.0f, 0);
 
-	m_pDevice->SetLight(0, &m_DirectionLight);
-	m_pDevice->LightEnable(0, TRUE);
+	//m_pDevice->SetLight(0, &m_DirectionLight);
+	//m_pDevice->LightEnable(0, TRUE);
+
+	// Create the initial index for the torches ( 0 is reserved for directional light);
+	m_iNextTorchID = 1;
 
 	return true;
 }
@@ -660,6 +677,32 @@ D3DXMATRIX& CD3D9Renderer::GetWorldMatrix()
 	return m_matWorld;
 }
 
+int CD3D9Renderer::CreateTorchLight()
+{
+	D3DLIGHT9* pTorchLight = new D3DLIGHT9;
+	ZeroMemory(*(&pTorchLight), sizeof(*pTorchLight));
+
+	pTorchLight->Type = D3DLIGHT_SPOT;
+	pTorchLight->Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	pTorchLight->Position = { 0.0f, 0.0f, 0.0f };
+	pTorchLight->Direction = { 0.0f, -0.1f, 1.0f };
+	pTorchLight->Range = 50.0f;
+	pTorchLight->Attenuation0 = 0.0f;
+	pTorchLight->Attenuation1 = 0.001f;
+	pTorchLight->Attenuation2 = 0.0f;
+	pTorchLight->Phi = D3DXToRadian(60.0f);
+	pTorchLight->Theta = D3DXToRadian(30.0f);
+	pTorchLight->Falloff = 1.0f;
+
+	m_pDevice->SetLight(m_iNextTorchID, pTorchLight);
+	m_pDevice->LightEnable(m_iNextTorchID, true);
+
+	std::pair<int, D3DLIGHT9*> newLight(m_iNextTorchID, pTorchLight);
+	m_pMapLight->insert(newLight);
+
+	return m_iNextTorchID++;
+}
+
 void CD3D9Renderer::SetLight(int _iLightID)
 {
 	
@@ -668,6 +711,20 @@ void CD3D9Renderer::SetLight(int _iLightID)
 void CD3D9Renderer::LightEnable(int _iLightID, bool bOn)
 {
 	m_pDevice->LightEnable(_iLightID, bOn);
+}
+
+void CD3D9Renderer::UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Dir)
+{
+	std::map<int, D3DLIGHT9*>::iterator iterLight = m_pMapLight->find(_iLightID);
+
+	// Create D3DX vectors from the v3Floats
+	D3DXVECTOR3 v3Pos = { _v3Pos.x, _v3Pos.y + 0.5f, _v3Pos.z };
+	D3DXVECTOR3 v3Dir = { _v3Dir.x, _v3Dir.y, _v3Dir.z };
+
+	iterLight->second->Position = v3Pos;
+	iterLight->second->Direction = v3Dir;
+
+	m_pDevice->SetLight(_iLightID, iterLight->second);
 }
 
 int CD3D9Renderer::CreateMaterial(MaterialComposition _MatComp)

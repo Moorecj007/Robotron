@@ -213,6 +213,7 @@ void CDInput::ProcessMouse()
 	//m_ptMouse.y += m_mouseState.lY;
 	GetCursorPos(&m_ptMousePos);
 	ScreenToClient(m_hWnd, &m_ptMousePos);
+	m_activatedControls.ptMouse = m_ptMousePos;
 
 	// Get the state of the left click
 	(m_mouseState.rgbButtons[0] & 0x80) ? m_activatedControls.bAction = true : m_activatedControls.bAction = false;

@@ -64,11 +64,10 @@ CMechanics_Client::~CMechanics_Client()
 	m_pTerrain = 0;
 }
 
-bool CMechanics_Client::Initialise(IRenderer* _pRenderer, ServerToClient* _pServerPacket, std::string _strUserName)
+bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserName)
 {
 	// Store the pointer to the renderer
 	m_pRenderer = _pRenderer;
-	m_pServerPacket = _pServerPacket;
 	m_strUserName = _strUserName;
 
 	// Create the initial Projection Matrices and set them on the Renderer
@@ -92,9 +91,8 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, ServerToClient* _pServ
 	return true;
 }
 
-void CMechanics_Client::Process(float _fDT, ServerToClient* _pServerPacket)
+void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 {
-
 	// save the current states of the delta tick and the Packet from the server
 	m_fDT = _fDT;
 	m_pServerPacket = _pServerPacket;
@@ -112,8 +110,8 @@ void CMechanics_Client::Process(float _fDT, ServerToClient* _pServerPacket)
 	// Process the camera to keep it following the Avatar
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
 	v3float v3Pos = *(Avatar->second->GetPosition());
-	m_pCamera->SetPosition({ v3Pos.x, 100, v3Pos.z});
-	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x - 20, 50, v3Pos.z- 20}, { 0, 1, 0 }, { 0, -1, 0 });
+	//m_pCamera->SetPosition({ v3Pos.x, 100, v3Pos.z});
+	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 50, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
 	m_pCamera->Process(m_pRenderer);
 }
 
@@ -229,6 +227,9 @@ void CMechanics_Client::UpdateAvatars()
 		iterAvatar = m_pAvatars->find(strUserName);
 
 		iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y, avatarInfo.v3Pos.z });
+		iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
+
+		m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), *(iterAvatar->second->GetPosition()), *(iterAvatar->second->GetDirection()));
 	}
 }
 
@@ -245,9 +246,8 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 	}
 
 	// Create a new avatar object
-	CAvatar* pTempAvatar = new  CAvatar();
-	//v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
+	CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
+	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
 
 	// Save the avatar in a vector
 	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
@@ -273,9 +273,9 @@ void CMechanics_Client::AddAllAvatars(ServerToClient* _pServerPacket)
 		currentAvatarInfo = _pServerPacket->Avatars[i];
 
 		// Create a new avatar object
-		CAvatar* pTempAvatar = new  CAvatar();
+		CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
 		v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-		pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, m_iAvatarMaterialID, v3Pos);
+		pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, v3Pos);
 
 		// Save the avatar in a vector
 		std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
@@ -355,7 +355,7 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 	}
 
 	CEnemy* tempEnemy = new CEnemy(enemyInfo.eType);
-	tempEnemy->Initialise(m_pRenderer, pMesh, iMatID, enemyInfo.v3Pos);
+	tempEnemy->Initialise(m_pRenderer, pMesh, enemyInfo.iID, iMatID, enemyInfo.v3Pos);
 	tempEnemy->SetDirection(enemyInfo.v3Dir);
 
 	std::pair<UINT, CEnemy*> newEnemy(enemyInfo.iID, tempEnemy);

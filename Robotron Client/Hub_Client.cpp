@@ -208,7 +208,6 @@ void CHub_Client::Process()
 	m_activatedControls = m_pDInput->GetControls();
 	m_ptMousePos = m_pDInput->GetMousePos();
 
-	
 
 	// Determine if a Menu has been selected
 	if (m_strMenuTempSelection != "")
@@ -799,8 +798,6 @@ void CHub_Client::ProcessSelectServer()
 	// TO DO - take this off a sleep function so it can be done less often ( like once every 5 secs or so)
 	// Broadcast only 10 times a second to allow server responce
 	Sleep(100);
-
-	
 }
 
 void CHub_Client::ProcessTerminatedServer()
@@ -820,7 +817,7 @@ void CHub_Client::ProcessGameLoading()
 
 	// Create the GameMechanics Object for handling the mechanics of the game
 	m_pMechanics = new CMechanics_Client();
-	m_pMechanics->Initialise(m_pRenderer, m_pPacketToProcess, m_strUserName);
+	m_pMechanics->Initialise(m_pRenderer, m_strUserName);
 
 	m_bGameLoading = false;
 	LoadingThread.join();
@@ -1280,7 +1277,7 @@ void CHub_Client::DisplayGameLoading()
 		m_pRenderer->RenderText(false, m_ptMousePos, "Game Loading", (iYpos += 270), MENU_FONT, colorRed, H_CENTER);
 	
 		m_pRenderer->RenderText(false, m_ptMousePos, strDots, (iYpos += 60), MENU_FONT, colorRed, H_CENTER);
-		Sleep(200);
+		
 
 		strDots.append(" .");
 		iDotCount++;
@@ -1292,6 +1289,7 @@ void CHub_Client::DisplayGameLoading()
 		}
 
 		m_pRenderer->EndRender();
+		Sleep(200);
 	}
 }
 
@@ -1414,6 +1412,12 @@ void CHub_Client::ResetGameData()
 	m_strServerHost = "";
 
 	m_pNetworkClient->Reset();
+
+	if (m_pMechanics != 0)
+	{
+		delete m_pMechanics;
+		m_pMechanics = 0;
+	}
 }
 
 void CHub_Client::FrameLimiter()

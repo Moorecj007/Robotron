@@ -21,6 +21,7 @@
 #pragma comment(lib, "Winmm.lib")
 #include <string>
 #include <cassert>
+#include <Windows.h>
 
 // Defines
 #define VALIDATE(a) if (!a) return (false)
@@ -187,7 +188,7 @@ struct Controls
 	bool bLeft;
 	bool bRight;
 	bool bEsc;
-	// TO DO - add Cursor pos as a point
+	POINT ptMouse;
 };
 
 // Functions

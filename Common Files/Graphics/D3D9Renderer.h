@@ -189,6 +189,13 @@ public:
 	virtual void RetrieveSurfaceVertices(std::vector<CVertex>*, int _iSurfaceID, D3DXIMAGE_INFO& _pImageInfo, VertexScalar _VertexScalar);
 
 	/***********************
+	* CreateTorchLight: Create a spot light to act as a torch
+	* @author: Callan Moore
+	* @return: int: ID number for the light
+	********************/
+	virtual int CreateTorchLight();
+
+	/***********************
 	* SetLight: Sets a Light Lighting structure to the device
 	* @author: Callan Moore
 	* @parameter: _iLightID: ID of the Light to Set
@@ -204,6 +211,16 @@ public:
 	* @return: void
 	********************/
 	virtual void LightEnable(int _iLightID, bool bOn);
+
+	/***********************
+	* LightEnable: Turns a light on or off
+	* @author: Callan Moore
+	* @parameter: _iLightID: ID of the Light update
+	* @parameter: _v3Pos: The new position of the spot light
+	* @parameter: _v3Dir: The new direction of the spot light
+	* @return: void
+	********************/
+	virtual void UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Dir);
 
 	/***********************
 	* CreateMaterial: Creates a Material and stores it witht the Renderer
@@ -377,5 +394,8 @@ protected:
 
 	// TO DO - delete
 	D3DLIGHT9 m_DirectionLight;
+
+	std::map<int, D3DLIGHT9*>* m_pMapLight;
+	int m_iNextTorchID;
 };
 #endif __D3D9RENDERER_H__
