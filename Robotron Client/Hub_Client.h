@@ -341,16 +341,6 @@ public:
 	void CreateServer();
 
 	/***********************
-	* StringToStruct: Copies characters from a char array into a struct property
-	* @author: Callan Moore
-	* @parameter: _pcData: Char array to input into the struct
-	* @parameter: _pcStruct: Struct property to receive char array
-	* @parameter: _iMaxLength: Maximum allowed length of the data to copy
-	* @return: bool: Successful copy (or Not)
-	********************/
-	bool StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength);
-
-	/***********************
 	* ReceiveDataFromNetwork: Thread to receive data from the network
 	* @author: Callan Moore
 	* @parameter: _pReceiveData: Struct property to receive Data from the Network

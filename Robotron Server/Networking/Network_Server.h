@@ -55,14 +55,6 @@ public:
 	bool Initialise();
 
 	/***********************
-	* SendPacket: Send a Data Packet to all the Clients for processing
-	* @author: Callan Moore
-	* @parameter: _pSendPacket: Data Packet structure to Send
-	* @return: bool: Successful Sending of the packet (or Not)
-	********************/
-	bool SendPacket(ServerToClient* _pSendPacket);
-
-	/***********************
 	* SendPacket: Send a Data Packet to One Client for processing
 	* @author: Callan Moore
 	* @parameter: _clientAddr: The socket address of the client to send this data packet to
@@ -78,23 +70,6 @@ public:
 	* @return: bool: Successful if an actual Packet was received
 	********************/
 	bool ReceivePacket(ClientToServer* _pReceivePacket);
-	
-	/***********************
-	* AddClientAddr: Add a Client address to the networks map
-	* @author: Callan Moore
-	* @parameter: _strUser: The username of the client to add
-	* @parameter: _clientAddr: The socket address of the client to add
-	* @return: void
-	********************/
-	void AddClientAddr(std::string _strUser, sockaddr_in _clientAddr);
-
-	/***********************
-	* RemoveClientAddr: remove a Client address to the networks map
-	* @author: Callan Moore
-	* @parameter: _strUser: The username of the client to remove
-	* @return: void
-	********************/
-	void RemoveClientAddr(std::string _strUser);
 
 private:
 	//Disallowing copies and extra constructions
@@ -105,9 +80,6 @@ private:
 	SOCKET m_ServerSocket;
 	sockaddr_in m_ServerAddr;
 	sockaddr_in m_ClientAddr; 
-	std::map<std::string,  sockaddr_in>* m_pServerUsers;
-	sockaddr_in m_FailedClientAddr;
-	sockaddr_in m_ClientRequest;
 
 	char* m_cSendData;
 	char* m_cReceiveData;

@@ -115,13 +115,6 @@ public:
 	void MainMenu();
 
 	/***********************
-	* CreateDataPacket: Creates the DataPacket to send with all relevant information
-	* @author: Callan Moore
-	* @return: bool: Successful creation of Data Packet (or not)
-	********************/
-	bool CreateDataPacket();
-
-	/***********************
 	* CreateCommandPacket: Create a Packet that sends a command
 	* @author: Callan Moore
 	* @parameter: _command: The command to send
@@ -139,22 +132,29 @@ public:
 	bool CreateCommandPacket(eNetworkCommand _eCommand, std::string _strUserName);
 
 	/***********************
-	* StringToStruct: Copies characters from a char array into a struct property
-	* @author: Callan Moore
-	* @parameter: _pcData: Char array to input into the struct
-	* @parameter: _pcStruct: Struct property to receive char array
-	* @parameter: _iMaxLength: Maximum allowed length of the data to copy
-	* @return: bool: Successful copy (or Not)
-	********************/
-	bool StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength);
-
-	/***********************
 	* ReceiveDataFromNetwork: Thread to receive data from the network
 	* @author: Callan Moore
 	* @parameter: _pReceiveData: Struct property to receive Data from the Network
 	* @return: void
 	********************/
 	void ReceiveDataFromNetwork(ClientToServer* _pReceiveData);
+
+	/***********************
+	* SendPacket: Send the data packet to one client
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Data Packet to be sent
+	* @parameter: _sockAddr: Socket address of the Client to send the packet to
+	* @return: void
+	********************/
+	bool SendPacket(ServerToClient* _pServerPacket, sockaddr_in _sockAddr);
+
+	/***********************
+	* SendPacket: Send the data packet to all Clients
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Data Packet to be sent
+	* @return: void
+	********************/
+	bool SendPacket(ServerToClient* _pServerPacket);
 
 	/***********************
 	* WideStringToString: Converts a wide char string into a standard string
@@ -167,10 +167,10 @@ public:
 	/***********************
 	* InsertUser: Insert a new user into the Map
 	* @author: Callan Moore
-	* @parameter: _strUser: The username of the user to add
+	* @parameter: _pClientPacket: Packet from the Server
 	* @return: bool: True if the user can be added, false if the user cannot
 	********************/
-	bool InsertUser(std::string _strUser);
+	bool InsertUser(ClientToServer* _pClientPacket);
 
 private:
 	//Disallowing copies and extra constructions
@@ -207,7 +207,7 @@ private:
 	bool m_bRepliedToHost;
 
 	// Server Users
-	std::map<std::string, AvatarInfo>* m_pCurrentUsers;
+	std::map<std::string, sockaddr_in>* m_pCurrentUsers;
 
 	// Gameplay
 	CMechanics_Server* m_pMechanics;

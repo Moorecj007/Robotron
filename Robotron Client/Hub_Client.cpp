@@ -481,7 +481,6 @@ void CHub_Client::ProcessPacket(float _fDT)
 			// Delete the User from the list
 			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
 			m_pMechanics->RemoveAvatar(m_pPacketToProcess->cUserName);
-
 		}
 		else if (eProcessCommand == YOUR_HOST)
 		{
@@ -1349,7 +1348,7 @@ void CHub_Client::CreateServer()
 
 	// Start the Server executable running
 	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
-	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
+	//int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
 	// Sleep to give the server time to start up
 	Sleep(500);
@@ -1358,22 +1357,6 @@ void CHub_Client::CreateServer()
 
 	m_strServerHost = m_strUserName;
 	m_eScreenState = STATE_GAMELOADING;
-}
-
-bool CHub_Client::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
-{
-	// Ensure no buffer overrun will occur when copying directly to memory
-	if ((strlen(_pcData) + 1) <= (_iMaxLength))
-	{
-		// Copy the characters into the struct
-		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);
-	}
-	else
-	{
-		// char* is too long, buffer overrun would occur so failed operation
-		return false;
-	}
-	return true;
 }
 
 void CHub_Client::ReceiveDataFromNetwork(ServerToClient* _pReceiveData)

@@ -21,10 +21,6 @@ CNetwork_Server::CNetwork_Server()
 
 CNetwork_Server::~CNetwork_Server()
 {
-	// Delete the Map of Users
-	delete m_pServerUsers;
-	m_pServerUsers = 0;
-
 	// Free the char arrays on the heap memory
 	delete m_cReceiveData;
 	m_cReceiveData = 0;
@@ -85,49 +81,10 @@ bool CNetwork_Server::Initialise()
 		}	
 	}
 
-	// Create a map to hold users
-	m_pServerUsers = new std::map < std::string, sockaddr_in>;
-
 	// Create char array for storing received data
 	m_cReceiveData = new char[sizeof(ClientToServer) + 1];
 
 	// Binding was successful
-	return true;
-}
-
-bool CNetwork_Server::SendPacket(ServerToClient* _pSendPacket)
-{
-	std::map < std::string, sockaddr_in>::iterator iterCurrentUser = m_pServerUsers->begin();
-	std::map < std::string, sockaddr_in>::iterator iterUsersEnd = m_pServerUsers->end();
-
-	// Send to All current clients
-	while (iterCurrentUser != iterUsersEnd)
-	{
-		ServerToClient SendPacket = *_pSendPacket;
-		int iPacketSize = sizeof(SendPacket) + 1;
-
-		// Reinterpret the Data Packet into a char* for sending
-		m_cSendData = reinterpret_cast<char*>(&SendPacket);
-
-		// Send the Data
-		int iNumBytes = sendto(m_ServerSocket,
-			m_cSendData,
-			iPacketSize,
-			0,
-			reinterpret_cast<sockaddr*>(&iterCurrentUser->second),
-			sizeof(iterCurrentUser->second));
-
-		// Check to ensure the right number of bytes was sent
-		if (iNumBytes != iPacketSize)
-		{
-			// Bytes did not match therefore an error occured
-			return false;
-		}
-
-		iterCurrentUser++;
-	}
-
-	// Data Packet sending was successful
 	return true;
 }
 
@@ -189,18 +146,4 @@ bool CNetwork_Server::ReceivePacket(ClientToServer* _pReceivePacket)
 	_pReceivePacket->ClientAddr = m_ClientAddr;
 
 	return true;
-}
-
-void CNetwork_Server::AddClientAddr(std::string _strUser, sockaddr_in _clientAddr)
-{
-	// Create a pair
-	std::pair < std::string, sockaddr_in> pairInsert(_strUser, _clientAddr);
-
-	// Add the new user with their client addr to the map
-	m_pServerUsers->insert(pairInsert);
-}
-
-void CNetwork_Server::RemoveClientAddr(std::string _strUser)
-{
-	m_pServerUsers->erase(_strUser);
 }

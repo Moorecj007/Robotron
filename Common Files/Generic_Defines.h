@@ -193,6 +193,30 @@ struct Controls
 // Functions
 
 /***********************
+* StringToStruct: Copies characters from a char array into a struct property
+* @author: Callan Moore
+* @parameter: _pcData: Char array to input into the struct
+* @parameter: _pcStruct: Struct property to receive char array
+* @parameter: _iMaxLength: Maximum allowed length of the data to copy
+* @return: bool: Successful copy (or Not)
+********************/
+inline bool StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
+{
+	// Ensure no buffer overrun will occur when copying directly to memory
+	if ((strlen(_pcData) + 1) <= (_iMaxLength))
+	{
+		// Copy the characters into the struct
+		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);
+	}
+	else
+	{
+		// char* is too long, buffer overrun would occur so failed operation
+		return false;
+	}
+	return true;
+}
+
+/***********************
 * NormaliseV3Float: Normalise a vector of 3 floats
 * @author: Callan Moore
 * @parameter: _v3: vecctor to normalise

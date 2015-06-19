@@ -30,7 +30,7 @@ CHub_Server::~CHub_Server()
 
 	// Send a message to all connected clients that the server is terminating
 	CreateCommandPacket(TERMINATE_SERVER, m_strHostUser);
-	m_pNetworkServer->SendPacket(m_pServerToClient);
+	SendPacket(m_pServerToClient);
 
 	// Delete Client Network
 	delete m_pNetworkServer;
@@ -119,15 +119,14 @@ bool CHub_Server::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	m_pWorkQueue = new std::queue<ClientToServer>;
 
 	// Create a vector to store current Users
-	m_pCurrentUsers = new std::map < std::string, AvatarInfo>;
-	InsertUser(m_strHostUser);
+	m_pCurrentUsers = new std::map < std::string, sockaddr_in>;
 
 	// Set the Initial ServerState
 	m_eServerState = STATE_LOBBY;
 
 	// Initialise Gameplay variables
 	m_pMechanics = new CMechanics_Server();
-	VALIDATE(m_pMechanics->Initialise());
+	VALIDATE(m_pMechanics->Initialise(m_strServerName));
 
 	return true;
 }
@@ -163,38 +162,21 @@ void CHub_Server::Process()
 	{
 		if (m_pCurrentUsers->size() > 0)
 		{
-			std::map<std::string, AvatarInfo>::iterator iterCurrentUser = m_pCurrentUsers->begin();
-			bool bAllReady = true;
 
-			// Check if all users are ready/ alive
-			while (iterCurrentUser != m_pCurrentUsers->end())
-			{
-				if (iterCurrentUser->second.bAlive == false)
-				{
-					// One or more is not ready therefore do not start game
-					bAllReady = false;
-					break;
-				}
-
-				iterCurrentUser++;
-			}
-
-			if (bAllReady == true)
+			if (m_pMechanics->CheckAllAvatarsReady() == true)
 			{
 				// All Participants are ready to go -> start the game
 				m_eServerState = STATE_GAMEPLAY;
-
+			
 				CreateCommandPacket(START_GAME);
-				m_pNetworkServer->SendPacket(m_pServerToClient);
+				SendPacket(m_pServerToClient);
 			}
 		}
 	}
 	else if ( m_eServerState == STATE_GAMEPLAY)
 	{
-		m_pMechanics->Process();
-
-		CreateDataPacket();
-		m_pNetworkServer->SendPacket(m_pServerToClient);
+		m_pMechanics->Process(m_pServerToClient);
+		SendPacket(m_pServerToClient);
 		Sleep(16);	// TO DO - remove sleep add limiter without a sleep function more than 1 ms
 	}
 }
@@ -237,9 +219,9 @@ void CHub_Server::ProcessPacket()
 					// This server will only reply to very first message with this command
 					if (m_bRepliedToHost == false)
 					{
+						InsertUser(m_pPacketToProcess);
 						CreateCommandPacket(HOST_SERVER, m_strHostUser);
-						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
-						m_pNetworkServer->AddClientAddr(strCheckHost, m_pPacketToProcess->ClientAddr);
+						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 						m_bRepliedToHost = true;
 					}
 				}
@@ -247,7 +229,7 @@ void CHub_Server::ProcessPacket()
 				else
 				{
 					CreateCommandPacket(NOT_HOST);
-					m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+					SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 				}
 			}
 			return;
@@ -260,7 +242,7 @@ void CHub_Server::ProcessPacket()
 			{
 				// return message saying this server is available
 				CreateCommandPacket(SERVER_CONNECTION_AVAILABLE, m_strHostUser);
-				m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+				SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 			}
 			return;
 		}
@@ -275,35 +257,34 @@ void CHub_Server::ProcessPacket()
 				{
 					// Try to insert the new user into the map of users for this server
 					std::string strUser = (std::string)(m_pPacketToProcess->cUserName);
-					bool bAdded = InsertUser(strUser);
+					bool bAdded = InsertUser(m_pPacketToProcess);
 
 					if (bAdded == true)
 					{
 						// If the User was successfully added send back that they were accepted
 						CreateCommandPacket(CREATEUSER_ACCEPTED, (std::string)(m_pPacketToProcess->cUserName));
-						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
-						m_pNetworkServer->AddClientAddr(strUser, m_pPacketToProcess->ClientAddr);
+						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 
 						// Send to all current users that a user has joined with their details
 						CreateCommandPacket(USER_JOINED, (std::string)m_pPacketToProcess->cUserName);
-						m_pNetworkServer->SendPacket(m_pServerToClient);
+						SendPacket(m_pServerToClient);
 
 						// Send the new user the name of the Host user
 						CreateCommandPacket(YOUR_HOST, m_strHostUser);
-						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 					}
 					else
 					{
 						// If the Insert failed then the username was already in use
 						CreateCommandPacket(CREATEUSER_NAMEINUSE);
-						m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 					}
 				}
 				else
 				{
 					// reply to the user that the server is currently full
 					CreateCommandPacket(CREATEUSER_SERVERFULL);
-					m_pNetworkServer->SendPacket(m_pPacketToProcess->ClientAddr, m_pServerToClient);
+					SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 				}
 			}	
 
@@ -313,10 +294,10 @@ void CHub_Server::ProcessPacket()
 		else if (eProcessCommand == LEAVE_SERVER)
 		{
 			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
+			m_pMechanics->RemoveAvatar((std::string)m_pPacketToProcess->cUserName);
 
 			CreateCommandPacket(USER_LEFT, m_pPacketToProcess->cUserName);
-			m_pNetworkServer->RemoveClientAddr(m_pPacketToProcess->cUserName);
-			m_pNetworkServer->SendPacket(m_pServerToClient);
+			SendPacket(m_pServerToClient);
 
 			return;
 		}
@@ -324,75 +305,25 @@ void CHub_Server::ProcessPacket()
 		else if (eProcessCommand == ALIVE_SET)
 		{
 			// Determine which user sent this message
-			std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+			std::map<std::string, sockaddr_in>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
 
 			// Update the state based on the additional message data
-			bool bAliveness = ((std::string)m_pPacketToProcess->cAdditionalMessage == "true") ? true : false;
-			User->second.bAlive = bAliveness;
+			bool bAlive = (std::string)m_pPacketToProcess->cAdditionalMessage == "true" ? true : false;
+			m_pMechanics->SetAvatarAliveState(m_pPacketToProcess->cUserName, bAlive);
 
 			// Send to all users the new State for that user
 			CreateCommandPacket(ALIVE_SET, m_pPacketToProcess->cUserName);
-			m_pNetworkServer->SendPacket(m_pServerToClient);
+			SendPacket(m_pServerToClient);
 
 			return;
 		}
 	}
 	else
 	{
-		// Determine which user sent this message
-		std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
-
-		// TO DO - Move to another location
-		v3float v3Movement = { 0, 0, 0 };
-		if (m_pPacketToProcess->activatedControls.bUp == true)
-		{
-			v3Movement.z += 1;
-		}
-		if (m_pPacketToProcess->activatedControls.bDown == true)
-		{
-			v3Movement.z += -1;
-		}
-		if (m_pPacketToProcess->activatedControls.bRight == true)
-		{
-			v3Movement.x += 1;
-		}
-		if (m_pPacketToProcess->activatedControls.bLeft == true)
-		{
-			v3Movement.x += -1;
-		}
-		NormaliseV3Float(&v3Movement);
-		User->second.v3Pos += v3Movement;
+		// Process the Input from the User
+		m_pMechanics->ProcessAvatarMovement(m_pPacketToProcess);
+		
 	}
-}
-
-bool CHub_Server::CreateDataPacket()
-{
-	// Erase old data
-	ZeroMemory(*(&m_pServerToClient), sizeof(*m_pServerToClient));
-
-	// Fill basic information of the packet
-	m_pServerToClient->bCommand = false;
-	m_pServerToClient->eCommand = ERROR_COMMAND;
-	m_pServerToClient->CurrentUserCount = (int)(m_pCurrentUsers->size());
-
-	// Add the Server as the username to the Packet structure
-	if (!(StringToStruct(m_strServerName.c_str(), m_pServerToClient->cServerName, network::MAX_SERVERNAME_LENGTH)))
-	{
-		return false;	// Data invalid - Data Packet failed to create
-	}
-
-	// Add all the Users to the Packet with their information status
-	std::map<std::string, AvatarInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
-	int iIndex = 0;
-	while (iterCurrent != m_pCurrentUsers->end())
-	{
-		m_pServerToClient->Avatars[iIndex] = iterCurrent->second;
-
-		iIndex++;
-		iterCurrent++;
-	}
-
-	return true;
 }
 
 bool CHub_Server::CreateCommandPacket(eNetworkCommand _eCommand)
@@ -412,16 +343,8 @@ bool CHub_Server::CreateCommandPacket(eNetworkCommand _eCommand)
 		return false;	// Data invalid - Data Packet failed to create
 	}
 
-	// Add all the Users to the Packet with their information status
-	std::map<std::string, AvatarInfo>::iterator iterCurrent = m_pCurrentUsers->begin();
-	int iIndex = 0;
-	while (iterCurrent != m_pCurrentUsers->end())
-	{
-		m_pServerToClient->Avatars[iIndex] = iterCurrent->second;
-
-		iIndex++;
-		iterCurrent++;
-	}
+	// Add all the Avatar Info to the Packet
+	m_pMechanics->AddAvatarsToPacket(m_pServerToClient);
 
 	//Add the Current user count to the packet
 	m_pServerToClient->CurrentUserCount = (int)m_pCurrentUsers->size();
@@ -443,22 +366,6 @@ bool CHub_Server::CreateCommandPacket(eNetworkCommand _eCommand, std::string _st
 	return true;
 }
 
-bool CHub_Server::StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _iMaxLength)
-{
-	// Ensure no buffer overrun will occur when copying directly to memory
-	if ((strlen(_pcData) + 1) <= (_iMaxLength))
-	{
-		// Copy the characters into the struct
-		strcpy_s(_pcStruct, (strlen(_pcData) + 1), _pcData);
-	}
-	else
-	{
-		// char* is too long, buffer overrun would occur so failed operation
-		return false;
-	}
-	return true;
-}
-
 void CHub_Server::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
 {
 	while (m_bNetworkOnline)
@@ -471,6 +378,28 @@ void CHub_Server::ReceiveDataFromNetwork(ClientToServer* _pReceiveData)
 			m_pMutexServer->Signal();
 		}
 	}
+}
+
+bool CHub_Server::SendPacket(ServerToClient* _pServerPacket, sockaddr_in _sockAddr)
+{
+	// Send the packet to that user only
+	return m_pNetworkServer->SendPacket(_sockAddr, _pServerPacket);
+
+	
+}
+
+bool CHub_Server::SendPacket(ServerToClient* _pServerPacket)
+{
+	std::map<std::string, sockaddr_in>::iterator iterUser = m_pCurrentUsers->begin();
+
+	// Send Packet to all current Users
+	while (iterUser != m_pCurrentUsers->end())
+	{
+		VALIDATE(m_pNetworkServer->SendPacket(iterUser->second, _pServerPacket));
+		iterUser++;
+	}
+
+	return true;
 }
 
 std::string CHub_Server::WideStringToString(wchar_t* _wstr)
@@ -491,24 +420,20 @@ std::string CHub_Server::WideStringToString(wchar_t* _wstr)
 	return strConverted;
 }
 
-bool CHub_Server::InsertUser(std::string _strUser)
+bool CHub_Server::InsertUser(ClientToServer* _pClientPacket)
 {
-	// Retrieve the number of the current users
-	int iNumber = (int)(m_pCurrentUsers->size());
+	// Create a pair of the new User
+	std::pair<std::string, sockaddr_in> newUser(_pClientPacket->cUserName, _pClientPacket->ClientAddr);
+	std::pair<std::map<std::string, sockaddr_in>::iterator, bool> pairReturn;
 
-	// Create a new UserInfo with default information for the new user
-	AvatarInfo tempAvatarInfo;
-	tempAvatarInfo.bAlive = false;
-	StringToStruct(_strUser.c_str(), tempAvatarInfo.cUserName, network::MAX_USERNAME_LENGTH);
+	// Try to add the new User to the map
+	pairReturn = m_pCurrentUsers->insert(newUser);
 
-	// Create the starting position based on the current number of users
-	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
-	tempAvatarInfo.fSpeed = 10;
+	if (pairReturn.second == true)
+	{
+		m_pMechanics->AddAvatar(_pClientPacket);
+	}
 
-	std::pair<std::string, AvatarInfo> pairUser(_strUser, tempAvatarInfo);
-
-	std::pair<std::map<std::string, AvatarInfo>::iterator, bool> pairReturn;
-	pairReturn = m_pCurrentUsers->insert(pairUser);
-
+	// Return the outcome of the insert
 	return pairReturn.second;
 }
