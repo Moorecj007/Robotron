@@ -132,6 +132,22 @@ public:
 	********************/
 	void CreateDemonAsset();
 
+	/***********************
+	* SpawnEnemy: Spawn a new enemy
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet containing the details about the new enemy
+	* @return: void
+	********************/
+	void SpawnEnemy(ServerToClient* _pServerPacket);
+
+	/***********************
+	* KillEnemy: Kill an existing enemy
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet containing the details about the enemy to kill
+	* @return: void
+	********************/
+	void KillEnemy(ServerToClient* _pServerPacket);
+
 
 private:
 	// Member Variables

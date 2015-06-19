@@ -387,138 +387,161 @@ void CHub_Client::ProcessPacket(float _fDT)
 		eNetworkCommand eProcessCommand = m_pPacketToProcess->eCommand;
 
 		// Reply from the server when you have successfully gained control as the host
-		if (eProcessCommand == HOST_SERVER)
+		switch (eProcessCommand)
 		{
-			InsertUser(m_strUserName, m_pPacketToProcess->Avatars[0]);
-			m_pMechanics->AddAvatar(m_pPacketToProcess);
-		}
-		// Reply when a server is saying they are available for connection
-		else if (eProcessCommand == SERVER_CONNECTION_AVAILABLE)
-		{
-			// Create Server structure and add in the details from the received packet
-			AvailableServer tempServer;
-			strcpy_s(tempServer.cServerName, m_pPacketToProcess->cServerName);
-			strcpy_s(tempServer.cHostName, m_pPacketToProcess->cUserName);
-			tempServer.iCurrentClients = m_pPacketToProcess->CurrentUserCount;
-			tempServer.ServerAddr = m_pPacketToProcess->ServerAddr;
-
-			bool bInserted = false;
-
-			// Insertion Sort the available servers
-			for (unsigned int i = 0; i < m_pAvailableServers->size(); i++)
+			case HOST_SERVER:
 			{
-				int iCompare = strcmp(tempServer.cServerName, (*m_pAvailableServers)[i].cServerName);
-				if (iCompare <= 0)
+				InsertUser(m_strUserName, m_pPacketToProcess->Avatars[0]);
+				m_pMechanics->AddAvatar(m_pPacketToProcess);
+				break;
+			}
+			// Reply when a server is saying they are available for connection
+			case SERVER_CONNECTION_AVAILABLE:
+			{
+				// Create Server structure and add in the details from the received packet
+				AvailableServer tempServer;
+				strcpy_s(tempServer.cServerName, m_pPacketToProcess->cServerName);
+				strcpy_s(tempServer.cHostName, m_pPacketToProcess->cUserName);
+				tempServer.iCurrentClients = m_pPacketToProcess->CurrentUserCount;
+				tempServer.ServerAddr = m_pPacketToProcess->ServerAddr;
+
+				bool bInserted = false;
+
+				// Insertion Sort the available servers
+				for (unsigned int i = 0; i < m_pAvailableServers->size(); i++)
 				{
-					// Add the server if the alphabetical order of the servername is less or equal
-					m_pAvailableServers->insert(m_pAvailableServers->begin() + i, tempServer);
-					bInserted = true;
-					break;
+					int iCompare = strcmp(tempServer.cServerName, (*m_pAvailableServers)[i].cServerName);
+					if (iCompare <= 0)
+					{
+						// Add the server if the alphabetical order of the servername is less or equal
+						m_pAvailableServers->insert(m_pAvailableServers->begin() + i, tempServer);
+						bInserted = true;
+						break;
+					}
 				}
+				if (bInserted == false)
+				{
+					// Add the Server to the available servers vector
+					m_pAvailableServers->push_back(tempServer);
+				}
+				break;
 			}
-			if (bInserted == false)
+			// Reply when accepted into a server
+			case CREATEUSER_ACCEPTED:
 			{
-				// Add the Server to the available servers vector
-				m_pAvailableServers->push_back(tempServer);
-			}
-			return;
-		}
-		// Reply when accepted into a server
-		else if (eProcessCommand == CREATEUSER_ACCEPTED)
-		{
-			// TO DO - look if this statement needs to be here
-			//InsertUser(m_strUserName);
-			m_eUserNameFailed = eProcessCommand;
+				// TO DO - look if this statement needs to be here
+				//InsertUser(m_strUserName);
+				m_eUserNameFailed = eProcessCommand;
 
-			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
-			{
-				InsertUser(m_pPacketToProcess->Avatars[i].cUserName, m_pPacketToProcess->Avatars[i]);
-				//m_pGameMechanics->AddAvatar(m_pPacketToProcess);
-			}
+				for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
+				{
+					InsertUser(m_pPacketToProcess->Avatars[i].cUserName, m_pPacketToProcess->Avatars[i]);
+					//m_pGameMechanics->AddAvatar(m_pPacketToProcess);
+				}
 
-			m_eScreenState = STATE_GAMELOADING;	
-			ProcessGameLoading();
-			m_pMechanics->AddAllAvatars(m_pPacketToProcess);
-		}
-		// Reply if the chosen username is already in use on that server
-		else if (eProcessCommand == CREATEUSER_NAMEINUSE)
-		{
-			// Username was already in use. Wipe username and start again
-			//m_strUserName = "";
-			m_eUserNameFailed = eProcessCommand;
-			m_eScreenState = STATE_CREATEUSER;
-		}
-		// Reply if the Server was full
-		else if (eProcessCommand == CREATEUSER_SERVERFULL)
-		{
-			// Server was full. Wipe username and start again
-			//m_strUserName = "";
-			m_eUserNameFailed = eProcessCommand;
-			m_eScreenState = STATE_CREATEUSER;
-		}
-		// Add a user that has joined the server
-		else if (eProcessCommand == USER_JOINED)
-		{
-			if ((std::string)(m_pPacketToProcess->cUserName) != m_strUserName)
+				m_eScreenState = STATE_GAMELOADING;
+				ProcessGameLoading();
+				m_pMechanics->AddAllAvatars(m_pPacketToProcess);
+				break;
+			}
+			// Reply if the chosen username is already in use on that server
+			case CREATEUSER_NAMEINUSE:
 			{
-				int iIndex;
-				// Find the Index of the new user within the UserInfo List
-				for (int i = 0; i < network::MAX_CLIENTS; i++)
+				// Username was already in use. Wipe username and start again
+				//m_strUserName = "";
+				m_eUserNameFailed = eProcessCommand;
+				m_eScreenState = STATE_CREATEUSER;
+				break;
+			}
+			// Reply if the Server was full
+			case CREATEUSER_SERVERFULL:
+			{
+				// Server was full. Wipe username and start again
+				//m_strUserName = "";
+				m_eUserNameFailed = eProcessCommand;
+				m_eScreenState = STATE_CREATEUSER;
+				break;
+			}
+			// Add a user that has joined the server
+			case USER_JOINED:
+			{
+				if ((std::string)(m_pPacketToProcess->cUserName) != m_strUserName)
+				{
+					int iIndex;
+					// Find the Index of the new user within the UserInfo List
+					for (int i = 0; i < network::MAX_CLIENTS; i++)
+					{
+						if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->Avatars[i].cUserName)
+						{
+							iIndex = i;
+						}
+					}
+
+					InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->Avatars[iIndex]);
+					m_pMechanics->AddAvatar(m_pPacketToProcess);
+				}
+				break;
+			}
+			// Delete users that have left
+			case USER_LEFT:
+			{
+				// Delete the User from the list
+				m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
+				m_pMechanics->RemoveAvatar(m_pPacketToProcess->cUserName);
+				break;
+			}
+			case YOUR_HOST:
+			{
+				m_strServerHost = m_pPacketToProcess->cUserName;
+				break;
+			}
+			case ALIVE_SET:
+			{
+				// Get the boolean value
+				bool bAliveness;
+				for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
 				{
 					if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->Avatars[i].cUserName)
 					{
-						iIndex = i;
+						bAliveness = m_pPacketToProcess->Avatars[i].bAlive;
 					}
 				}
 
-				InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->Avatars[iIndex]);
-				m_pMechanics->AddAvatar(m_pPacketToProcess);
-			}
-		}
-		// Delete users that have left
-		else if (eProcessCommand == USER_LEFT)
-		{
-			// Delete the User from the list
-			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
-			m_pMechanics->RemoveAvatar(m_pPacketToProcess->cUserName);
-		}
-		else if (eProcessCommand == YOUR_HOST)
-		{
-			m_strServerHost = m_pPacketToProcess->cUserName;
-		}
-		else if (eProcessCommand == ALIVE_SET)
-		{
-			// Get the boolean value
-			bool bAliveness;
-			for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
-			{
-				if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->Avatars[i].cUserName)
+				// Check if the user in question is yourself
+				if (m_pPacketToProcess->cUserName == m_strUserName)
 				{
-					bAliveness = m_pPacketToProcess->Avatars[i].bAlive;
+					m_bAlive = bAliveness;
 				}
-			}
 
-			// Check if the user in question is yourself
-			if (m_pPacketToProcess->cUserName == m_strUserName)
-			{
-				m_bAlive = bAliveness;
+				// Find the user
+				std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+				User->second.bAlive = bAliveness;
+				break;
 			}
-
-			// Find the user
-			std::map<std::string, AvatarInfo>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
-			User->second.bAlive = bAliveness;
-		}
-		// All users are ready. Start the Game
-		else if (eProcessCommand == START_GAME)
-		{
-			m_eScreenState = STATE_GAME_PLAY;
-		}
-		// The server has been terminated
-		else if (eProcessCommand == TERMINATE_SERVER)
-		{
-			if (m_eScreenState != STATE_MAIN_MENU)
+			// All users are ready. Start the Game
+			case START_GAME:
 			{
-				m_eScreenState = STATE_TERMINATED_SERVER;
+				m_eScreenState = STATE_GAME_PLAY;
+				break;
+			}
+			// The server has been terminated
+			case TERMINATE_SERVER:
+			{
+				if (m_eScreenState != STATE_MAIN_MENU)
+				{
+					m_eScreenState = STATE_TERMINATED_SERVER;
+				}
+				break;
+			}
+			case CREATE_ENEMY:
+			{
+				m_pMechanics->SpawnEnemy(m_pServerToClient);
+				break;
+			}
+			case DELETE_ENEMY:
+			{
+				m_pMechanics->KillEnemy(m_pServerToClient);
+				break;
 			}
 		}
 	}
@@ -1348,7 +1371,7 @@ void CHub_Client::CreateServer()
 
 	// Start the Server executable running
 	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
-	//int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
+	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
 	// Sleep to give the server time to start up
 	Sleep(500);

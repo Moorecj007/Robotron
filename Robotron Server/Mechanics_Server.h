@@ -19,6 +19,7 @@
 
 // Library Includes
 #include <map>
+#include <queue>
 
 // Local Includes
 #include "../Common Files/Networking/Network_Defines.h"
@@ -44,6 +45,22 @@ public:
 
 	// Getters
 
+	/***********************
+	* GetNextDeletedEnemy: Retrieve the ID of the next Enemy that has been killed
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Enemy Info of the enemy to be deleted
+	* @return: bool: True if another enemy to be deleted exists
+	********************/
+	bool GetNextDeletedEnemy(EnemyInfo* _enemyInfo);
+
+	/***********************
+	* GetNextCreatedEnemy: Retrieve the ID of the next Enemy that has been Spawned
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Enemy Info of the enemy to be deleted
+	* @return: bool: True if another enemy to be spawned exists
+	********************/
+	bool GetNextCreatedEnemy(EnemyInfo* _enemyInfo);
+	
 	// Setters
 
 	/***********************
@@ -68,10 +85,9 @@ public:
 	/***********************
 	* Process: Process the mechanics of the server
 	* @author: Callan Moore
-	* @parameter: _pServerPacket: Server to Client Packet to create from the mechanics info
-	* @parameter: bool: Successful initialisation (or not)
+	* @parameter: void
 	********************/
-	void Process(ServerToClient* _pServerPacket);
+	void Process();
 
 	/***********************
 	* ProcessAvatarMovement: Process an Avatars movement input
@@ -128,6 +144,8 @@ private:
 
 	std::map<std::string, AvatarInfo>* m_pAvatars;
 	std::map<UINT, EnemyInfo>* m_pEnemies;
+	std::queue<EnemyInfo>* m_pDeletedEnemies;
+	std::queue<EnemyInfo>* m_pCreatedEnemies;
 };
 
 #endif // __SERVER_MECHANICS_H__

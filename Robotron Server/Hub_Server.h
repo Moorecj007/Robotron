@@ -172,6 +172,8 @@ public:
 	********************/
 	bool InsertUser(ClientToServer* _pClientPacket);
 
+
+
 private:
 	//Disallowing copies and extra constructions
 	CHub_Server();

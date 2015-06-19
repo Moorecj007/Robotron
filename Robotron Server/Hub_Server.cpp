@@ -175,7 +175,26 @@ void CHub_Server::Process()
 	}
 	else if ( m_eServerState == STATE_GAMEPLAY)
 	{
-		m_pMechanics->Process(m_pServerToClient);
+		// Process the Mechanics
+		m_pMechanics->Process();
+		
+		// Create Command Packets for Deleted and created Enemies
+		EnemyInfo enemyInfo;
+		while (m_pMechanics->GetNextDeletedEnemy(&enemyInfo) == true)
+		{
+			CreateCommandPacket(DELETE_ENEMY);
+			m_pServerToClient->enemyInfo = enemyInfo;
+			SendPacket(m_pServerToClient);
+		}
+		while (m_pMechanics->GetNextCreatedEnemy(&enemyInfo) == true)
+		{
+			CreateCommandPacket(CREATE_ENEMY);
+			m_pServerToClient->enemyInfo = enemyInfo;
+			SendPacket(m_pServerToClient);
+		}
+
+		// Send the Data packet with the current states
+		m_pMechanics->CreateDataPacket(m_pServerToClient);
 		SendPacket(m_pServerToClient);
 		Sleep(16);	// TO DO - remove sleep add limiter without a sleep function more than 1 ms
 	}
@@ -189,133 +208,136 @@ void CHub_Server::ProcessPacket()
 
 		eNetworkCommand eProcessCommand = m_pPacketToProcess->eCommand;
 
-		// Terminate Server
-		if (eProcessCommand == TERMINATE_SERVER)
+		switch (eProcessCommand)
 		{
-			// Accept Terminate Command only if the Host client sent it
-			if ((std::string)(m_pPacketToProcess->cUserName) == m_strHostUser)
-			{			
-				// Turn the network offline.
-				// This stop the receivethread and allow it to join and then terminate the server application
-				m_bNetworkOnline = false;
-			}
-			return;
-		}
-		// Host is looking for the Server they just created
-		else if (eProcessCommand == QUERY_HOST)
-		{
-			// Do not process this command if in gameplay
-			if (m_eServerState != STATE_GAMEPLAY)
+			// Terminate Server
+			case TERMINATE_SERVER:
 			{
-				std::string strCheckHost = (std::string)(m_pPacketToProcess->cUserName);
-				std::string strCheckServer = (std::string)(m_pPacketToProcess->cAdditionalMessage);
-
-				// Ensure the sender of this command is the correct host for only they would know the
-				// host and server names created via the command line
-				if (strCheckHost == m_strHostUser
-					&&	strCheckServer == m_strServerName)
+				// Accept Terminate Command only if the Host client sent it
+				if ((std::string)(m_pPacketToProcess->cUserName) == m_strHostUser)
 				{
-					// If for any reason another Host creates a server with the same names
-					// This server will only reply to very first message with this command
-					if (m_bRepliedToHost == false)
+					// Turn the network offline.
+					// This stop the receivethread and allow it to join and then terminate the server application
+					m_bNetworkOnline = false;
+				}
+				break;
+			}
+			// Host is looking for the Server they just created
+			case QUERY_HOST:
+			{
+				// Do not process this command if in gameplay
+				if (m_eServerState != STATE_GAMEPLAY)
+				{
+					std::string strCheckHost = (std::string)(m_pPacketToProcess->cUserName);
+					std::string strCheckServer = (std::string)(m_pPacketToProcess->cAdditionalMessage);
+
+					// Ensure the sender of this command is the correct host for only they would know the
+					// host and server names created via the command line
+					if (strCheckHost == m_strHostUser
+						&&	strCheckServer == m_strServerName)
 					{
-						InsertUser(m_pPacketToProcess);
-						CreateCommandPacket(HOST_SERVER, m_strHostUser);
+						// If for any reason another Host creates a server with the same names
+						// This server will only reply to very first message with this command
+						if (m_bRepliedToHost == false)
+						{
+							InsertUser(m_pPacketToProcess);
+							CreateCommandPacket(HOST_SERVER, m_strHostUser);
+							SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
+							m_bRepliedToHost = true;
+						}
+					}
+					// Else the query is for another server
+					else
+					{
+						CreateCommandPacket(NOT_HOST);
 						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
-						m_bRepliedToHost = true;
 					}
 				}
-				// Else the query is for another server
-				else
+				break;
+			}
+			// Broadcast message to determine what servers if any are online
+			case QUERY_CLIENT_CONNECTION:
+			{
+				// Do not process this command if in gameplay
+				if (m_eServerState != STATE_GAMEPLAY)
 				{
-					CreateCommandPacket(NOT_HOST);
+					// return message saying this server is available
+					CreateCommandPacket(SERVER_CONNECTION_AVAILABLE, m_strHostUser);
 					SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 				}
+				break;
 			}
-			return;
-		}
-		// Broadcast message to determine what servers if any are online
-		else if (eProcessCommand == QUERY_CLIENT_CONNECTION)
-		{
-			// Do not process this command if in gameplay
-			if (m_eServerState != STATE_GAMEPLAY)
+			// Tries to Create a new User on the Server
+			case CREATEUSER:
 			{
-				// return message saying this server is available
-				CreateCommandPacket(SERVER_CONNECTION_AVAILABLE, m_strHostUser);
-				SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
-			}
-			return;
-		}
-		// Tries to Create a new User on the Server
-		else if (eProcessCommand == CREATEUSER)
-		{
-			// Do not process this command if in gameplay
-			if ( m_eServerState != STATE_GAMEPLAY)
-			{
-				// Check if the server already has the maximum allowed users
-				if (m_pCurrentUsers->size() < network::MAX_CLIENTS)
+				// Do not process this command if in gameplay
+				if (m_eServerState != STATE_GAMEPLAY)
 				{
-					// Try to insert the new user into the map of users for this server
-					std::string strUser = (std::string)(m_pPacketToProcess->cUserName);
-					bool bAdded = InsertUser(m_pPacketToProcess);
-
-					if (bAdded == true)
+					// Check if the server already has the maximum allowed users
+					if (m_pCurrentUsers->size() < network::MAX_CLIENTS)
 					{
-						// If the User was successfully added send back that they were accepted
-						CreateCommandPacket(CREATEUSER_ACCEPTED, (std::string)(m_pPacketToProcess->cUserName));
-						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
+						// Try to insert the new user into the map of users for this server
+						std::string strUser = (std::string)(m_pPacketToProcess->cUserName);
+						bool bAdded = InsertUser(m_pPacketToProcess);
 
-						// Send to all current users that a user has joined with their details
-						CreateCommandPacket(USER_JOINED, (std::string)m_pPacketToProcess->cUserName);
-						SendPacket(m_pServerToClient);
+						if (bAdded == true)
+						{
+							// If the User was successfully added send back that they were accepted
+							CreateCommandPacket(CREATEUSER_ACCEPTED, (std::string)(m_pPacketToProcess->cUserName));
+							SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 
-						// Send the new user the name of the Host user
-						CreateCommandPacket(YOUR_HOST, m_strHostUser);
-						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
+							// Send to all current users that a user has joined with their details
+							CreateCommandPacket(USER_JOINED, (std::string)m_pPacketToProcess->cUserName);
+							SendPacket(m_pServerToClient);
+
+							// Send the new user the name of the Host user
+							CreateCommandPacket(YOUR_HOST, m_strHostUser);
+							SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
+						}
+						else
+						{
+							// If the Insert failed then the username was already in use
+							CreateCommandPacket(CREATEUSER_NAMEINUSE);
+							SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
+						}
 					}
 					else
 					{
-						// If the Insert failed then the username was already in use
-						CreateCommandPacket(CREATEUSER_NAMEINUSE);
+						// reply to the user that the server is currently full
+						CreateCommandPacket(CREATEUSER_SERVERFULL);
 						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
 					}
 				}
-				else
-				{
-					// reply to the user that the server is currently full
-					CreateCommandPacket(CREATEUSER_SERVERFULL);
-					SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
-				}
-			}	
 
-			return;
-		}
-		// User is Leaving the Server
-		else if (eProcessCommand == LEAVE_SERVER)
-		{
-			m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
-			m_pMechanics->RemoveAvatar((std::string)m_pPacketToProcess->cUserName);
+				break;
+			}
+			// User is Leaving the Server
+			case LEAVE_SERVER:
+			{
+				m_pCurrentUsers->erase(m_pPacketToProcess->cUserName);
+				m_pMechanics->RemoveAvatar((std::string)m_pPacketToProcess->cUserName);
 
-			CreateCommandPacket(USER_LEFT, m_pPacketToProcess->cUserName);
-			SendPacket(m_pServerToClient);
+				CreateCommandPacket(USER_LEFT, m_pPacketToProcess->cUserName);
+				SendPacket(m_pServerToClient);
 
-			return;
-		}
-		// Set the ready state or alive state of a user
-		else if (eProcessCommand == ALIVE_SET)
-		{
-			// Determine which user sent this message
-			std::map<std::string, sockaddr_in>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
+				break;
+			}
+			// Set the ready state or alive state of a user
+			case ALIVE_SET:
+			{
+				// Determine which user sent this message
+				std::map<std::string, sockaddr_in>::iterator User = m_pCurrentUsers->find(m_pPacketToProcess->cUserName);
 
-			// Update the state based on the additional message data
-			bool bAlive = (std::string)m_pPacketToProcess->cAdditionalMessage == "true" ? true : false;
-			m_pMechanics->SetAvatarAliveState(m_pPacketToProcess->cUserName, bAlive);
+				// Update the state based on the additional message data
+				bool bAlive = (std::string)m_pPacketToProcess->cAdditionalMessage == "true" ? true : false;
+				m_pMechanics->SetAvatarAliveState(m_pPacketToProcess->cUserName, bAlive);
 
-			// Send to all users the new State for that user
-			CreateCommandPacket(ALIVE_SET, m_pPacketToProcess->cUserName);
-			SendPacket(m_pServerToClient);
+				// Send to all users the new State for that user
+				CreateCommandPacket(ALIVE_SET, m_pPacketToProcess->cUserName);
+				SendPacket(m_pServerToClient);
 
-			return;
+				break;
+			}
 		}
 	}
 	else

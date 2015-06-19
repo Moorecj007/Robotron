@@ -28,8 +28,48 @@ CMechanics_Server::~CMechanics_Server()
 	// Delete the container of Avatars
 	delete m_pAvatars;
 	m_pAvatars = 0;
+
+	// Delete the queues of enemies
+	delete m_pDeletedEnemies;
+	m_pDeletedEnemies = 0;
+	delete m_pCreatedEnemies;
+	m_pCreatedEnemies = 0;
 }
 
+// Getters
+bool CMechanics_Server::GetNextDeletedEnemy(EnemyInfo* _enemyInfo)
+{
+	// Check if any enemies are in queue to be created
+	if (m_pDeletedEnemies->empty() == false)
+	{
+		// Find the ID of the Created enemy
+		*_enemyInfo = m_pDeletedEnemies->front();
+
+		// remove the queued enemy
+		m_pCreatedEnemies->pop();
+		return true;
+	}
+
+	return false;
+}
+
+bool CMechanics_Server::GetNextCreatedEnemy(EnemyInfo* _enemyInfo)
+{
+	// Check if any enemies are in queue to be created
+	if (m_pCreatedEnemies->empty() == false)
+	{
+		// Find the ID of the Created enemy
+		*_enemyInfo = m_pCreatedEnemies->front();
+
+		// remove the queued enemy
+		m_pCreatedEnemies->pop();
+		return true;
+	}
+
+	return false;
+}
+
+// Setters
 void CMechanics_Server::SetAvatarAliveState(std::string _strAvatar, bool _bAlive)
 {
 	std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->find(_strAvatar);
@@ -47,15 +87,27 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// Create the Container for the Avatars
 	m_pAvatars = new std::map<std::string, AvatarInfo>;
 
+	// Create the Queue for Created and Deleted Enemies
+	m_pDeletedEnemies = new std::queue<EnemyInfo>;
+	m_pCreatedEnemies = new std::queue<EnemyInfo>;
+
+	// TO DO - remove to wave spawing function
+	EnemyInfo tempEnemyInfo;
+	tempEnemyInfo.eType = ET_DEMON;
+	tempEnemyInfo.iID = 0;
+	tempEnemyInfo.v3Dir = { 0.0f, 0.0f, -1.0f };
+	tempEnemyInfo.v3Pos = { 10.0f, 0.0f, 10.0f };
+	tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+
+	m_pCreatedEnemies->push(tempEnemyInfo);
+
 	return true;
 }
 
-void CMechanics_Server::Process(ServerToClient* _pServerPacket)
+void CMechanics_Server::Process()
 {
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
-
-	CreateDataPacket(_pServerPacket);
 }
 
 void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)

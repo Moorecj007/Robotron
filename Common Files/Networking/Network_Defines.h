@@ -67,8 +67,8 @@ enum eNetworkCommand
 
 	START_GAME,
 
-	SPAWN_ENEMY,
-	KILL_ENEMY
+	CREATE_ENEMY,
+	DELETE_ENEMY
 };
 
 // Structs
@@ -133,11 +133,13 @@ struct ServerToClient
 	eNetworkCommand eCommand;
 	char cServerName[network::MAX_SERVERNAME_LENGTH];
 	char cUserName[network::MAX_USERNAME_LENGTH];
+	EnemyInfo enemyInfo;
 
 	// Gameplay Information
 	int CurrentUserCount;
 	AvatarInfo Avatars[network::MAX_CLIENTS];
 	EnemyInfo Enemies[network::MAX_ENEMY_SPAWNED];
+	
 };
 
 #endif //__NETWORKDEFINES_H__

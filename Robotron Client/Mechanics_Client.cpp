@@ -123,11 +123,19 @@ void CMechanics_Client::Draw()
 	m_pTerrain->Draw(m_pRenderer);
 
 	// Draw all the Avatars
-	std::map<std::string, CAvatar*>::iterator currentAvatar = m_pAvatars->begin();
-	while (currentAvatar != m_pAvatars->end())
+	std::map<std::string, CAvatar*>::iterator iterAvatar = m_pAvatars->begin();
+	while (iterAvatar != m_pAvatars->end())
 	{
-		currentAvatar->second->Draw();
-		currentAvatar++;
+		iterAvatar->second->Draw();
+		iterAvatar++;
+	}
+
+	// Draw all the Enemies
+	std::map<UINT, CEnemy*>::iterator iterEnemy= m_pEnemies->begin();
+	while (iterEnemy != m_pEnemies->end())
+	{
+		iterEnemy->second->Draw();
+		iterEnemy++;
 	}
 }
 
@@ -238,8 +246,8 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 
 	// Create a new avatar object
 	CAvatar* pTempAvatar = new  CAvatar();
-	v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, m_iAvatarMaterialID, v3Pos);
+	//v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
+	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
 
 	// Save the avatar in a vector
 	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
@@ -326,4 +334,35 @@ void CMechanics_Client::CreateDemonAsset()
 	// Demon Enemy Mesh and Texture
 	m_iDemonTexID = m_pRenderer->CreateTexture("Assets//Demon.bmp");
 	m_pDemonMesh = CreateCubeMesh(1.0f, m_iDemonTexID);
+}
+
+void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
+{
+	EnemyInfo enemyInfo = _pServerPacket->enemyInfo;
+	CMesh* pMesh = 0;
+	int iMatID;
+
+	switch (enemyInfo.eType)
+	{
+	case ET_DEMON:
+	{
+		pMesh = m_pDemonMesh;
+		iMatID = m_iDemonMaterialID;
+		break;
+	}
+	default:
+		break;
+	}
+
+	CEnemy* tempEnemy = new CEnemy(enemyInfo.eType);
+	tempEnemy->Initialise(m_pRenderer, pMesh, iMatID, enemyInfo.v3Pos);
+	tempEnemy->SetDirection(enemyInfo.v3Dir);
+
+	std::pair<UINT, CEnemy*> newEnemy(enemyInfo.iID, tempEnemy);
+	m_pEnemies->insert(newEnemy);
+}
+
+void CMechanics_Client::KillEnemy(ServerToClient* _pServerPacket)
+{
+
 }
