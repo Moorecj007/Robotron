@@ -34,6 +34,12 @@ CMechanics_Server::~CMechanics_Server()
 	m_pDeletedEnemies = 0;
 	delete m_pCreatedEnemies;
 	m_pCreatedEnemies = 0;
+
+	// Delete the queues of Powerups
+	delete m_pDeletedPowerUps;
+	m_pDeletedPowerUps = 0;
+	delete m_pCreatedPowerUps;
+	m_pCreatedPowerUps = 0;
 }
 
 // Getters
@@ -42,7 +48,7 @@ bool CMechanics_Server::GetNextDeletedEnemy(EnemyInfo* _enemyInfo)
 	// Check if any enemies are in queue to be created
 	if (m_pDeletedEnemies->empty() == false)
 	{
-		// Find the ID of the Created enemy
+		// Find the info of the Created enemy
 		*_enemyInfo = m_pDeletedEnemies->front();
 
 		// remove the queued enemy
@@ -58,11 +64,43 @@ bool CMechanics_Server::GetNextCreatedEnemy(EnemyInfo* _enemyInfo)
 	// Check if any enemies are in queue to be created
 	if (m_pCreatedEnemies->empty() == false)
 	{
-		// Find the ID of the Created enemy
+		// Find the info of the Created enemy
 		*_enemyInfo = m_pCreatedEnemies->front();
 
 		// remove the queued enemy
 		m_pCreatedEnemies->pop();
+		return true;
+	}
+
+	return false;
+}
+
+bool CMechanics_Server::GetNextDeletedPower(PowerUpInfo* _powerInfo)
+{
+	// Check if any PowerUps are in queue to be created
+	if (m_pDeletedPowerUps->empty() == false)
+	{
+		// Find the info of the Created PowerUp
+		*_powerInfo = m_pDeletedPowerUps->front();
+
+		// remove the queued PowerUp
+		m_pDeletedPowerUps->pop();
+		return true;
+	}
+
+	return false;
+}
+
+bool CMechanics_Server::GetNextCreatedPower(PowerUpInfo* _powerInfo)
+{
+	// Check if any PowerUps are in queue to be created
+	if (m_pCreatedPowerUps->empty() == false)
+	{
+		// Find the info of the Created PowerUp
+		*_powerInfo = m_pCreatedPowerUps->front();
+
+		// remove the queued PowerUp
+		m_pCreatedPowerUps->pop();
 		return true;
 	}
 
@@ -90,19 +128,31 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// Create the Container for the Avatars
 	m_pAvatars = new std::map<std::string, AvatarInfo>;
 
-	// Create the Queue for Created and Deleted Enemies
+	// Create the Queues for Created and Deleted Enemies
 	m_pDeletedEnemies = new std::queue<EnemyInfo>;
 	m_pCreatedEnemies = new std::queue<EnemyInfo>;
+
+	// Create the Queues for Created and deleted Powerups
+	m_pDeletedPowerUps = new std::queue<PowerUpInfo>;
+	m_pCreatedPowerUps = new std::queue<PowerUpInfo>;
 
 	// TO DO - remove to wave spawing function
 	EnemyInfo tempEnemyInfo;
 	tempEnemyInfo.eType = ET_DEMON;
 	tempEnemyInfo.iID = m_iNextObjectID++;
-	tempEnemyInfo.v3Dir = { 0.0f, 0.0f, -1.0f };
+	tempEnemyInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
 	tempEnemyInfo.v3Pos = { 10.0f, 0.0f, 10.0f };
 	tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-
 	m_pCreatedEnemies->push(tempEnemyInfo);
+
+	// TO DO - remove to wave spawing function
+	PowerUpInfo tempPowerInfo;
+	tempPowerInfo.eType = PT_HEALTH;
+	tempPowerInfo.iID = m_iNextObjectID++;
+	tempPowerInfo.v3Dir = { 1.0f, 0.0f, 0.0f };
+	tempPowerInfo.v3Pos = { 0.0f, 0.0f, 0.0f };
+	tempPowerInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+	m_pCreatedPowerUps->push(tempPowerInfo);
 
 	return true;
 }
@@ -143,7 +193,7 @@ void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
 	pt.x -= 500;
 	pt.y -= 500;
 
-	v3float v3Dir = { (float)pt.x, 0.1f, (float)(-pt.y) };
+	v3float v3Dir = { (float)pt.x, 0.0f, (float)(-pt.y) };
 	NormaliseV3Float(&v3Dir);
 	Avatar->second.v3Dir = v3Dir;
 }

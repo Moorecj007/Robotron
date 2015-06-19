@@ -26,6 +26,7 @@
 #include "../Common Files/Graphics/IRenderer.h"
 #include "../Common Files/Graphics/Avatar.h"
 #include "../Common Files/Graphics/Enemy.h"
+#include "../Common Files/Graphics/PowerUp.h"
 #include "Graphics/Terrain.h"
 #include "Graphics/StaticCamera.h"
 
@@ -132,6 +133,13 @@ public:
 	void CreateDemonAsset();
 
 	/***********************
+	* CreateHealthAsset: Create all required assets for the creation of Health PowerUps
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateHealthAsset();
+
+	/***********************
 	* SpawnEnemy: Spawn a new enemy
 	* @author: Callan Moore
 	* @parameter: _pServerPacket: Packet containing the details about the new enemy
@@ -140,12 +148,28 @@ public:
 	void SpawnEnemy(ServerToClient* _pServerPacket);
 
 	/***********************
-	* KillEnemy: Kill an existing enemy
+	* DeleteEnemy: Delete an existing enemy
 	* @author: Callan Moore
-	* @parameter: _pServerPacket: Packet containing the details about the enemy to kill
+	* @parameter: _pServerPacket: Packet containing the details about the enemy to delete
 	* @return: void
 	********************/
-	void KillEnemy(ServerToClient* _pServerPacket);
+	void DeleteEnemy(ServerToClient* _pServerPacket);
+
+	/***********************
+	* SpawnPower: Spawn a new PowerUp
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet containing the details about the new PowerUp
+	* @return: void
+	********************/
+	void SpawnPower(ServerToClient* _pServerPacket);
+
+	/***********************
+	* DeletePower: Delete an existing PowerUp
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet containing the details about the PowerUp to delete
+	* @return: void
+	********************/
+	void DeletePower(ServerToClient* _pServerPacket);
 
 
 private:
@@ -168,11 +192,18 @@ private:
 	std::map<std::string, CAvatar*>* m_pAvatars;
 
 	// Enemies
+	std::map<UINT, CEnemy*>* m_pEnemies;
 	CMesh* m_pDemonMesh;
 	int m_iDemonMaterialID;
 	int m_iDemonTexID;
 
-	std::map<UINT, CEnemy*>* m_pEnemies;
+	// PowerUps
+	std::map<UINT, CPowerUp*>* m_pPowerUps;
+	CMesh* m_pHealthMesh;
+	int m_iHealthMaterialID;
+	int m_iHealthTexID;
+
+	
 };
 
 #endif // __MECHANICSCLIENT_H__

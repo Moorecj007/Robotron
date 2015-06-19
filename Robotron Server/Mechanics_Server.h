@@ -46,20 +46,36 @@ public:
 	// Getters
 
 	/***********************
-	* GetNextDeletedEnemy: Retrieve the ID of the next Enemy that has been killed
+	* GetNextDeletedEnemy: Retrieve the Info of the next Enemy that has been killed
 	* @author: Callan Moore
-	* @parameter: _enemyInfo: Enemy Info of the enemy to be deleted
+	* @parameter: _enemyInfo: Info of the enemy to be deleted
 	* @return: bool: True if another enemy to be deleted exists
 	********************/
 	bool GetNextDeletedEnemy(EnemyInfo* _enemyInfo);
 
 	/***********************
-	* GetNextCreatedEnemy: Retrieve the ID of the next Enemy that has been Spawned
+	* GetNextCreatedEnemy: Retrieve the Info of the next Enemy to be Spawned
 	* @author: Callan Moore
-	* @parameter: _enemyInfo: Enemy Info of the enemy to be deleted
+	* @parameter: _enemyInfo: Info of the next enemy to be spawned
 	* @return: bool: True if another enemy to be spawned exists
 	********************/
 	bool GetNextCreatedEnemy(EnemyInfo* _enemyInfo);
+
+	/***********************
+	* GetNextDeletedPower: Retrieve the Info of the next PowerUp that has been absorbed
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Info of the PowerUp to be deleted
+	* @return: bool: True if another PowerUp to be deleted exists
+	********************/
+	bool GetNextDeletedPower(PowerUpInfo* _powerUpInfo);
+
+	/***********************
+	* GetNextCreatedPower: Retrieve the Info of the next PowerUp to be Spawned
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Info of the PowerUp to be spawned
+	* @return: bool: True if another PowerUp to be spawned exists
+	********************/
+	bool GetNextCreatedPower(PowerUpInfo* _powerUpInfo);
 	
 	// Setters
 
@@ -143,10 +159,18 @@ private:
 	CClock* m_pClock;
 	UINT m_iNextObjectID;
 
+	// Avatar Variables
 	std::map<std::string, AvatarInfo>* m_pAvatars;
+
+	// Enemy Variables
 	std::map<UINT, EnemyInfo>* m_pEnemies;
 	std::queue<EnemyInfo>* m_pDeletedEnemies;
 	std::queue<EnemyInfo>* m_pCreatedEnemies;
+
+	// PowerUp Variables
+	std::map<UINT, PowerUpInfo>* m_pPowerUps;
+	std::queue<PowerUpInfo>* m_pDeletedPowerUps;
+	std::queue<PowerUpInfo>* m_pCreatedPowerUps;
 };
 
 #endif // __SERVER_MECHANICS_H__

@@ -39,16 +39,31 @@ CMechanics_Client::~CMechanics_Client()
 	// Delete the Container of Enemies
 	if (m_pEnemies != 0)
 	{
-		std::map<UINT, CEnemy*>::iterator currentEnemies = m_pEnemies->begin();
-		while (currentEnemies != m_pEnemies->end())
+		std::map<UINT, CEnemy*>::iterator currentEnemy = m_pEnemies->begin();
+		while (currentEnemy != m_pEnemies->end())
 		{
-			delete currentEnemies->second;
-			currentEnemies->second = 0;
-			currentEnemies++;
+			delete currentEnemy->second;
+			currentEnemy->second = 0;
+			currentEnemy++;
 		}
 
 		delete m_pEnemies;
 		m_pEnemies = 0;
+	}
+
+	// Delete the Container of PowerUps
+	if (m_pPowerUps != 0)
+	{
+		std::map<UINT, CPowerUp*>::iterator currentPowerUp = m_pPowerUps->begin();
+		while (currentPowerUp != m_pPowerUps->end())
+		{
+			delete currentPowerUp->second;
+			currentPowerUp->second = 0;
+			currentPowerUp++;
+		}
+
+		delete m_pPowerUps;
+		m_pPowerUps = 0;
 	}
 
 	// Delete the created meshes
@@ -56,6 +71,8 @@ CMechanics_Client::~CMechanics_Client()
 	m_pAvatarMesh = 0;
 	delete m_pDemonMesh;
 	m_pDemonMesh = 0;
+	delete m_pHealthMesh;
+	m_pHealthMesh = 0;
 
 	// Delete the Graphics 
 	delete m_pCamera;
@@ -75,7 +92,7 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 
 	// Create a Terrain for the Game
 	m_pTerrain = new CTerrain();
-	VertexScalar TerrainScalar = { 1.0f, 0.0f, 1.0f };
+	VertexScalar TerrainScalar = { 0.2f, 0.0f, 0.2f };
 	std::string strImagePath = "Assets\\Basic Terrain.bmp";
 	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
 	m_pTerrain->SetCenter(0, 0, 0);
@@ -83,10 +100,12 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	// Create the the containers for assets
 	m_pAvatars = new std::map < std::string, CAvatar*>;
 	m_pEnemies = new std::map < UINT, CEnemy*>;
+	m_pPowerUps = new std::map < UINT, CPowerUp*>;
 
 	// Create the required Assets
 	CreateAvatarAsset();
 	CreateDemonAsset();
+	CreateHealthAsset();
 
 	return true;
 }
@@ -110,7 +129,6 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	// Process the camera to keep it following the Avatar
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
 	v3float v3Pos = *(Avatar->second->GetPosition());
-	//m_pCamera->SetPosition({ v3Pos.x, 100, v3Pos.z});
 	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 50, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
 	m_pCamera->Process(m_pRenderer);
 }
@@ -119,6 +137,14 @@ void CMechanics_Client::Draw()
 {
 	// Render the Terrain
 	m_pTerrain->Draw(m_pRenderer);
+
+	// Draw all the PowerUps
+	std::map<UINT, CPowerUp*>::iterator iterPower = m_pPowerUps->begin();
+	while (iterPower != m_pPowerUps->end())
+	{
+		iterPower->second->Draw();
+		iterPower++;
+	}
 
 	// Draw all the Avatars
 	std::map<std::string, CAvatar*>::iterator iterAvatar = m_pAvatars->begin();
@@ -298,6 +324,8 @@ void CMechanics_Client::RemoveAvatar(std::string _strUserName)
 	std::map<std::string, CAvatar*>::iterator iterAvatar;
 	iterAvatar = m_pAvatars->find(_strUserName);
 
+	m_pRenderer->LightEnable(iterAvatar->second->GetTorchID(), false);
+
 	delete iterAvatar->second;
 	iterAvatar->second = 0;
 
@@ -336,6 +364,22 @@ void CMechanics_Client::CreateDemonAsset()
 	m_pDemonMesh = CreateCubeMesh(1.0f, m_iDemonTexID);
 }
 
+void CMechanics_Client::CreateHealthAsset()
+{
+	// Create the Material for the Demons to use
+	MaterialComposition HealthMatComp;
+	HealthMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	HealthMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	HealthMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	HealthMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	HealthMatComp.power = 0;
+	m_iHealthMaterialID = m_pRenderer->CreateMaterial(HealthMatComp);
+
+	// Demon Enemy Mesh and Texture
+	m_iHealthTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
+	m_pHealthMesh = CreateCubeMesh(0.4f, m_iHealthTexID);
+}
+
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 {
 	EnemyInfo enemyInfo = _pServerPacket->enemyInfo;
@@ -362,7 +406,38 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 	m_pEnemies->insert(newEnemy);
 }
 
-void CMechanics_Client::KillEnemy(ServerToClient* _pServerPacket)
+void CMechanics_Client::DeleteEnemy(ServerToClient* _pServerPacket)
 {
+	// TO DO
+}
 
+void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
+{
+	PowerUpInfo powerInfo = _pServerPacket->powerInfo;
+	CMesh* pMesh = 0;
+	int iMatID;
+
+	switch (powerInfo.eType)
+	{
+	case PT_HEALTH:
+	{
+		pMesh = m_pHealthMesh;
+		iMatID = m_iHealthMaterialID;
+		break;
+	}
+	default:
+		break;
+	}
+
+	CPowerUp* tempPower = new CPowerUp(powerInfo.eType);
+	tempPower->Initialise(m_pRenderer, pMesh, powerInfo.iID, iMatID, powerInfo.v3Pos);
+	tempPower->SetDirection(powerInfo.v3Dir);
+
+	std::pair<UINT, CPowerUp*> newPower(powerInfo.iID, tempPower);
+	m_pPowerUps->insert(newPower);
+}
+
+void CMechanics_Client::DeletePower(ServerToClient* _pServerPacket)
+{
+	// TO DO
 }

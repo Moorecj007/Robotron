@@ -78,6 +78,9 @@ void C3DObject::Process(float _fDT)
 
 void C3DObject::CalcWorldMatrix()
 {
+	// Calculate the Yaw rotation based on the direction
+	m_fRotation = -(atan2(m_v3Direction.z, m_v3Direction.x) - atan2(1.0f, 0.0f));
+
 	// Matrices to make up the World Matrix
 	D3DXMATRIX matRotateYaw;
 	D3DXMATRIX matTranslation;

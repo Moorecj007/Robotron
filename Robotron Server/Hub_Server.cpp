@@ -180,6 +180,7 @@ void CHub_Server::Process()
 		
 		// Create Command Packets for Deleted and created Enemies
 		EnemyInfo enemyInfo;
+		PowerUpInfo powerInfo;
 		while (m_pMechanics->GetNextDeletedEnemy(&enemyInfo) == true)
 		{
 			CreateCommandPacket(DELETE_ENEMY);
@@ -192,6 +193,20 @@ void CHub_Server::Process()
 			m_pServerToClient->enemyInfo = enemyInfo;
 			SendPacket(m_pServerToClient);
 		}
+		while (m_pMechanics->GetNextDeletedPower(&powerInfo) == true)
+		{
+			CreateCommandPacket(DELETE_POWERUP);
+			m_pServerToClient->powerInfo = powerInfo;
+			SendPacket(m_pServerToClient);
+		}
+		while (m_pMechanics->GetNextCreatedPower(&powerInfo) == true)
+		{
+			CreateCommandPacket(CREATE_POWERUP);
+			m_pServerToClient->powerInfo = powerInfo;
+			SendPacket(m_pServerToClient);
+		}
+		
+
 
 		// Send the Data packet with the current states
 		m_pMechanics->CreateDataPacket(m_pServerToClient);

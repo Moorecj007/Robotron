@@ -76,6 +76,13 @@ enum eEnemyType
 	ET_DEATHSQUAD	// Leader Following
 };
 
+enum ePowerUpType
+{
+	PT_HEALTH,		
+	PT_FLARE,	
+	PT_UNKNOWN	// TO DO - figure out another powerup	
+};
+
 // Structs
 
 struct v2float

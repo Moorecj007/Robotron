@@ -68,7 +68,10 @@ enum eNetworkCommand
 	START_GAME,
 
 	CREATE_ENEMY,
-	DELETE_ENEMY
+	DELETE_ENEMY,
+
+	CREATE_POWERUP,
+	DELETE_POWERUP
 };
 
 // Structs
@@ -107,7 +110,11 @@ struct EnemyInfo
 
 struct PowerUpInfo
 {
-
+	UINT iID;
+	ePowerUpType eType;
+	v3float v3Pos;
+	v3float v3Dir;
+	v3float v3Vel;
 };
 
 struct ProjectileInfo
@@ -135,6 +142,7 @@ struct ServerToClient
 	char cServerName[network::MAX_SERVERNAME_LENGTH];
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	EnemyInfo enemyInfo;
+	PowerUpInfo powerInfo;
 
 	// Gameplay Information
 	int CurrentUserCount;
