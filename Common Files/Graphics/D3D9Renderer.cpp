@@ -205,8 +205,8 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_DirectionLight.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	m_DirectionLight.Direction = D3DXVECTOR3(-1.0f, -1.0f, 0);
 
-	m_pDevice->SetLight(0, &m_DirectionLight);
-	m_pDevice->LightEnable(0, TRUE);
+	//m_pDevice->SetLight(0, &m_DirectionLight);
+	//m_pDevice->LightEnable(0, TRUE);
 
 	// Create the initial index for the torches ( 0 is reserved for directional light);
 	m_iNextTorchID = 1;
@@ -677,6 +677,30 @@ D3DXMATRIX& CD3D9Renderer::GetWorldMatrix()
 	return m_matWorld;
 }
 
+int CD3D9Renderer::CreateFlareLight()
+{
+	int FlareID = 7;
+
+	D3DLIGHT9* pFlareLight = new D3DLIGHT9;
+	ZeroMemory(*(&pFlareLight), sizeof(*pFlareLight));
+
+	pFlareLight->Type = D3DLIGHT_POINT;
+	pFlareLight->Diffuse = { 1.0f, 1.0f, 0.5f, 1.0f };
+	pFlareLight->Position = { 0.0f, 0.0f, 0.0f };
+	pFlareLight->Range = 60.0f;
+	pFlareLight->Attenuation0 = 0.0f;
+	pFlareLight->Attenuation1 = 0.001f;
+	pFlareLight->Attenuation2 = 0.0f;
+
+	m_pDevice->SetLight(FlareID, pFlareLight);
+	m_pDevice->LightEnable(FlareID, true);
+
+	std::pair<int, D3DLIGHT9*> newLight(FlareID, pFlareLight);
+	m_pMapLight->insert(newLight);
+
+	return FlareID;
+}
+
 int CD3D9Renderer::CreateTorchLight()
 {
 	D3DLIGHT9* pTorchLight = new D3DLIGHT9;
@@ -723,6 +747,17 @@ void CD3D9Renderer::UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Di
 
 	iterLight->second->Position = v3Pos;
 	iterLight->second->Direction = v3Dir;
+
+	m_pDevice->SetLight(_iLightID, iterLight->second);
+}
+
+void CD3D9Renderer::UpdateFlareLight(int _iLightID, v3float _v3Pos)
+{
+	std::map<int, D3DLIGHT9*>::iterator iterLight = m_pMapLight->find(_iLightID);
+
+	// Create D3DX vectors from the v3Floats
+	D3DXVECTOR3 v3Pos = { _v3Pos.x, _v3Pos.y + 0.5f, _v3Pos.z };
+	iterLight->second->Position = v3Pos;
 
 	m_pDevice->SetLight(_iLightID, iterLight->second);
 }

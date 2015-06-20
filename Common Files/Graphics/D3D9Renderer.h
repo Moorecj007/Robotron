@@ -189,6 +189,13 @@ public:
 	virtual void RetrieveSurfaceVertices(std::vector<CVertex>*, int _iSurfaceID, D3DXIMAGE_INFO& _pImageInfo, VertexScalar _VertexScalar);
 
 	/***********************
+	* CreateFlareLight: Create a point light to act as a flare
+	* @author: Callan Moore
+	* @return: int: ID number for the light
+	********************/
+	virtual int CreateFlareLight();
+
+	/***********************
 	* CreateTorchLight: Create a spot light to act as a torch
 	* @author: Callan Moore
 	* @return: int: ID number for the light
@@ -213,7 +220,7 @@ public:
 	virtual void LightEnable(int _iLightID, bool bOn);
 
 	/***********************
-	* LightEnable: Turns a light on or off
+	* UpdateFlareLight: Updates the details of a torch light
 	* @author: Callan Moore
 	* @parameter: _iLightID: ID of the Light update
 	* @parameter: _v3Pos: The new position of the spot light
@@ -221,6 +228,15 @@ public:
 	* @return: void
 	********************/
 	virtual void UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Dir);
+
+	/***********************
+	* UpdateFlareLight: Update the details of the flare light
+	* @author: Callan Moore
+	* @parameter: _iLightID: ID of the Light update
+	* @parameter: _v3Pos: The new position of the spot light
+	* @return: void
+	********************/
+	virtual void UpdateFlareLight(int _iLightID, v3float _v3Pos);
 
 	/***********************
 	* CreateMaterial: Creates a Material and stores it witht the Renderer

@@ -26,7 +26,6 @@
 #include "../Common Files/Clock.h"
 #include "Artificial Intelligence\SteerLib.h"
 
-
 class CMechanics_Server
 {
 public:
@@ -107,27 +106,36 @@ public:
 	void Process();
 
 	/***********************
-	* ProcessAvatarMovement: Process an Avatars movement input
+	* ProcessAvatar: Process an Avatars input
 	* @author: Callan Moore
 	* @parameter: _pClientPacket: Client Packet that holds the movement information for a client/avatar
 	* @parameter: void
 	********************/
-	void ProcessAvatarMovement(ClientToServer* _pClientPacket);
+	void ProcessAvatar(ClientToServer* _pClientPacket);
+
+	/***********************
+	* ProcessFlare: Process the Flares
+	* @author: Callan Moore
+	* @parameter: void
+	********************/
+	void ProcessFlare();
 
 	/***********************
 	* ProcessEnemies: Process the enemies
 	* @author: Callan Moore
+	* @parameter: _fDT: The current Delta Tick
 	* @parameter: void
 	********************/
-	void ProcessEnemies();
+	void ProcessEnemies(float _fDT);
 
 	/***********************
 	* ProcessDemonAI: Process a Demons enemies AI capabilities
 	* @author: Callan Moore
 	* @parameter: _enemyInfo: Enemy Info structure of the Demon enemy
+	* @parameter: _fDT: The current Delta Tick
 	* @parameter: void
 	********************/
-	void ProcessDemonAI(EnemyInfo* _enemyInfo);
+	void ProcessDemonAI(EnemyInfo* _enemyInfo, float _fDT);
 
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
@@ -187,6 +195,10 @@ private:
 	std::map<UINT, PowerUpInfo>* m_pPowerUps;
 	std::queue<PowerUpInfo>* m_pDeletedPowerUps;
 	std::queue<PowerUpInfo>* m_pCreatedPowerUps;
+
+	// Flare PowerUp Variabes
+	bool m_bFlareActive;
+	FlareInfo m_Flare;
 };
 
 #endif // __SERVER_MECHANICS_H__

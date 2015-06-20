@@ -92,7 +92,7 @@ struct AvatarInfo
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
-	float fSpeed;
+	float fMaxSpeed;
 
 	// TO DO - Add other variables
 };
@@ -108,9 +108,6 @@ struct EnemyInfo
 	v3float v3Target;
 	float fMaxSpeed;
 	float fMaxForce;
-	
-	
-	// TO DO: Add Other Variables
 };
 
 struct PowerUpInfo
@@ -125,6 +122,15 @@ struct PowerUpInfo
 struct ProjectileInfo
 {
 
+};
+
+struct FlareInfo
+{
+	bool bActive;
+	v3float v3Pos;
+	float fMaxSpeed;
+	float fMaxHeight;
+	float fTimeLeft;
 };
 
 struct ClientToServer
@@ -155,6 +161,8 @@ struct ServerToClient
 
 	int CurrentEnemyCount;
 	EnemyInfo Enemies[network::MAX_ENEMY_SPAWNED];
+
+	FlareInfo Flare;
 	
 };
 

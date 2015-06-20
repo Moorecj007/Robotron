@@ -106,6 +106,7 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	CreateAvatarAsset();
 	CreateDemonAsset();
 	CreateHealthAsset();
+	CreateFlareAsset();
 
 	return true;
 }
@@ -118,6 +119,7 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 
 	UpdateAvatars();
 	UpdateEnemies();
+	UpdateFlare();
 
 	// Process all the Avatars
 	std::map<std::string, CAvatar*>::iterator currentAvatar = m_pAvatars->begin();
@@ -277,6 +279,19 @@ void CMechanics_Client::UpdateEnemies()
 	}
 }
 
+void CMechanics_Client::UpdateFlare()
+{
+	if (m_pServerPacket->Flare.bActive == true)
+	{
+		m_pRenderer->LightEnable(m_iFlareLightID, true);
+		m_pRenderer->UpdateFlareLight(m_iFlareLightID, m_pServerPacket->Flare.v3Pos);
+	}
+	else
+	{
+		m_pRenderer->LightEnable(m_iFlareLightID, false);
+	}
+}
+
 void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 {
 	AvatarInfo currentAvatarInfo;
@@ -396,6 +411,12 @@ void CMechanics_Client::CreateHealthAsset()
 	// Demon Enemy Mesh and Texture
 	m_iHealthTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
 	m_pHealthMesh = CreateCubeMesh(0.4f, m_iHealthTexID);
+}
+
+void CMechanics_Client::CreateFlareAsset()
+{
+	ZeroMemory(&m_Flare, sizeof(m_Flare));
+	m_iFlareLightID = m_pRenderer->CreateFlareLight();
 }
 
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)

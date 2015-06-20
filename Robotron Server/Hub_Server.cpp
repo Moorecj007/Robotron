@@ -357,7 +357,7 @@ void CHub_Server::ProcessPacket()
 	else
 	{
 		// Process the Input from the User
-		m_pMechanics->ProcessAvatarMovement(m_pPacketToProcess);
+		m_pMechanics->ProcessAvatar(m_pPacketToProcess);
 		
 	}
 }

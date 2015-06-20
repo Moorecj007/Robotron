@@ -17,11 +17,15 @@
 #ifndef __GENERICDEFINES_H__
 #define __GENERICDEFINES_H__
 
+// Defines
+#define _USE_MATH_DEFINES
+
 // Library Includes
 #pragma comment(lib, "Winmm.lib")
 #include <string>
 #include <cassert>
 #include <Windows.h>
+#include <math.h>
 
 // Defines
 #define VALIDATE(a) if (!a) return (false)
@@ -242,6 +246,7 @@ struct v3float
 struct Controls
 {
 	bool bAction;
+	bool bFlare;
 	bool bUp;
 	bool bDown;
 	bool bLeft;
@@ -279,7 +284,7 @@ inline bool StringToStruct(const char* _pcData, char* _pcStruct, unsigned int _i
 /***********************
 * NormaliseV3Float: Normalise a vector of 3 floats
 * @author: Callan Moore
-* @parameter: _v3: vecctor to normalise
+* @parameter: _v3: vector to normalise
 * @return: v3float: the normalised vector
 ********************/
 inline bool NormaliseV3Float(v3float* _v3)
@@ -295,5 +300,17 @@ inline bool NormaliseV3Float(v3float* _v3)
 	}
 	return false;
 }
+
+/***********************
+* DegreesToRadians: Converts degrees to radians
+* @author: Callan Moore
+* @parameter: _fDegrees: Angle in Degrees to convert
+* @return: float: Angle in Radians
+********************/
+inline float DegreesToRadians(float _fDegrees)
+{
+	return ((_fDegrees * (float)M_PI) / 180.0f);
+}
+
 
 #endif //__GENERICDEFINES_H__

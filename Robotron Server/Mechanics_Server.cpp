@@ -158,8 +158,8 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	tempEnemyInfo.v3Pos = { 0.0f, 0.0f, 10.0f };
 	tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
 	tempEnemyInfo.v3Acceleration = { 0.0f, 0.0f, 0.0f };
-	tempEnemyInfo.fMaxSpeed = 0.1f;
-	tempEnemyInfo.fMaxForce = 0.01f;
+	tempEnemyInfo.fMaxSpeed = 3.0f;
+	tempEnemyInfo.fMaxForce = 30.0f;
 	m_pCreatedEnemies->push(tempEnemyInfo);
 	m_pEnemies->insert(std::pair<UINT, EnemyInfo>(tempEnemyInfo.iID, tempEnemyInfo));
 
@@ -180,32 +180,60 @@ void CMechanics_Server::Process()
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
 
-	ProcessEnemies();
+	ProcessEnemies(fDT);
+	ProcessFlare();
 }
 
-void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
+void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 {
+	// Get the current Delta Tick
+	float fDT = m_pClock->GetDeltaTick();
+
+	Controls avatarControls = _pClientPacket->activatedControls;
+	if (avatarControls.bFlare == true)
+	{
+		if (m_bFlareActive == true)
+		{
+			// TO DO: Message on screen to state flare already active
+		}
+		else
+		{
+			// retrieve the AvatarInfo of the Avatar invoking a flare
+			std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find((std::string)_pClientPacket->cUserName);
+
+			m_bFlareActive = true;
+			ZeroMemory(&m_Flare, sizeof(m_Flare));
+
+			m_Flare.bActive = true;
+			m_Flare.v3Pos = Avatar->second.v3Pos;
+			m_Flare.fMaxSpeed = 10.0f;
+			m_Flare.fMaxHeight = 30.0f;
+			m_Flare.fTimeLeft = 10.0f;
+		}
+	}
+
 	std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find(_pClientPacket->cUserName);
 
 	// Process the Avatars movement for Position
 	v3float v3Movement = { 0, 0, 0 };
-	if (_pClientPacket->activatedControls.bUp == true)
+	if (avatarControls.bUp == true)
 	{
 		v3Movement.z += 1;
 	}
-	if (_pClientPacket->activatedControls.bDown == true)
+	if (avatarControls.bDown == true)
 	{
 		v3Movement.z += -1;
 	}
-	if (_pClientPacket->activatedControls.bRight == true)
+	if (avatarControls.bRight == true)
 	{
 		v3Movement.x += 1;
 	}
-	if (_pClientPacket->activatedControls.bLeft == true)
+	if (avatarControls.bLeft == true)
 	{
 		v3Movement.x += -1;
 	}
 	NormaliseV3Float(&v3Movement);
+	v3Movement = v3Movement * (Avatar->second.fMaxSpeed * fDT);
 	Avatar->second.v3Pos += v3Movement;
 
 	// Calculate the Avatars Look direction
@@ -218,7 +246,31 @@ void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
 	Avatar->second.v3Dir = v3Dir;
 }
 
-void CMechanics_Server::ProcessEnemies()
+void CMechanics_Server::ProcessFlare()
+{
+	if (m_Flare.bActive == true)
+	{
+		// Get the current Delta Tick
+		float fDT = m_pClock->GetDeltaTick();
+
+		// Calculate the time left for the flare
+		m_Flare.fTimeLeft -= fDT;
+		if (m_Flare.fTimeLeft < 0)
+		{
+			// Flare has timed out, deactivate the flare.
+			m_Flare.bActive = false;
+		}
+
+		// Check the height of the flare
+		if (m_Flare.v3Pos.y < m_Flare.fMaxHeight)
+		{
+			// Increase the flares height if max height is not yet achieved
+			m_Flare.v3Pos.y += (m_Flare.fMaxSpeed * fDT);
+		}
+	}
+}
+
+void CMechanics_Server::ProcessEnemies(float _fDT)
 {
 	std::map<UINT, EnemyInfo>::iterator iterEnemy = m_pEnemies->begin();
 	while (iterEnemy != m_pEnemies->end())
@@ -227,7 +279,7 @@ void CMechanics_Server::ProcessEnemies()
 		{
 			case ET_DEMON:
 			{
-				ProcessDemonAI(&iterEnemy->second);
+				ProcessDemonAI(&iterEnemy->second, _fDT);
 				break;
 			}
 		}	// End Switch
@@ -235,7 +287,7 @@ void CMechanics_Server::ProcessEnemies()
 	}
 }
 
-void CMechanics_Server::ProcessDemonAI(EnemyInfo* _enemyInfo)
+void CMechanics_Server::ProcessDemonAI(EnemyInfo* _enemyInfo, float _fDT)
 {
 	if (m_pAvatars->size() > 0)
 	{
@@ -262,7 +314,7 @@ void CMechanics_Server::ProcessDemonAI(EnemyInfo* _enemyInfo)
 		_enemyInfo->v3Target = closestAvatar->second.v3Pos;
 
 		// Steerings
-		Seek(_enemyInfo);
+		Seek(_enemyInfo, _fDT);
 
 		
 	}
@@ -307,6 +359,9 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 		iterEnemy++;
 	}
 
+	// Add the Flare to the Data Packet
+	_pServerPacket->Flare = m_Flare;
+
 	return true;
 }
 
@@ -323,6 +378,7 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	// Create the starting position based on the current number of users
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.iID = m_iNextObjectID++;
+	tempAvatarInfo.fMaxSpeed = 10.0f;
 
 	std::pair<std::string, AvatarInfo> newAvatar((std::string)_pClientPacket->cUserName, tempAvatarInfo);
 	m_pAvatars->insert(newAvatar);

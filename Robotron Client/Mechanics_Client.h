@@ -102,6 +102,13 @@ public:
 	void UpdateEnemies();
 
 	/***********************
+	* UpdateFlare: Update the Flare from the Packet from the server
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void UpdateFlare();
+
+	/***********************
 	* AddAvatar: Add an Avatar to the Container
 	* @author: Callan Moore
 	* @parameter: _pServerPacket: Packet that contains the data needed to create the new Avatar
@@ -145,6 +152,13 @@ public:
 	* @return: void
 	********************/
 	void CreateHealthAsset();
+
+	/***********************
+	* CreateFlareAsset: Create all required assets for the creation of Flares
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateFlareAsset();
 
 	/***********************
 	* SpawnEnemy: Spawn a new enemy
@@ -209,6 +223,10 @@ private:
 	CMesh* m_pHealthMesh;
 	int m_iHealthMaterialID;
 	int m_iHealthTexID;
+
+	// Flare
+	FlareInfo m_Flare;
+	int m_iFlareLightID;
 
 	
 };

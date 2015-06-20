@@ -66,10 +66,12 @@ public:
 	virtual int CreateOffscreenSurface(std::string _strFileName, D3DXIMAGE_INFO& _pImageInfo) = 0;
 	virtual void RetrieveSurfaceVertices(std::vector<CVertex>*, int _iSurfaceID, D3DXIMAGE_INFO& _pImageInfo, VertexScalar _VertexScalar) = 0;
 
+	virtual int CreateFlareLight() = 0;
 	virtual int CreateTorchLight() = 0;
 	virtual void SetLight(int _iLightID) = 0;
 	virtual void LightEnable(int _iLightID, bool bOn) = 0;
 	virtual void UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Dir) = 0;
+	virtual void UpdateFlareLight(int _iLightID, v3float _v3Pos) = 0;
 
 	virtual int CreateMaterial(MaterialComposition _MatComp) = 0;
 	virtual bool SetMaterial(int _iMaterialID) = 0;
