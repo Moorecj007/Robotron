@@ -206,6 +206,8 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 
 			m_Flare.bActive = true;
 			m_Flare.v3Pos = Avatar->second.v3Pos;
+			m_Flare.fRange = 15.0f;
+			m_Flare.fMaxRange = 100;
 			m_Flare.fMaxSpeed = 10.0f;
 			m_Flare.fMaxHeight = 30.0f;
 			m_Flare.fTimeLeft = 10.0f;
@@ -265,8 +267,13 @@ void CMechanics_Server::ProcessFlare()
 		if (m_Flare.v3Pos.y < m_Flare.fMaxHeight)
 		{
 			// Increase the flares height if max height is not yet achieved
-			m_Flare.v3Pos.y += (m_Flare.fMaxSpeed * fDT);
+			m_Flare.v3Pos.y += (m_Flare.fMaxSpeed * fDT);	
 		}
+		else
+		{
+			m_Flare.fRange = m_Flare.fMaxRange;
+		}
+
 	}
 }
 

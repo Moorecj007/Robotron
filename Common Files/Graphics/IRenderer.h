@@ -71,7 +71,7 @@ public:
 	virtual void SetLight(int _iLightID) = 0;
 	virtual void LightEnable(int _iLightID, bool bOn) = 0;
 	virtual void UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Dir) = 0;
-	virtual void UpdateFlareLight(int _iLightID, v3float _v3Pos) = 0;
+	virtual void UpdateFlareLight(int _iLightID, v3float _v3Pos, float _fRange) = 0;
 
 	virtual int CreateMaterial(MaterialComposition _MatComp) = 0;
 	virtual bool SetMaterial(int _iMaterialID) = 0;

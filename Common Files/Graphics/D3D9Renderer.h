@@ -233,10 +233,11 @@ public:
 	* UpdateFlareLight: Update the details of the flare light
 	* @author: Callan Moore
 	* @parameter: _iLightID: ID of the Light update
-	* @parameter: _v3Pos: The new position of the spot light
+	* @parameter: _v3Pos: The new position of the Point light
+	* @parameter: _fRange: The new range of the Point light
 	* @return: void
 	********************/
-	virtual void UpdateFlareLight(int _iLightID, v3float _v3Pos);
+	virtual void UpdateFlareLight(int _iLightID, v3float _v3Pos, float _fRange);
 
 	/***********************
 	* CreateMaterial: Creates a Material and stores it witht the Renderer

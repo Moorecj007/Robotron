@@ -284,7 +284,7 @@ void CMechanics_Client::UpdateFlare()
 	if (m_pServerPacket->Flare.bActive == true)
 	{
 		m_pRenderer->LightEnable(m_iFlareLightID, true);
-		m_pRenderer->UpdateFlareLight(m_iFlareLightID, m_pServerPacket->Flare.v3Pos);
+		m_pRenderer->UpdateFlareLight(m_iFlareLightID, m_pServerPacket->Flare.v3Pos, m_pServerPacket->Flare.fRange);
 	}
 	else
 	{
@@ -417,7 +417,6 @@ void CMechanics_Client::CreateFlareAsset()
 {
 	ZeroMemory(&m_Flare, sizeof(m_Flare));
 	m_iFlareLightID = m_pRenderer->CreateFlareLight();
-
 }
 
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
