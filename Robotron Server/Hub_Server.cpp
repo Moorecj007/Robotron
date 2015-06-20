@@ -162,7 +162,6 @@ void CHub_Server::Process()
 	{
 		if (m_pCurrentUsers->size() > 0)
 		{
-
 			if (m_pMechanics->CheckAllAvatarsReady() == true)
 			{
 				// All Participants are ready to go -> start the game

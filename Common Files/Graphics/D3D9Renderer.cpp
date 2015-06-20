@@ -205,8 +205,8 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_DirectionLight.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	m_DirectionLight.Direction = D3DXVECTOR3(-1.0f, -1.0f, 0);
 
-	//m_pDevice->SetLight(0, &m_DirectionLight);
-	//m_pDevice->LightEnable(0, TRUE);
+	m_pDevice->SetLight(0, &m_DirectionLight);
+	m_pDevice->LightEnable(0, TRUE);
 
 	// Create the initial index for the torches ( 0 is reserved for directional light);
 	m_iNextTorchID = 1;

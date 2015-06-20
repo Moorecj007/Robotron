@@ -6,7 +6,7 @@
 *
 * (c) 2005 - 2015 Media Design School
 *
-* File Name : Mechanics_Server.cpp
+* File Name : Mechanics_Server.h
 * Description : Handles all the Mechanics on the server
 * Author :	Callan Moore
 * Mail :	Callan.Moore@mediadesign.school.nz
@@ -24,6 +24,7 @@
 // Local Includes
 #include "../Common Files/Networking/Network_Defines.h"
 #include "../Common Files/Clock.h"
+#include "Artificial Intelligence\SteerLib.h"
 
 
 class CMechanics_Server
@@ -109,9 +110,24 @@ public:
 	* ProcessAvatarMovement: Process an Avatars movement input
 	* @author: Callan Moore
 	* @parameter: _pClientPacket: Client Packet that holds the movement information for a client/avatar
-	* @parameter: bool: Successful initialisation (or not)
+	* @parameter: void
 	********************/
 	void ProcessAvatarMovement(ClientToServer* _pClientPacket);
+
+	/***********************
+	* ProcessEnemies: Process the enemies
+	* @author: Callan Moore
+	* @parameter: void
+	********************/
+	void ProcessEnemies();
+
+	/***********************
+	* ProcessDemonAI: Process a Demons enemies AI capabilities
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Enemy Info structure of the Demon enemy
+	* @parameter: void
+	********************/
+	void ProcessDemonAI(EnemyInfo* _enemyInfo);
 
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information

@@ -29,6 +29,14 @@ CMechanics_Server::~CMechanics_Server()
 	delete m_pAvatars;
 	m_pAvatars = 0;
 
+	// Delete the container of Enemies
+	delete m_pEnemies;
+	m_pEnemies = 0;
+
+	// Delete the container of PowerUps
+	delete m_pPowerUps;
+	m_pPowerUps = 0;
+
 	// Delete the queues of enemies
 	delete m_pDeletedEnemies;
 	m_pDeletedEnemies = 0;
@@ -128,6 +136,12 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// Create the Container for the Avatars
 	m_pAvatars = new std::map<std::string, AvatarInfo>;
 
+	// Create the Container for the Enemies
+	m_pEnemies = new std::map<UINT, EnemyInfo>;
+
+	// Create the Container for the PowerUps
+	m_pPowerUps = new std::map<UINT, PowerUpInfo>;
+
 	// Create the Queues for Created and Deleted Enemies
 	m_pDeletedEnemies = new std::queue<EnemyInfo>;
 	m_pCreatedEnemies = new std::queue<EnemyInfo>;
@@ -141,9 +155,13 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	tempEnemyInfo.eType = ET_DEMON;
 	tempEnemyInfo.iID = m_iNextObjectID++;
 	tempEnemyInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
-	tempEnemyInfo.v3Pos = { 10.0f, 0.0f, 10.0f };
+	tempEnemyInfo.v3Pos = { 0.0f, 0.0f, 10.0f };
 	tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+	tempEnemyInfo.v3Acceleration = { 0.0f, 0.0f, 0.0f };
+	tempEnemyInfo.fMaxSpeed = 0.1f;
+	tempEnemyInfo.fMaxForce = 0.01f;
 	m_pCreatedEnemies->push(tempEnemyInfo);
+	m_pEnemies->insert(std::pair<UINT, EnemyInfo>(tempEnemyInfo.iID, tempEnemyInfo));
 
 	// TO DO - remove to wave spawing function
 	PowerUpInfo tempPowerInfo;
@@ -161,6 +179,8 @@ void CMechanics_Server::Process()
 {
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
+
+	ProcessEnemies();
 }
 
 void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
@@ -198,6 +218,56 @@ void CMechanics_Server::ProcessAvatarMovement(ClientToServer* _pClientPacket)
 	Avatar->second.v3Dir = v3Dir;
 }
 
+void CMechanics_Server::ProcessEnemies()
+{
+	std::map<UINT, EnemyInfo>::iterator iterEnemy = m_pEnemies->begin();
+	while (iterEnemy != m_pEnemies->end())
+	{
+		switch (iterEnemy->second.eType)
+		{
+			case ET_DEMON:
+			{
+				ProcessDemonAI(&iterEnemy->second);
+				break;
+			}
+		}	// End Switch
+		iterEnemy++;
+	}
+}
+
+void CMechanics_Server::ProcessDemonAI(EnemyInfo* _enemyInfo)
+{
+	if (m_pAvatars->size() > 0)
+	{
+		// Find Avatar Target
+		std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->begin();
+		std::map<std::string, AvatarInfo>::iterator closestAvatar = iterAvatar;
+
+		// Calculate the distance from the first avatar
+		float fDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
+
+		while (iterAvatar != m_pAvatars->end())
+		{
+			// Caclulate the distance from the enemy to the current
+			float fNewDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
+			if (fNewDistance < fDistance)
+			{
+				// Set the closest avatar to the current avatar and update the distance for checking
+				closestAvatar = iterAvatar;
+				fDistance = fNewDistance;
+			}
+			iterAvatar++;
+		}
+		// Set the demons target to be the position of the closest avatar
+		_enemyInfo->v3Target = closestAvatar->second.v3Pos;
+
+		// Steerings
+		Seek(_enemyInfo);
+
+		
+	}
+}
+
 bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 {
 	// Erase old data
@@ -207,6 +277,7 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 	_pServerPacket->bCommand = false;
 	_pServerPacket->eCommand = ERROR_COMMAND;
 	_pServerPacket->CurrentUserCount = (int)(m_pAvatars->size());
+	_pServerPacket->CurrentEnemyCount = (int)(m_pEnemies->size());
 
 	// Add the Server as the username to the Packet structure
 	if (!(StringToStruct(m_strServerName.c_str(), _pServerPacket->cServerName, network::MAX_SERVERNAME_LENGTH)))
@@ -215,14 +286,25 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 	}
 
 	// Add all the Users to the Packet with their information status
-	std::map<std::string, AvatarInfo>::iterator iterCurrent = m_pAvatars->begin();
+	std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->begin();
 	int iIndex = 0;
-	while (iterCurrent != m_pAvatars->end())
+	while (iterAvatar != m_pAvatars->end())
 	{
-		_pServerPacket->Avatars[iIndex] = iterCurrent->second;
+		_pServerPacket->Avatars[iIndex] = iterAvatar->second;
 
 		iIndex++;
-		iterCurrent++;
+		iterAvatar++;
+	}
+
+	// Add all the Enemies to the Packet with their information status
+	std::map<UINT, EnemyInfo>::iterator iterEnemy = m_pEnemies->begin();
+	iIndex = 0;
+	while (iterEnemy != m_pEnemies->end())
+	{
+		_pServerPacket->Enemies[iIndex] = iterEnemy->second;
+
+		iIndex++;
+		iterEnemy++;
 	}
 
 	return true;

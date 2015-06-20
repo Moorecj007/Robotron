@@ -88,11 +88,18 @@ public:
 	CMesh* CreateCubeMesh(float _fSize, int _iTexID);
 
 	/***********************
-	* UpdateAvatars: Update the Avatar Information from the Packet from the server
+	* UpdateAvatars: Update the Avatar Objects from the Packet from the server
 	* @author: Callan Moore
 	* @return: void
 	********************/
 	void UpdateAvatars();
+
+	/***********************
+	* UpdateEnemies: Update the Enemy Objects from the Packet from the server
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void UpdateEnemies();
 
 	/***********************
 	* AddAvatar: Add an Avatar to the Container

@@ -167,11 +167,11 @@ struct v3float
 	********************/
 	v3float operator- (const v3float _v3) const
 	{
-		return v3float{ _v3.x - x, _v3.y - y, _v3.z - z };
+		return v3float{ x - _v3.x ,y - _v3.y, z - _v3.z};
 	}
 
 	/***********************
-	* operator-: Multiplication Operator for the v3float struct
+	* operator*: Multiplication Operator for a v3float times a v3float
 	* @author: Callan Moore
 	* @parameter: _v3: Right hand side of the multiplication
 	* @return: v3float: The result of the multiplication
@@ -181,9 +181,61 @@ struct v3float
 		return v3float{ _v3.x * x, _v3.y * y, _v3.z * z };
 	}
 
+	/***********************
+	* operator*: Multiplication Operator for a v3float times a float
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the multiplication
+	* @return: v3float: The result of the multiplication
+	********************/
+	v3float operator* (const float _f) const
+	{
+		return v3float{ _f * x, _f * y, _f * z };
+	}
+
+	/***********************
+	* Magnitude: Calculate the magnitude of this v3float
+	* @author: Callan Moore
+	* @return: float: The magnitude of the v3float
+	********************/
 	float Magnitude()
 	{
-		return ( sqrt( pow(x, 2) + pow(x, 2) + pow(x, 2)));
+		return ( sqrt( pow(x, 2) + pow(y, 2) + pow(z, 2)));
+	}
+
+	/***********************
+	* NormaliseV3Float: Normalise a vector of 3 floats
+	* @author: Callan Moore
+	* @parameter: _v3: vector to normalise
+	* @return: v3float: the normalised vector
+	********************/
+	v3float Normalise()
+	{
+		float fMagnitude = this->Magnitude();
+
+		if (fMagnitude != 0)
+		{
+			this->x = (this->x / fMagnitude);
+			this->y = (this->y / fMagnitude);
+			this->z = (this->z / fMagnitude);
+		}
+		return (*this);
+	}
+
+	/***********************
+	* Limit: Limit the magnitude of the vector if it is greater than the input float
+	* @author: Callan Moore
+	* @parameter: _f: vector to normalise
+	* @return: v3float: the normalised vector
+	********************/
+	v3float Limit(const float _f)
+	{
+		float fMagnitude = this->Magnitude();
+
+		if (fMagnitude > _f)
+		{
+			(*this) = (this->Normalise()) * _f;
+		}
+		return (*this);
 	}
 };
 

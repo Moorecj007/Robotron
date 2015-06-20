@@ -117,6 +117,7 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	m_pServerPacket = _pServerPacket;
 
 	UpdateAvatars();
+	UpdateEnemies();
 
 	// Process all the Avatars
 	std::map<std::string, CAvatar*>::iterator currentAvatar = m_pAvatars->begin();
@@ -256,6 +257,23 @@ void CMechanics_Client::UpdateAvatars()
 		iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
 
 		m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), *(iterAvatar->second->GetPosition()), *(iterAvatar->second->GetDirection()));
+	}
+}
+
+void CMechanics_Client::UpdateEnemies()
+{
+	// Iterator to point at the found Enemy
+	std::map<UINT, CEnemy*>::iterator iterEnemy;
+	
+	for (int i = 0; i < m_pServerPacket->CurrentEnemyCount; i++)
+	{
+		// Retrieve the username from the current UserInfo
+		EnemyInfo enemyInfo = (*m_pServerPacket).Enemies[i];
+		UINT iID = enemyInfo.iID;
+		iterEnemy = m_pEnemies->find(iID);
+
+		iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y, enemyInfo.v3Pos.z });
+		iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
 	}
 }
 

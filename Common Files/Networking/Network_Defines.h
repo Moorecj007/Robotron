@@ -104,6 +104,11 @@ struct EnemyInfo
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
+	v3float v3Acceleration;
+	v3float v3Target;
+	float fMaxSpeed;
+	float fMaxForce;
+	
 	
 	// TO DO: Add Other Variables
 };
@@ -147,6 +152,8 @@ struct ServerToClient
 	// Gameplay Information
 	int CurrentUserCount;
 	AvatarInfo Avatars[network::MAX_CLIENTS];
+
+	int CurrentEnemyCount;
 	EnemyInfo Enemies[network::MAX_ENEMY_SPAWNED];
 	
 };

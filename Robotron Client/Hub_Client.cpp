@@ -534,22 +534,22 @@ void CHub_Client::ProcessPacket(float _fDT)
 			}
 			case CREATE_ENEMY:
 			{
-				m_pMechanics->SpawnEnemy(m_pServerToClient);
+				m_pMechanics->SpawnEnemy(m_pPacketToProcess);
 				break;
 			}
 			case DELETE_ENEMY:
 			{
-				m_pMechanics->DeleteEnemy(m_pServerToClient);
+				m_pMechanics->DeleteEnemy(m_pPacketToProcess);
 				break;
 			}
 			case CREATE_POWERUP:
 			{
-				m_pMechanics->SpawnPower(m_pServerToClient);
+				m_pMechanics->SpawnPower(m_pPacketToProcess);
 				break;
 			}
 			case DELETE_POWERUP:
 			{
-				m_pMechanics->DeletePower(m_pServerToClient);
+				m_pMechanics->DeletePower(m_pPacketToProcess);
 				break;
 			}
 		}
