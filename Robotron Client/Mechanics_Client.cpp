@@ -417,6 +417,7 @@ void CMechanics_Client::CreateFlareAsset()
 {
 	ZeroMemory(&m_Flare, sizeof(m_Flare));
 	m_iFlareLightID = m_pRenderer->CreateFlareLight();
+
 }
 
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
