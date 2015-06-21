@@ -22,7 +22,27 @@
 
 // Local Includes
 #include "Particle.h"
-#include "IRenderer.h"
+#include "Graphics_Defines.h"
+
+// Structs
+
+struct VertexParticle
+{
+	D3DXVECTOR3 v3Position;
+	D3DCOLOR color;
+};
+
+struct Particle
+{
+	D3DXVECTOR3 v3Position;			// Position in world space
+	D3DXVECTOR3 v3Velocity;			// Units per second
+	D3DXVECTOR3 v3Acceleration;		// Units per second...
+	float fLifeSpan;				// Lifespan
+	float fAge;						// Current age
+	D3DXCOLOR color;				// Colour
+	D3DXCOLOR colorFade;			// Change over time
+	bool bAlive;					// True = Alive
+};
 
 class CParticleSystem
 {
@@ -31,9 +51,8 @@ public:
 	/***********************
 	* CParticleSystem: Default Constructor for ParticleSystem class
 	* @author: Callan Moore
-	* @parameter: _pRenderer: The Renderer for this application
 	********************/
-	CParticleSystem(IRenderer* _pRenderer);
+	CParticleSystem();
 
 	/***********************
 	* ~CParticleSystem: Default Constructor for ParticleSystem class
@@ -44,19 +63,60 @@ public:
 	/***********************
 	* Initialise: Initialise the Particle System for use
 	* @author: Callan Moore
-	* @parameter: _iNumParticles: Number of particles in the system
-	* @parameter: _fLifeSpan: Life span of each particle in the system
-	* @return: bool: Successful Initialisation (or not);
+	* @parameter: _pDevice: The Device of the application
+	* @return: bool: Successful Initialisation (or not)
 	********************/
-	bool Initialise(UINT _iNumParticles, float _fLifeSpan);
+	virtual bool Initialise(IDirect3DDevice9* _pDevice);
 
-private:
+	/***********************
+	* Reset: Resets the Particle System
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	virtual void Reset();
+
+	/***********************
+	* Reset: Resets a Particle in the System
+	* @author: Callan Moore
+	* @parameter: _pParticle: The Particle to reset
+	* @return: void
+	********************/
+	virtual void ResetParticle(Particle* _pParticle);
+
+	/***********************
+	* AddParticle: Adds a new Particle to the System
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	virtual void AddParticle();
+
+	virtual void Process(float _fDT) = 0;
+
+	virtual void PreDraw();
+
+	virtual void Draw();
+
+	virtual void PostDraw();
+
+	bool IsEmpty();
+
+	bool IsDead();
+
+protected:
+	virtual void RemoveDeadParticles();
+
+protected:
 	// Member Variables
-	IRenderer* m_pRenderer;
-	bool m_bActive;
-	std::vector<CParticle*>* m_pVecParticles;
-	float m_fParticleLifeSpan;
-	v3float m_v3Position;
+	IDirect3DDevice9* m_pDevice;
+	IDirect3DVertexBuffer9* m_pVertexBuffer;
+
+	D3DXVECTOR3 m_vec3Origin;
+	float m_fEmitRate;
+	float m_fSize;
+	int m_iMaxParticles;
+	unsigned int m_uiVertexBufferSize;
+
+	std::vector<Particle> m_vecParticles; 
 };
 
 #endif // __PARTICLESYSTEM_H__
