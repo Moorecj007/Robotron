@@ -36,6 +36,21 @@ CMechanics_Client::~CMechanics_Client()
 		m_pAvatars = 0;
 	}
 
+	// Delete the Container of Projectiles
+	if (m_pProjectiles != 0)
+	{
+		std::map<UINT, CProjectile*>::iterator currentProjectile = m_pProjectiles->begin();
+		while (currentProjectile != m_pProjectiles->end())
+		{
+			delete currentProjectile->second;
+			currentProjectile->second = 0;
+			currentProjectile++;
+		}
+
+		delete m_pProjectiles;
+		m_pProjectiles = 0;
+	}
+
 	// Delete the Container of Enemies
 	if (m_pEnemies != 0)
 	{
@@ -69,6 +84,8 @@ CMechanics_Client::~CMechanics_Client()
 	// Delete the created meshes
 	delete m_pAvatarMesh;
 	m_pAvatarMesh = 0;
+	delete m_pProjectileMesh;
+	m_pProjectileMesh = 0;
 	delete m_pDemonMesh;
 	m_pDemonMesh = 0;
 	delete m_pHealthMesh;
@@ -104,11 +121,13 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 
 	// Create the the containers for assets
 	m_pAvatars = new std::map < std::string, CAvatar*>;
+	m_pProjectiles = new std::map < UINT, CProjectile*>;
 	m_pEnemies = new std::map < UINT, CEnemy*>;
 	m_pPowerUps = new std::map < UINT, CPowerUp*>;
 
 	// Create the required Assets
 	CreateAvatarAsset();
+	CreateProjectileAsset();
 	CreateDemonAsset();
 	CreateHealthAsset();
 	CreateFlareAsset();
@@ -123,16 +142,9 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	m_pServerPacket = _pServerPacket;
 
 	UpdateAvatars();
+	UpdateProjectiles();
 	UpdateEnemies();
 	UpdateFlare();
-
-	// Process all the Avatars
-	std::map<std::string, CAvatar*>::iterator currentAvatar = m_pAvatars->begin();
-	while (currentAvatar != m_pAvatars->end())
-	{
-		currentAvatar->second->Process(_fDT);
-		currentAvatar++;
-	}
 
 	// Process the camera to keep it following the Avatar
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
@@ -160,6 +172,14 @@ void CMechanics_Client::Draw()
 	{
 		iterAvatar->second->Draw();
 		iterAvatar++;
+	}
+
+	// Draw all the Projectiles
+	std::map<UINT, CProjectile*>::iterator iterProjectile = m_pProjectiles->begin();
+	while (iterProjectile != m_pProjectiles->end())
+	{
+		iterProjectile->second->Draw();
+		iterProjectile++;
 	}
 
 	// Draw all the Enemies
@@ -259,7 +279,7 @@ void CMechanics_Client::UpdateAvatars()
 	// Iterator to point at the found Avatar
 	std::map<std::string, CAvatar*>::iterator iterAvatar;
 
-	for (int i = 0; i < m_pServerPacket->CurrentUserCount; i++)
+	for (int i = 0; i < m_pServerPacket->iCurrentUserCount; i++)
 	{
 		// Retrieve the username from the current UserInfo
 		AvatarInfo avatarInfo = (*m_pServerPacket).Avatars[i];
@@ -273,12 +293,29 @@ void CMechanics_Client::UpdateAvatars()
 	}
 }
 
+void CMechanics_Client::UpdateProjectiles()
+{
+	// Iterator to point at the found Projectile
+	std::map<UINT, CProjectile*>::iterator iterProjectile;
+
+	for (int i = 0; i < m_pServerPacket->iCurrentProjectileCount; i++)
+	{
+		// Retrieve the username from the current UserInfo
+		ProjectileInfo projectileInfo = (*m_pServerPacket).Projectiles[i];
+		std::string strUserName = (std::string)(projectileInfo.cUserName);
+		iterProjectile = m_pProjectiles->find(projectileInfo.iID);
+
+		iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
+		iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
+	}
+}
+
 void CMechanics_Client::UpdateEnemies()
 {
 	// Iterator to point at the found Enemy
 	std::map<UINT, CEnemy*>::iterator iterEnemy;
 	
-	for (int i = 0; i < m_pServerPacket->CurrentEnemyCount; i++)
+	for (int i = 0; i < m_pServerPacket->iCurrentEnemyCount; i++)
 	{
 		// Retrieve the username from the current UserInfo
 		EnemyInfo enemyInfo = (*m_pServerPacket).Enemies[i];
@@ -313,7 +350,7 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 {
 	AvatarInfo currentAvatarInfo;
 	// Temporarily store the user data 
-	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
+	for (int i = 0; i < _pServerPacket->iCurrentUserCount; i++)
 	{
 		if ((std::string)(_pServerPacket->cUserName) == (std::string)(_pServerPacket->Avatars[i].cUserName))
 		{
@@ -344,7 +381,7 @@ void CMechanics_Client::AddAllAvatars(ServerToClient* _pServerPacket)
 {
 	AvatarInfo currentAvatarInfo;
 	// Temporarily store the user data 
-	for (int i = 0; i < _pServerPacket->CurrentUserCount; i++)
+	for (int i = 0; i < _pServerPacket->iCurrentUserCount; i++)
 	{
 		currentAvatarInfo = _pServerPacket->Avatars[i];
 
@@ -395,7 +432,23 @@ void CMechanics_Client::CreateAvatarAsset()
 
 	// Avatar Mesh and Texture
 	m_iAvatarTexID = m_pRenderer->CreateTexture("Assets//Crate Side.bmp");
-	m_pAvatarMesh = CreateCubeMesh(0.5f, m_iAvatarTexID);
+	m_pAvatarMesh = CreateCubeMesh(kfAvatarSize, m_iAvatarTexID);
+}
+
+void CMechanics_Client::CreateProjectileAsset()
+{
+	// Create a material for the avatars to be made from
+	MaterialComposition ProjectileMatComp;
+	ProjectileMatComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+	ProjectileMatComp.diffuse = { 0.0f, 0.0f, 1.0f, 1.0f };
+	ProjectileMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	ProjectileMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	ProjectileMatComp.power = 0;
+	m_iProjectileMaterialID = m_pRenderer->CreateMaterial(ProjectileMatComp);
+
+	// Avatar Mesh and Texture
+	m_iProjectileTexID = m_pRenderer->CreateTexture("Assets//Projectile.bmp");
+	m_pProjectileMesh = CreateCubeMesh(kfProjectileSize, m_iProjectileTexID);
 }
 
 void CMechanics_Client::CreateDemonAsset()
@@ -411,7 +464,7 @@ void CMechanics_Client::CreateDemonAsset()
 
 	// Demon Enemy Mesh and Texture
 	m_iDemonTexID = m_pRenderer->CreateTexture("Assets//Demon.bmp");
-	m_pDemonMesh = CreateCubeMesh(1.0f, m_iDemonTexID);
+	m_pDemonMesh = CreateCubeMesh(kfDemonSize, m_iDemonTexID);
 }
 
 void CMechanics_Client::CreateHealthAsset()
@@ -427,7 +480,7 @@ void CMechanics_Client::CreateHealthAsset()
 
 	// Demon Enemy Mesh and Texture
 	m_iHealthTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
-	m_pHealthMesh = CreateCubeMesh(0.4f, m_iHealthTexID);
+	m_pHealthMesh = CreateCubeMesh(kfPowerUpSize, m_iHealthTexID);
 }
 
 void CMechanics_Client::CreateFlareAsset()
@@ -443,11 +496,38 @@ void CMechanics_Client::CreateFlareAsset()
 
 	// Flare Enemy Mesh and Texture
 	m_iFlareTexID = m_pRenderer->CreateTexture("Assets//Flare.bmp");
-	m_pFlareMesh = CreateCubeMesh(0.1f, m_iFlareTexID);
+	m_pFlareMesh = CreateCubeMesh(kfFlareSize, m_iFlareTexID);
 
 	m_pFlare = new CFlare(m_pRenderer);
 	m_pFlare->Initialise(m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
 
+}
+
+void CMechanics_Client::SpawnProjectile(ServerToClient* _pServerPacket)
+{
+	// Copy the info from the Packet
+	ProjectileInfo projectileInfo = _pServerPacket->projectileInfo;
+
+	// Create a new Projectile using the information from the Packet
+	CProjectile* tempProjectile = new CProjectile((std::string)projectileInfo.cUserName, projectileInfo.v3Dir, projectileInfo.iDamage);
+	tempProjectile->Initialise(m_pRenderer, m_pProjectileMesh, projectileInfo.iID, m_iProjectileMaterialID, projectileInfo.v3Pos);
+	tempProjectile->SetDirection(projectileInfo.v3Dir);
+
+	// Add the new Porjectile to the Map
+	std::pair<UINT, CProjectile*> newProjectile(projectileInfo.iID, tempProjectile);
+	m_pProjectiles->insert(newProjectile);
+}
+
+void CMechanics_Client::DeleteProjectile(ServerToClient* _pServerPacket)
+{
+	UINT iID = _pServerPacket->projectileInfo.iID;
+
+	// Delete the Projectile using its ID
+	std::map<UINT, CProjectile*>::iterator Projectile = m_pProjectiles->find(iID);
+	delete Projectile->second;
+
+	// Erase the Projectile using its ID
+	m_pProjectiles->erase(iID);
 }
 
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
@@ -478,7 +558,14 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 
 void CMechanics_Client::DeleteEnemy(ServerToClient* _pServerPacket)
 {
-	// TO DO
+	UINT iID = _pServerPacket->enemyInfo.iID;
+
+	// Delete the Enemy using its ID
+	std::map<UINT, CEnemy*>::iterator Enemy = m_pEnemies->find(iID);
+	delete Enemy->second;
+
+	// Erase the Enemy using its ID
+	m_pEnemies->erase(iID);
 }
 
 void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
@@ -509,5 +596,12 @@ void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
 
 void CMechanics_Client::DeletePower(ServerToClient* _pServerPacket)
 {
-	// TO DO
+	UINT iID = _pServerPacket->powerInfo.iID;
+
+	// Delete the PowerUp using its ID
+	std::map<UINT, CPowerUp*>::iterator PowerUp = m_pPowerUps->find(iID);
+	delete PowerUp->second;
+
+	// Erase the Enemy using its ID
+	m_pPowerUps->erase(iID);
 }

@@ -401,7 +401,7 @@ void CHub_Client::ProcessPacket(float _fDT)
 				AvailableServer tempServer;
 				strcpy_s(tempServer.cServerName, m_pPacketToProcess->cServerName);
 				strcpy_s(tempServer.cHostName, m_pPacketToProcess->cUserName);
-				tempServer.iCurrentClients = m_pPacketToProcess->CurrentUserCount;
+				tempServer.iCurrentClients = m_pPacketToProcess->iCurrentUserCount;
 				tempServer.ServerAddr = m_pPacketToProcess->ServerAddr;
 
 				bool bInserted = false;
@@ -432,7 +432,7 @@ void CHub_Client::ProcessPacket(float _fDT)
 				//InsertUser(m_strUserName);
 				m_eUserNameFailed = eProcessCommand;
 
-				for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
+				for (int i = 0; i < m_pPacketToProcess->iCurrentUserCount; i++)
 				{
 					InsertUser(m_pPacketToProcess->Avatars[i].cUserName, m_pPacketToProcess->Avatars[i]);
 					//m_pGameMechanics->AddAvatar(m_pPacketToProcess);
@@ -498,7 +498,7 @@ void CHub_Client::ProcessPacket(float _fDT)
 			{
 				// Get the boolean value
 				bool bAliveness;
-				for (int i = 0; i < m_pPacketToProcess->CurrentUserCount; i++)
+				for (int i = 0; i < m_pPacketToProcess->iCurrentUserCount; i++)
 				{
 					if ((std::string)m_pPacketToProcess->cUserName == (std::string)m_pPacketToProcess->Avatars[i].cUserName)
 					{
@@ -530,6 +530,16 @@ void CHub_Client::ProcessPacket(float _fDT)
 				{
 					m_eScreenState = STATE_TERMINATED_SERVER;
 				}
+				break;
+			}
+			case CREATE_PROJECTILE:
+			{
+				m_pMechanics->SpawnProjectile(m_pPacketToProcess);
+				break;
+			}
+			case DELETE_PROJECTILE:
+			{
+				m_pMechanics->DeleteProjectile(m_pPacketToProcess);
 				break;
 			}
 			case CREATE_ENEMY:

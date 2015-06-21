@@ -29,6 +29,10 @@ CMechanics_Server::~CMechanics_Server()
 	delete m_pAvatars;
 	m_pAvatars = 0;
 
+	// Delete the container of Projectiles
+	delete m_pProjectiles;
+	m_pProjectiles = 0;
+
 	// Delete the container of Enemies
 	delete m_pEnemies;
 	m_pEnemies = 0;
@@ -36,6 +40,12 @@ CMechanics_Server::~CMechanics_Server()
 	// Delete the container of PowerUps
 	delete m_pPowerUps;
 	m_pPowerUps = 0;
+
+	// Delete the queues of Projectiles
+	delete m_pDeletedProjectiles;
+	m_pDeletedProjectiles = 0;
+	delete m_pCreatedProjectiles;
+	m_pCreatedProjectiles = 0;
 
 	// Delete the queues of enemies
 	delete m_pDeletedEnemies;
@@ -51,6 +61,41 @@ CMechanics_Server::~CMechanics_Server()
 }
 
 // Getters
+bool CMechanics_Server::GetNextDeletedProjectile(ProjectileInfo* _projectileInfo)
+{
+	// Check if any enemies are in queue to be created
+	if (m_pDeletedProjectiles->empty() == false)
+	{
+		// Find the info of the Deleted Projectile
+		*_projectileInfo = m_pDeletedProjectiles->front();
+
+		// Erase from the Map of Projectile
+		m_pProjectiles->erase(_projectileInfo->iID);
+
+		// remove the queued enemy
+		m_pDeletedProjectiles->pop();
+		return true;
+	}
+
+	return false;
+}
+
+bool CMechanics_Server::GetNextCreatedProjectile(ProjectileInfo* _projectileInfo)
+{
+	// Check if any Projectile are in queue to be created
+	if (m_pCreatedProjectiles->empty() == false)
+	{
+		// Find the info of the Created Projectile
+		*_projectileInfo = m_pCreatedProjectiles->front();
+
+		// remove the queued projectile
+		m_pCreatedProjectiles->pop();
+		return true;
+	}
+
+	return false;
+}
+
 bool CMechanics_Server::GetNextDeletedEnemy(EnemyInfo* _enemyInfo)
 {
 	// Check if any enemies are in queue to be created
@@ -59,8 +104,11 @@ bool CMechanics_Server::GetNextDeletedEnemy(EnemyInfo* _enemyInfo)
 		// Find the info of the Created enemy
 		*_enemyInfo = m_pDeletedEnemies->front();
 
+		// Erase from the Map of Enemies
+		m_pEnemies->erase(_enemyInfo->iID);
+
 		// remove the queued enemy
-		m_pCreatedEnemies->pop();
+		m_pDeletedEnemies->pop();
 		return true;
 	}
 
@@ -136,11 +184,18 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// Create the Container for the Avatars
 	m_pAvatars = new std::map<std::string, AvatarInfo>;
 
+	// Create the Container for the Projectiles
+	m_pProjectiles = new std::map<UINT, ProjectileInfo>;
+
 	// Create the Container for the Enemies
 	m_pEnemies = new std::map<UINT, EnemyInfo>;
 
 	// Create the Container for the PowerUps
 	m_pPowerUps = new std::map<UINT, PowerUpInfo>;
+
+	// Create the Queues for Created and Deleted Projectiles
+	m_pDeletedProjectiles = new std::queue<ProjectileInfo>;
+	m_pCreatedProjectiles = new std::queue<ProjectileInfo>;
 
 	// Create the Queues for Created and Deleted Enemies
 	m_pDeletedEnemies = new std::queue<EnemyInfo>;
@@ -160,6 +215,8 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	tempEnemyInfo.v3Acceleration = { 0.0f, 0.0f, 0.0f };
 	tempEnemyInfo.fMaxSpeed = 3.0f;
 	tempEnemyInfo.fMaxForce = 30.0f;
+	tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + kfDemonSize;
+	tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - kfDemonSize;
 	m_pCreatedEnemies->push(tempEnemyInfo);
 	m_pEnemies->insert(std::pair<UINT, EnemyInfo>(tempEnemyInfo.iID, tempEnemyInfo));
 
@@ -170,6 +227,8 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	tempPowerInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
 	tempPowerInfo.v3Pos = { -10.0f, 0.0f, 0.0f };
 	tempPowerInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+	tempPowerInfo.BBox.v3Max = tempPowerInfo.v3Pos + kfPowerUpSize;
+	tempPowerInfo.BBox.v3Min = tempPowerInfo.v3Pos - kfPowerUpSize;
 	m_pCreatedPowerUps->push(tempPowerInfo);
 
 	return true;
@@ -179,7 +238,8 @@ void CMechanics_Server::Process()
 {
 	m_pClock->Process();
 	float fDT = m_pClock->GetDeltaTick();
-
+	
+	ProcessProjectiles();
 	ProcessEnemies(fDT);
 	ProcessFlare();
 }
@@ -190,6 +250,9 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 	float fDT = m_pClock->GetDeltaTick();
 
 	Controls avatarControls = _pClientPacket->activatedControls;
+	std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find(_pClientPacket->cUserName);
+
+	// Check if the Avatar has activated a Flare
 	if (avatarControls.bFlare == true)
 	{
 		if (m_bFlareActive == true)
@@ -214,29 +277,45 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 		}
 	}
 
-	std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find(_pClientPacket->cUserName);
+	if (avatarControls.bAction == true)
+	{
+		// Create a new Projectile
+		ProjectileInfo tempProjectileInfo;
+		tempProjectileInfo.iID = m_iNextObjectID++;
+		StringToStruct(Avatar->second.cUserName, tempProjectileInfo.cUserName, network::MAX_USERNAME_LENGTH);
+		tempProjectileInfo.v3Dir = Avatar->second.v3Dir;
+		tempProjectileInfo.v3Pos = Avatar->second.v3Pos;
+		tempProjectileInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+		tempProjectileInfo.fMaxSpeed = 30.0f;
+		tempProjectileInfo.BBox.v3Max = tempProjectileInfo.v3Pos + kfProjectileSize;
+		tempProjectileInfo.BBox.v3Min = tempProjectileInfo.v3Pos - kfProjectileSize;
+
+		// Add to both the queue of created and to the servers Map of Projectiles
+		m_pCreatedProjectiles->push(tempProjectileInfo);
+		m_pProjectiles->insert(std::pair<UINT, ProjectileInfo>(tempProjectileInfo.iID, tempProjectileInfo));
+	}
 
 	// Process the Avatars movement for Position
-	v3float v3Movement = { 0, 0, 0 };
+	Avatar->second.v3Vel = { 0, 0, 0 };
 	if (avatarControls.bUp == true)
 	{
-		v3Movement.z += 1;
+		Avatar->second.v3Vel.z += 1;
 	}
 	if (avatarControls.bDown == true)
 	{
-		v3Movement.z += -1;
+		Avatar->second.v3Vel.z += -1;
 	}
 	if (avatarControls.bRight == true)
 	{
-		v3Movement.x += 1;
+		Avatar->second.v3Vel.x += 1;
 	}
 	if (avatarControls.bLeft == true)
 	{
-		v3Movement.x += -1;
+		Avatar->second.v3Vel.x += -1;
 	}
-	NormaliseV3Float(&v3Movement);
-	v3Movement = v3Movement * (Avatar->second.fMaxSpeed * fDT);
-	Avatar->second.v3Pos += v3Movement;
+	Avatar->second.v3Vel.Normalise();
+	Avatar->second.v3Vel = Avatar->second.v3Vel * (Avatar->second.fMaxSpeed * fDT);
+	Avatar->second.v3Pos += Avatar->second.v3Vel;
 
 	// Calculate the Avatars Look direction
 	POINT pt = _pClientPacket->activatedControls.ptMouse;
@@ -246,6 +325,88 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 	v3float v3Dir = { (float)pt.x, 0.0f, (float)(-pt.y) };
 	NormaliseV3Float(&v3Dir);
 	Avatar->second.v3Dir = v3Dir;
+
+	// Calculate the Avatars updated Bounding Box
+	Avatar->second.BBox.v3Max = Avatar->second.v3Pos + (1.1f * kfAvatarSize);
+	Avatar->second.BBox.v3Min = Avatar->second.v3Pos - (1.1f * kfAvatarSize);
+
+	bool bCollisionDetected = false;
+	// Check for Collisions with Avatars
+	std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
+	while (iterCollisionAvatar != m_pAvatars->end())
+	{
+		if (Avatar->second.iID != iterCollisionAvatar->second.iID)
+		{
+			if (CollisionCheck(Avatar->second.BBox, iterCollisionAvatar->second.BBox) == true)
+			{
+				bCollisionDetected = true;
+				break;
+			}
+		}
+		iterCollisionAvatar++;
+	}
+
+	// Check only if a collision hasn't already been detected
+	if (bCollisionDetected == false)
+	{
+		// Check for collisions with other Enemies
+		std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
+		while (iterCollisionEnemy != m_pEnemies->end())
+		{
+			if (CollisionCheck(Avatar->second.BBox, iterCollisionEnemy->second.BBox) == true)
+			{
+				bCollisionDetected = true;
+				break;
+			}
+
+			iterCollisionEnemy++;
+		}
+	}
+
+	if (bCollisionDetected == true)
+	{
+		// Revert the Enemy back to their original position before moving
+		Avatar->second.v3Pos -= Avatar->second.v3Vel;
+
+		// Revert the Bounding box to before the move
+		Avatar->second.BBox.v3Max = Avatar->second.v3Pos + (1.1f * kfAvatarSize);
+		Avatar->second.BBox.v3Min = Avatar->second.v3Pos - (1.1f * kfAvatarSize);
+	}
+
+}
+
+void CMechanics_Server::ProcessProjectiles()
+{
+	float fDT = m_pClock->GetDeltaTick();
+
+	std::map<UINT, ProjectileInfo>::iterator iterProjectile = m_pProjectiles->begin();
+	while (iterProjectile != m_pProjectiles->end())
+	{
+		// Update the Projectiles Position
+		iterProjectile->second.v3Vel = iterProjectile->second.v3Dir.Normalise() * (iterProjectile->second.fMaxSpeed * fDT);
+		iterProjectile->second.v3Pos += iterProjectile->second.v3Vel;
+
+		// Calculate the Projectile updated Bounding Box
+		iterProjectile->second.BBox.v3Max = iterProjectile->second.v3Pos + (1.1f * kfProjectileSize);
+		iterProjectile->second.BBox.v3Min = iterProjectile->second.v3Pos - (1.1f * kfProjectileSize);
+
+		// Check for collisions with Enemies
+		std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
+		while (iterCollisionEnemy != m_pEnemies->end())
+		{
+			if (CollisionCheck(iterProjectile->second.BBox, iterCollisionEnemy->second.BBox) == true)
+			{
+				// TO DO - Damage the Enemy
+				m_pDeletedEnemies->push(iterCollisionEnemy->second);
+				m_pDeletedProjectiles->push(iterProjectile->second);
+
+				break;
+			}
+			iterCollisionEnemy++;
+		}
+
+		iterProjectile++;
+	}
 }
 
 void CMechanics_Server::ProcessFlare()
@@ -268,12 +429,12 @@ void CMechanics_Server::ProcessFlare()
 		{
 			m_Flare.fRange += (m_Flare.fMaxSpeed * fDT);
 		}
-
 	}
 }
 
 void CMechanics_Server::ProcessEnemies(float _fDT)
 {
+	float fEnemySize;
 	std::map<UINT, EnemyInfo>::iterator iterEnemy = m_pEnemies->begin();
 	while (iterEnemy != m_pEnemies->end())
 	{
@@ -281,15 +442,63 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 		{
 			case ET_DEMON:
 			{
-				ProcessDemonAI(&iterEnemy->second, _fDT);
+				ProcessDemon(&iterEnemy->second, _fDT);
+				fEnemySize = kfDemonSize;
 				break;
 			}
 		}	// End Switch
+
+		// Calculate the Enemies updated Bounding Box
+		iterEnemy->second.BBox.v3Max = iterEnemy->second.v3Pos + (1.1f * fEnemySize);
+		iterEnemy->second.BBox.v3Min = iterEnemy->second.v3Pos - (1.1f * fEnemySize);
+		
+		bool bCollisionDetected = false;
+		// Check for Collisions with Avatars
+		std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
+		while (iterCollisionAvatar != m_pAvatars->end())
+		{
+			if (CollisionCheck(iterEnemy->second.BBox, iterCollisionAvatar->second.BBox) == true)
+			{
+				bCollisionDetected = true;
+				break;
+			}
+			iterCollisionAvatar++;
+		}
+		
+		// Check only if a collision hasn't already been detected
+		if (bCollisionDetected == false)
+		{
+			// Check for collisions with other Enemies
+			std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
+			while (iterCollisionEnemy != m_pEnemies->end())
+			{
+				if (iterEnemy->second.iID != iterCollisionEnemy->second.iID)
+				{
+					if (CollisionCheck(iterEnemy->second.BBox, iterCollisionEnemy->second.BBox) == true)
+					{
+						bCollisionDetected = true;
+						break;
+					}
+				}
+				iterCollisionEnemy++;
+			}
+		}
+		
+		if (bCollisionDetected == true)
+		{
+			// Revert the Enemy back to their original position before moving
+			iterEnemy->second.v3Pos -= iterEnemy->second.v3Vel;
+
+			// Revert the Bounding box to before the move
+			iterEnemy->second.BBox.v3Max = iterEnemy->second.v3Pos + (1.1f * fEnemySize);
+			iterEnemy->second.BBox.v3Min = iterEnemy->second.v3Pos - (1.1f * fEnemySize);
+		}
+
 		iterEnemy++;
 	}
 }
 
-void CMechanics_Server::ProcessDemonAI(EnemyInfo* _enemyInfo, float _fDT)
+void CMechanics_Server::ProcessDemon(EnemyInfo* _enemyInfo, float _fDT)
 {
 	if (m_pAvatars->size() > 0)
 	{
@@ -317,8 +526,6 @@ void CMechanics_Server::ProcessDemonAI(EnemyInfo* _enemyInfo, float _fDT)
 
 		// Steerings
 		Seek(_enemyInfo, _fDT);
-
-		
 	}
 }
 
@@ -330,8 +537,9 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 	// Fill basic information of the packet
 	_pServerPacket->bCommand = false;
 	_pServerPacket->eCommand = ERROR_COMMAND;
-	_pServerPacket->CurrentUserCount = (int)(m_pAvatars->size());
-	_pServerPacket->CurrentEnemyCount = (int)(m_pEnemies->size());
+	_pServerPacket->iCurrentUserCount = (int)(m_pAvatars->size());
+	_pServerPacket->iCurrentEnemyCount = (int)(m_pEnemies->size());
+	_pServerPacket->iCurrentProjectileCount = (int)(m_pProjectiles->size());
 
 	// Add the Server as the username to the Packet structure
 	if (!(StringToStruct(m_strServerName.c_str(), _pServerPacket->cServerName, network::MAX_SERVERNAME_LENGTH)))
@@ -339,7 +547,7 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 		return false;	// Data invalid - Data Packet failed to create
 	}
 
-	// Add all the Users to the Packet with their information status
+	// Add all the Avatars to the Packet with their information status
 	std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->begin();
 	int iIndex = 0;
 	while (iterAvatar != m_pAvatars->end())
@@ -359,6 +567,17 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 
 		iIndex++;
 		iterEnemy++;
+	}
+
+	// Add all the Projectiles to the Packet with their information status
+	std::map<UINT, ProjectileInfo>::iterator iterProjectile = m_pProjectiles->begin();
+	iIndex = 0;
+	while (iterProjectile != m_pProjectiles->end())
+	{
+		_pServerPacket->Projectiles[iIndex] = iterProjectile->second;
+
+		iIndex++;
+		iterProjectile++;
 	}
 
 	// Add the Flare to the Data Packet
@@ -381,6 +600,9 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.iID = m_iNextObjectID++;
 	tempAvatarInfo.fMaxSpeed = 10.0f;
+
+	tempAvatarInfo.BBox.v3Max = tempAvatarInfo.v3Pos + kfAvatarSize;
+	tempAvatarInfo.BBox.v3Min = tempAvatarInfo.v3Pos - kfAvatarSize;
 
 	std::pair<std::string, AvatarInfo> newAvatar((std::string)_pClientPacket->cUserName, tempAvatarInfo);
 	m_pAvatars->insert(newAvatar);
@@ -435,3 +657,23 @@ bool CMechanics_Server::CheckAllAvatarsReady()
 	return bAllReady;
 }
 
+bool CMechanics_Server::CollisionCheck(BoundingBox _BBoxCaller, BoundingBox _BBoxTarget)
+{
+
+	if (	(_BBoxCaller.v3Max.x >= _BBoxTarget.v3Min.x)
+		&&	(_BBoxCaller.v3Max.y >= _BBoxTarget.v3Min.y)
+		&&	(_BBoxCaller.v3Max.z >= _BBoxTarget.v3Min.z)
+		&&	(_BBoxCaller.v3Min.x <= _BBoxTarget.v3Max.x)
+		&&	(_BBoxCaller.v3Min.y <= _BBoxTarget.v3Max.y)
+		&&	(_BBoxCaller.v3Min.z <= _BBoxTarget.v3Max.z)
+		)
+	{
+		// Collision has been detected
+		return true;
+	}
+	else
+	{
+		// Collision NOT detected
+		return false;
+	}
+}

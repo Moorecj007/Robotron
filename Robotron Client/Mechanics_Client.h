@@ -25,6 +25,7 @@
 #include "../Common Files/Graphics/Mesh.h"
 #include "../Common Files/Graphics/IRenderer.h"
 #include "../Common Files/Graphics/Avatar.h"
+#include "../Common Files/Graphics/Projectile.h"
 #include "../Common Files/Graphics/Enemy.h"
 #include "../Common Files/Graphics/PowerUp.h"
 #include "../Common Files/Graphics/Flare.h"
@@ -96,6 +97,13 @@ public:
 	void UpdateAvatars();
 
 	/***********************
+	* UpdateProjectiles: Update the Projectile Objects from the Packet from the server
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void UpdateProjectiles();
+
+	/***********************
 	* UpdateEnemies: Update the Enemy Objects from the Packet from the server
 	* @author: Callan Moore
 	* @return: void
@@ -141,6 +149,13 @@ public:
 	void CreateAvatarAsset();
 
 	/***********************
+	* CreateProjectileAsset: Create all required assets for the creation of Projectiles
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateProjectileAsset();
+
+	/***********************
 	* CreateDemonAsset: Create all required assets for the creation of Demon Enemies
 	* @author: Callan Moore
 	* @return: void
@@ -160,6 +175,22 @@ public:
 	* @return: void
 	********************/
 	void CreateFlareAsset();
+
+	/***********************
+	* SpawnProjectile: Spawn a new projectile
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet containing the details about the new projectile
+	* @return: void
+	********************/
+	void SpawnProjectile(ServerToClient* _pServerPacket);
+
+	/***********************
+	* DeleteProjectile: Delete an existing projectile
+	* @author: Callan Moore
+	* @parameter: _pServerPacket: Packet containing the details about the projectile to delete
+	* @return: void
+	********************/
+	void DeleteProjectile(ServerToClient* _pServerPacket);
 
 	/***********************
 	* SpawnEnemy: Spawn a new enemy
@@ -211,10 +242,16 @@ private:
 	int m_iBlankTextureID;
 
 	// Avatars
+	std::map<std::string, CAvatar*>* m_pAvatars;
 	CMesh* m_pAvatarMesh;
 	int m_iAvatarMaterialID;
 	int m_iAvatarTexID;
-	std::map<std::string, CAvatar*>* m_pAvatars;
+
+	// Projectiles
+	std::map<UINT, CProjectile*>* m_pProjectiles;
+	CMesh* m_pProjectileMesh;
+	int m_iProjectileMaterialID;
+	int m_iProjectileTexID;
 
 	// Enemies
 	std::map<UINT, CEnemy*>* m_pEnemies;

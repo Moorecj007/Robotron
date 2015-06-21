@@ -177,9 +177,23 @@ void CHub_Server::Process()
 		// Process the Mechanics
 		m_pMechanics->Process();
 		
-		// Create Command Packets for Deleted and created Enemies
+		// Create Command Packets for Deleted and created Projectiles
+		ProjectileInfo projectileInfo;
 		EnemyInfo enemyInfo;
 		PowerUpInfo powerInfo;
+		while (m_pMechanics->GetNextDeletedProjectile(&projectileInfo) == true)
+		{
+			CreateCommandPacket(DELETE_PROJECTILE);
+			m_pServerToClient->projectileInfo = projectileInfo;
+			SendPacket(m_pServerToClient);
+		}
+		while (m_pMechanics->GetNextCreatedProjectile(&projectileInfo) == true)
+		{
+			CreateCommandPacket(CREATE_PROJECTILE);
+			m_pServerToClient->projectileInfo = projectileInfo;
+			SendPacket(m_pServerToClient);
+		}
+		// Create Command Packets for Deleted and created Enemies
 		while (m_pMechanics->GetNextDeletedEnemy(&enemyInfo) == true)
 		{
 			CreateCommandPacket(DELETE_ENEMY);
@@ -192,6 +206,7 @@ void CHub_Server::Process()
 			m_pServerToClient->enemyInfo = enemyInfo;
 			SendPacket(m_pServerToClient);
 		}
+		// Create Command Packets for Deleted and created PowerUps
 		while (m_pMechanics->GetNextDeletedPower(&powerInfo) == true)
 		{
 			CreateCommandPacket(DELETE_POWERUP);
@@ -205,8 +220,6 @@ void CHub_Server::Process()
 			SendPacket(m_pServerToClient);
 		}
 		
-
-
 		// Send the Data packet with the current states
 		m_pMechanics->CreateDataPacket(m_pServerToClient);
 		SendPacket(m_pServerToClient);
@@ -383,7 +396,7 @@ bool CHub_Server::CreateCommandPacket(eNetworkCommand _eCommand)
 	m_pMechanics->AddAvatarsToPacket(m_pServerToClient);
 
 	//Add the Current user count to the packet
-	m_pServerToClient->CurrentUserCount = (int)m_pCurrentUsers->size();
+	m_pServerToClient->iCurrentUserCount = (int)m_pCurrentUsers->size();
 
 	return true;
 }

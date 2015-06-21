@@ -30,6 +30,13 @@
 // Defines
 #define VALIDATE(a) if (!a) return (false)
 
+// Constants
+const float kfAvatarSize		= 0.5f;
+const float kfProjectileSize	= 0.1f;
+const float kfDemonSize			= 1.0f;
+const float kfPowerUpSize		= 0.4f;
+const float kfFlareSize			= 0.1f;
+
 // Enumerators
 enum eScreenState
 {
@@ -142,7 +149,7 @@ struct v3float
 	}
 
 	/***********************
-	* operator+: Addition Operator for the v3float struct
+	* operator+: Addition Operator for the v3float struct plus a v3float
 	* @author: Callan Moore
 	* @parameter: _v3: Right hand side of the addition
 	* @return: v3float: The result of the addition
@@ -150,6 +157,17 @@ struct v3float
 	v3float operator+ (const v3float _v3) const
 	{
 		return v3float{ _v3.x + x, _v3.y + y, _v3.z + z };
+	}
+
+	/***********************
+	* operator+: Addition Operator for the v3float struct plus a float
+	* @author: Callan Moore
+	* @parameter: _f: Right hand side of the addition
+	* @return: v3float: The result of the addition
+	********************/
+	v3float operator+ (const float _f) const
+	{
+		return v3float{ _f + x, _f + y, _f + z };
 	}
 
 	/***********************
@@ -164,7 +182,7 @@ struct v3float
 	}
 
 	/***********************
-	* operator-: Subtraction Operator for the v3float struct
+	* operator-: Subtraction Operator for the v3float struct minus a v3float
 	* @author: Callan Moore
 	* @parameter: _v3: Right hand side of the subtraction
 	* @return: v3float: The result of the subtraction
@@ -172,6 +190,28 @@ struct v3float
 	v3float operator- (const v3float _v3) const
 	{
 		return v3float{ x - _v3.x ,y - _v3.y, z - _v3.z};
+	}
+
+	/***********************
+	* operator-: Subtraction Operator for the v3float struct minus a float
+	* @author: Callan Moore
+	* @parameter: _f: Right hand side of the subtraction
+	* @return: v3float: The result of the subtraction
+	********************/
+	v3float operator- (const float _f) const
+	{
+		return v3float{ x - _f, y - _f, z - _f };
+	}
+
+	/***********************
+	* operator-=: Subtraction Assignment Operator for the v3float struct minus a v3float
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the subtraction
+	* @return: v3float: The result of the subtraction
+	********************/
+	v3float operator-= (const v3float _v3)
+	{
+		return v3float{ x -= _v3.x, y -= _v3.y, z -= _v3.z };
 	}
 
 	/***********************
@@ -241,6 +281,12 @@ struct v3float
 		}
 		return (*this);
 	}
+};
+
+struct BoundingBox
+{
+	v3float v3Min;
+	v3float v3Max;
 };
 
 struct Controls

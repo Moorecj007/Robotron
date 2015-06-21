@@ -30,10 +30,10 @@ public:
 	* CProjectile: Contructor for Projectile class
 	* @author: Callan Moore
 	* @parameter: _strAvatarCreator: The Username of the Avatar that created this projectile
-	* @parameter: _v3Pos: The starting position of the projectile
 	* @parameter: _v3Dir: Direction the projectile is fired in
+	* @parameter: _fDamage: Damage of the Projectile based on the player
 	********************/
-	CProjectile(std::string _strAvatar, v3float _v3Pos, v3float _v3Dir);
+	CProjectile(std::string _strAvatar, v3float _v3Dir, UINT _fDamage);
 
 	/***********************
 	* ~CProjectile: Default Contructor for Projectile class
@@ -57,7 +57,6 @@ public:
 private:
 	// Member Variables
 	std::string m_strAvatarCreator;
-	
 };
 
 #endif // __PROJECTILE_H__

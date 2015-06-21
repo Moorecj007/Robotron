@@ -20,14 +20,6 @@ CFlare::CFlare(IRenderer* _pRenderer)
 {
 	m_iFlareLightID = _pRenderer->CreateFlareLight();
 	m_bActive = false;
-
-	//m_fParticleLifeSpan = 0.2f;
-	//// Create the Particles for the system
-	//for (int i = 0; i < m_iParticleCount; i++)
-	//{
-	//	m_pParticles[i] = new CParticle(m_fParticleLifeSpan);
-	//}
-	
 }
 
 CFlare::~CFlare()
@@ -57,6 +49,4 @@ void CFlare::UpdateFlareLight(v3float _v3Pos, float _fRange, float _fDT)
 	m_v3Position = _v3Pos;
 	m_fRange = _fRange;
 	m_pRenderer->UpdateFlareLight(m_iFlareLightID, m_v3Position, m_fRange);
-
-	
 }

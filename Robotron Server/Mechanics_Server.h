@@ -46,6 +46,22 @@ public:
 	// Getters
 
 	/***********************
+	* GetNextDeletedProjectile: Retrieve the Info of the next Projected that has been deleted
+	* @author: Callan Moore
+	* @parameter: _projectileInfo: Info of the projectile to be deleted
+	* @return: bool: True if another projectile to be deleted exists
+	********************/
+	bool GetNextDeletedProjectile(ProjectileInfo* _projectileInfo);
+
+	/***********************
+	* GetNextCreatedProjectile: Retrieve the Info of the next Projectile to be Spawned
+	* @author: Callan Moore
+	* @parameter: _projectileInfo: Info of the next projectile to be spawned
+	* @return: bool: True if another projectile to be spawned exists
+	********************/
+	bool GetNextCreatedProjectile(ProjectileInfo* _projectileInfo);
+
+	/***********************
 	* GetNextDeletedEnemy: Retrieve the Info of the next Enemy that has been killed
 	* @author: Callan Moore
 	* @parameter: _enemyInfo: Info of the enemy to be deleted
@@ -114,6 +130,13 @@ public:
 	void ProcessAvatar(ClientToServer* _pClientPacket);
 
 	/***********************
+	* ProcessProjectiles: Process the Projectiles
+	* @author: Callan Moore
+	* @parameter: void
+	********************/
+	void ProcessProjectiles();
+
+	/***********************
 	* ProcessFlare: Process the Flares
 	* @author: Callan Moore
 	* @parameter: void
@@ -129,13 +152,13 @@ public:
 	void ProcessEnemies(float _fDT);
 
 	/***********************
-	* ProcessDemonAI: Process a Demons enemies AI capabilities
+	* ProcessDemon: Process a Demons enemies AI capabilities
 	* @author: Callan Moore
 	* @parameter: _enemyInfo: Enemy Info structure of the Demon enemy
 	* @parameter: _fDT: The current Delta Tick
 	* @parameter: void
 	********************/
-	void ProcessDemonAI(EnemyInfo* _enemyInfo, float _fDT);
+	void ProcessDemon(EnemyInfo* _enemyInfo, float _fDT);
 
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
@@ -176,6 +199,15 @@ public:
 	********************/
 	bool CheckAllAvatarsReady();
 
+	/***********************
+	* CollsionCheck: Check if there is a collision between the calling object and another target object
+	* @author: Callan Moore
+	* @parameter: _BBoxCaller: Bounding Box of the Calling Object
+	* @parameter: _BBoxTarget: Bounding Box of the Target Object
+	* @return: bool: If there is a collison
+	********************/
+	bool CollisionCheck(BoundingBox _BBoxCaller, BoundingBox _BBoxTarget);
+
 
 private:
 	// Member Variables
@@ -185,6 +217,11 @@ private:
 
 	// Avatar Variables
 	std::map<std::string, AvatarInfo>* m_pAvatars;
+
+	// Projectile Variables
+	std::map<UINT, ProjectileInfo>* m_pProjectiles;
+	std::queue<ProjectileInfo>* m_pDeletedProjectiles;
+	std::queue<ProjectileInfo>* m_pCreatedProjectiles;
 
 	// Enemy Variables
 	std::map<UINT, EnemyInfo>* m_pEnemies;

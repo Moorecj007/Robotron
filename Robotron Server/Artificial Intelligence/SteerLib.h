@@ -29,11 +29,6 @@
 ********************/
 inline void Seek(EnemyInfo* _enemyInfo, float _fDT)
 {
-	//_enemyInfo->v3Dir = _enemyInfo->v3Target - _enemyInfo->v3Pos;
-	//_enemyInfo->v3Dir = _enemyInfo->v3Dir.Normalise();
-	//_enemyInfo->v3Vel = _enemyInfo->v3Dir * _enemyInfo->fMaxSpeed;
-	//_enemyInfo->v3Pos += _enemyInfo->v3Vel;
-
 	v3float v3Desired = _enemyInfo->v3Target - _enemyInfo->v3Pos;
 	v3Desired = v3Desired.Normalise();
 	v3Desired = v3Desired * (_enemyInfo->fMaxSpeed * _fDT);
@@ -46,23 +41,10 @@ inline void Seek(EnemyInfo* _enemyInfo, float _fDT)
 	_enemyInfo->v3Vel += _enemyInfo->v3Acceleration;
 	_enemyInfo->v3Vel = _enemyInfo->v3Vel.Limit(_enemyInfo->fMaxSpeed * _fDT);
 
-	_enemyInfo->v3Pos = _enemyInfo->v3Pos + _enemyInfo->v3Vel;
-	_enemyInfo->v3Dir = _enemyInfo->v3Vel.Normalise();
+	_enemyInfo->v3Pos += _enemyInfo->v3Vel;
+	_enemyInfo->v3Dir = _enemyInfo->v3Vel;
+	_enemyInfo->v3Dir.Normalise();
 	_enemyInfo->v3Acceleration = _enemyInfo->v3Acceleration * 0.0f;
-
-	//v3float v3Desired = (_enemyInfo->v3Target - _enemyInfo->v3Pos);
-	//v3Desired = v3Desired.Normalise();
-	//v3Desired = v3Desired * _enemyInfo->fMaxSpeed;
-	//
-	//v3float v3Steer = v3Desired - _enemyInfo->v3Vel;
-	//v3Steer = v3Steer.Limit(_enemyInfo->fMaxForce);
-	//
-	//_enemyInfo->v3Acceleration += v3Steer;	// TO DO - delta tick
-	//
-	//_enemyInfo->v3Vel += _enemyInfo->v3Acceleration;
-	//_enemyInfo->v3Vel.Limit(_enemyInfo->fMaxSpeed);
-	//_enemyInfo->v3Pos += _enemyInfo->v3Vel;
-	//_enemyInfo->v3Acceleration = { 0.0f, 0.0f, 0.0f };
 }
 
 

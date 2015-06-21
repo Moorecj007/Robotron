@@ -16,15 +16,11 @@
 #include "Projectile.h"
 
 
-CProjectile::CProjectile(std::string _strAvatarCreator, v3float _v3Pos, v3float _v3Dir)
+CProjectile::CProjectile(std::string _strAvatarCreator, v3float _v3Dir, UINT _iDamage)
 {
 	m_strAvatarCreator = _strAvatarCreator;
-	m_v3Position = _v3Pos;
 	m_v3Direction = _v3Dir;
-
-	// Set Velocity
-	// mesh
-	// other shit
+	m_iDamage = _iDamage;
 }
 
 CProjectile::~CProjectile()

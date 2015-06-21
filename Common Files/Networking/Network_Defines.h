@@ -37,6 +37,7 @@ namespace network
 	unsigned const	MAX_USERNAME_LENGTH		= 13;
 	unsigned const  MAX_SERVERNAME_LENGTH	= 16;
 	unsigned const  MAX_ENEMY_SPAWNED		= 30;	// TO DO - calculate properly using % increase per player
+	unsigned const  MAX_PROJECTILES			= 100;
 }
 
 // Enums
@@ -71,7 +72,10 @@ enum eNetworkCommand
 	DELETE_ENEMY,
 
 	CREATE_POWERUP,
-	DELETE_POWERUP
+	DELETE_POWERUP,
+
+	CREATE_PROJECTILE,
+	DELETE_PROJECTILE
 };
 
 // Structs
@@ -93,8 +97,9 @@ struct AvatarInfo
 	v3float v3Dir;
 	v3float v3Vel;
 	float fMaxSpeed;
+	UINT iDamage;
 
-	// TO DO - Add other variables
+	BoundingBox BBox;
 };
 
 struct EnemyInfo
@@ -108,6 +113,8 @@ struct EnemyInfo
 	v3float v3Target;
 	float fMaxSpeed;
 	float fMaxForce;
+
+	BoundingBox BBox;
 };
 
 struct PowerUpInfo
@@ -117,11 +124,22 @@ struct PowerUpInfo
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
+	float fMaxSpeed;
+
+	BoundingBox BBox;
 };
 
 struct ProjectileInfo
 {
+	UINT iID;
+	char cUserName[network::MAX_USERNAME_LENGTH];
+	v3float v3Pos;
+	v3float v3Dir;
+	v3float v3Vel;
+	UINT iDamage;
+	float fMaxSpeed;
 
+	BoundingBox BBox;
 };
 
 struct FlareInfo
@@ -156,13 +174,17 @@ struct ServerToClient
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	EnemyInfo enemyInfo;
 	PowerUpInfo powerInfo;
+	ProjectileInfo projectileInfo;
 
 	// Gameplay Information
-	int CurrentUserCount;
+	int iCurrentUserCount;
 	AvatarInfo Avatars[network::MAX_CLIENTS];
 
-	int CurrentEnemyCount;
+	int iCurrentEnemyCount;
 	EnemyInfo Enemies[network::MAX_ENEMY_SPAWNED];
+
+	int iCurrentProjectileCount;
+	ProjectileInfo Projectiles[network::MAX_PROJECTILES];
 
 	FlareInfo Flare;
 	
