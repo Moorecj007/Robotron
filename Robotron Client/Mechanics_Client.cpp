@@ -73,12 +73,17 @@ CMechanics_Client::~CMechanics_Client()
 	m_pDemonMesh = 0;
 	delete m_pHealthMesh;
 	m_pHealthMesh = 0;
+	delete m_pFlareMesh;
+	m_pFlareMesh = 0;
 
-	// Delete the Graphics 
+
+	// Delete the Graphics Objects
 	delete m_pCamera;
 	m_pCamera = 0;
 	delete m_pTerrain;
 	m_pTerrain = 0;
+	delete m_pFlare;
+	m_pFlare = 0;
 }
 
 bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserName)
@@ -163,6 +168,12 @@ void CMechanics_Client::Draw()
 	{
 		iterEnemy->second->Draw();
 		iterEnemy++;
+	}
+
+	// Draw all the Enemies
+	if (m_pFlare->GetActive() == true)
+	{
+		m_pFlare->Draw();
 	}
 }
 
@@ -283,12 +294,18 @@ void CMechanics_Client::UpdateFlare()
 {
 	if (m_pServerPacket->Flare.bActive == true)
 	{
-		m_pRenderer->LightEnable(m_iFlareLightID, true);
-		m_pRenderer->UpdateFlareLight(m_iFlareLightID, m_pServerPacket->Flare.v3Pos, m_pServerPacket->Flare.fRange);
+		if (m_pServerPacket->Flare.iID != m_pFlare->GetID())
+		{
+			m_pFlare->ReactivateFlare(m_pServerPacket->Flare.v3Pos, m_pServerPacket->Flare.fRange, m_pServerPacket->Flare.iID);
+		}
+		else
+		{
+			m_pFlare->UpdateFlareLight(m_pServerPacket->Flare.v3Pos, m_pServerPacket->Flare.fRange, m_fDT);
+		}
 	}
 	else
 	{
-		m_pRenderer->LightEnable(m_iFlareLightID, false);
+		m_pFlare->SetActive(false);
 	}
 }
 
@@ -372,7 +389,7 @@ void CMechanics_Client::CreateAvatarAsset()
 	AvatarMatComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
 	AvatarMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	AvatarMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
-	AvatarMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	AvatarMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	AvatarMatComp.power = 0;
 	m_iAvatarMaterialID = m_pRenderer->CreateMaterial(AvatarMatComp);
 
@@ -388,7 +405,7 @@ void CMechanics_Client::CreateDemonAsset()
 	DemonMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	DemonMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DemonMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
-	DemonMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	DemonMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	DemonMatComp.power = 0;
 	m_iDemonMaterialID = m_pRenderer->CreateMaterial(DemonMatComp);
 
@@ -404,7 +421,7 @@ void CMechanics_Client::CreateHealthAsset()
 	HealthMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HealthMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	HealthMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
-	HealthMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	HealthMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HealthMatComp.power = 0;
 	m_iHealthMaterialID = m_pRenderer->CreateMaterial(HealthMatComp);
 
@@ -415,8 +432,22 @@ void CMechanics_Client::CreateHealthAsset()
 
 void CMechanics_Client::CreateFlareAsset()
 {
-	ZeroMemory(&m_Flare, sizeof(m_Flare));
-	m_iFlareLightID = m_pRenderer->CreateFlareLight();
+	// Create the Material for the Demons to use
+	MaterialComposition FlareMatComp;
+	FlareMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	FlareMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 0.0f };
+	FlareMatComp.emissive = { 1.0f, 1.0f, 0.0f, 0.0f };
+	FlareMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	FlareMatComp.power = 100.0f;
+	m_iFlareMaterialID = m_pRenderer->CreateMaterial(FlareMatComp);
+
+	// Flare Enemy Mesh and Texture
+	m_iFlareTexID = m_pRenderer->CreateTexture("Assets//Flare.bmp");
+	m_pFlareMesh = CreateCubeMesh(0.1f, m_iFlareTexID);
+
+	m_pFlare = new CFlare(m_pRenderer);
+	m_pFlare->Initialise(m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
+
 }
 
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)

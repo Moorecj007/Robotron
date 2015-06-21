@@ -81,4 +81,6 @@ struct MaterialComposition
 // Defines
 #define VALIDATE(a) if (!a) return (false)
 
+
+
 #endif //__GRAPHICSDEFINES_H__

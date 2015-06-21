@@ -29,7 +29,7 @@ C3DObject::C3DObject()
 	// Set the floating point variables top generic starting values
 	m_fSize = 0.0f;
 	m_fRotation = 0.0f;
-	m_fMaxSpeed = 10.0f;	// TO DO - something
+	//m_fMaxSpeed = 10.0f;	// TO DO - something
 
 	// Set the material ID to -1 ( doesn't exist)
 	m_iMaterialID = -1;
@@ -68,6 +68,8 @@ void C3DObject::Draw()
 	// Calculates the World Matrix for this 3D Object
 	CalcWorldMatrix();
 	m_pRenderer->SetMaterial(m_iMaterialID);
+
+
 	m_pMesh->Draw();
 }
 

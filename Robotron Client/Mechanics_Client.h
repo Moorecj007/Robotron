@@ -27,6 +27,7 @@
 #include "../Common Files/Graphics/Avatar.h"
 #include "../Common Files/Graphics/Enemy.h"
 #include "../Common Files/Graphics/PowerUp.h"
+#include "../Common Files/Graphics/Flare.h"
 #include "Graphics/Terrain.h"
 #include "Graphics/StaticCamera.h"
 
@@ -36,13 +37,13 @@ public:
 	// Constructors / Destructors
 
 	/***********************
-	* Game: Default Constructor for GameMechanics class
+	* CMechanics_Client: Default Constructor for GameMechanics class
 	* @author: Callan Moore
 	********************/
 	CMechanics_Client();
 
 	/***********************
-	* ~Game: Default Destructor for GameMechanics class
+	* ~CMechanics_Client: Default Destructor for GameMechanics class
 	* @author: Callan Moore
 	********************/
 	~CMechanics_Client();
@@ -206,6 +207,9 @@ private:
 	// TO DO - Create Blank material and texture
 	// Put safe guard on draw methods if tex or mat ID = -1
 
+	// Blank/Alpha Assets
+	int m_iBlankTextureID;
+
 	// Avatars
 	CMesh* m_pAvatarMesh;
 	int m_iAvatarMaterialID;
@@ -225,10 +229,10 @@ private:
 	int m_iHealthTexID;
 
 	// Flare
-	FlareInfo m_Flare;
-	int m_iFlareLightID;
-
-	
+	CFlare* m_pFlare;
+	CMesh* m_pFlareMesh;
+	int m_iFlareMaterialID;
+	int m_iFlareTexID;
 };
 
 #endif // __MECHANICSCLIENT_H__

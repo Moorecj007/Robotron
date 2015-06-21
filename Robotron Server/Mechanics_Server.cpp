@@ -167,8 +167,8 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	PowerUpInfo tempPowerInfo;
 	tempPowerInfo.eType = PT_HEALTH;
 	tempPowerInfo.iID = m_iNextObjectID++;
-	tempPowerInfo.v3Dir = { 1.0f, 0.0f, 0.0f };
-	tempPowerInfo.v3Pos = { 0.0f, 0.0f, 0.0f };
+	tempPowerInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
+	tempPowerInfo.v3Pos = { -10.0f, 0.0f, 0.0f };
 	tempPowerInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
 	m_pCreatedPowerUps->push(tempPowerInfo);
 
@@ -204,12 +204,12 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 			m_bFlareActive = true;
 			ZeroMemory(&m_Flare, sizeof(m_Flare));
 
+			m_Flare.iID = m_iNextObjectID++;
 			m_Flare.bActive = true;
 			m_Flare.v3Pos = Avatar->second.v3Pos;
-			m_Flare.fRange = 15.0f;
+			m_Flare.fRange = 10.0f;
 			m_Flare.fMaxRange = 100;
-			m_Flare.fMaxSpeed = 10.0f;
-			m_Flare.fMaxHeight = 30.0f;
+			m_Flare.fMaxSpeed = 20.0f;
 			m_Flare.fTimeLeft = 10.0f;
 		}
 	}
@@ -261,17 +261,12 @@ void CMechanics_Server::ProcessFlare()
 		{
 			// Flare has timed out, deactivate the flare.
 			m_Flare.bActive = false;
+			m_bFlareActive = false;
 		}
 
-		// Check the height of the flare
-		if (m_Flare.v3Pos.y < m_Flare.fMaxHeight)
+		if (m_Flare.fRange < m_Flare.fMaxRange)
 		{
-			// Increase the flares height if max height is not yet achieved
-			m_Flare.v3Pos.y += (m_Flare.fMaxSpeed * fDT);	
-		}
-		else
-		{
-			m_Flare.fRange = m_Flare.fMaxRange;
+			m_Flare.fRange += (m_Flare.fMaxSpeed * fDT);
 		}
 
 	}

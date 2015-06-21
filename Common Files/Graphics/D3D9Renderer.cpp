@@ -186,7 +186,7 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 
 	// Setup the Device to handle lighting
 	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1);
-//	m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
+	//m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
 	m_pDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE);
 	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
 
@@ -208,8 +208,10 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	//m_pDevice->SetLight(0, &m_DirectionLight);
 	//m_pDevice->LightEnable(0, TRUE);
 
-	// Create the initial index for the torches ( 0 is reserved for directional light);
-	m_iNextTorchID = 1;
+	// Create the initial index for the torches 
+	//(0 is reserved for directional light)
+	//(1 is reserved for point light)
+	m_iNextTorchID = 2;
 
 	return true;
 }
@@ -679,7 +681,7 @@ D3DXMATRIX& CD3D9Renderer::GetWorldMatrix()
 
 int CD3D9Renderer::CreateFlareLight()
 {
-	int FlareID = 7;
+	int FlareID = 1;
 
 	D3DLIGHT9* pFlareLight = new D3DLIGHT9;
 	ZeroMemory(*(&pFlareLight), sizeof(*pFlareLight));
@@ -687,7 +689,7 @@ int CD3D9Renderer::CreateFlareLight()
 	pFlareLight->Type = D3DLIGHT_POINT;
 	pFlareLight->Diffuse = { 1.0f, 1.0f, 0.5f, 1.0f };
 	pFlareLight->Position = { 0.0f, 0.0f, 0.0f };
-	pFlareLight->Range = 60.0f;
+	pFlareLight->Range = 10.0f;
 	pFlareLight->Attenuation0 = 0.0f;
 	pFlareLight->Attenuation1 = 0.001f;
 	pFlareLight->Attenuation2 = 0.0f;

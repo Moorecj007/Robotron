@@ -126,12 +126,12 @@ struct ProjectileInfo
 
 struct FlareInfo
 {
+	UINT iID;
 	bool bActive;
 	v3float v3Pos;
 	float fRange;
 	float fMaxRange;
 	float fMaxSpeed;
-	float fMaxHeight;
 	float fTimeLeft;
 };
 
