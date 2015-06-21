@@ -115,6 +115,45 @@ bool CNetwork_Server::SendPacket(sockaddr_in _clientAddr, ServerToClient* _pSend
 	return true;
 }
 
+bool CNetwork_Server::Broadcast(ServerToClient* _pSendPacket)
+{
+	ServerToClient SendPacket = *_pSendPacket;
+	int iPacketSize = sizeof(SendPacket) + 1;
+
+	// Structure to hold the potential server addresses
+	sockaddr_in ClientAddr;
+	ClientAddr.sin_family = AF_INET;
+	inet_pton(AF_INET, network::cUDPAddr, &ClientAddr.sin_addr);
+
+	// Reinterpret the Data Packet into a char* for sending
+	m_cSendData = reinterpret_cast<char*>(&SendPacket);
+
+	// Send to all potential server ports
+	for (int iClientPort = network::DEFAULT_CLIENT_PORT;
+		iClientPort <= network::MAX_CLIENT_PORT;
+		iClientPort++)
+	{
+		ClientAddr.sin_port = htons(iClientPort);
+
+		// Send the Data
+		int iNumBytes = sendto(m_ServerSocket,
+			m_cSendData,
+			iPacketSize,
+			0,
+			reinterpret_cast<sockaddr*>(&ClientAddr),
+			sizeof(ClientAddr));
+
+		// Check to ensure the right number of bytes was sent
+		if (iNumBytes != iPacketSize)
+		{
+			// Bytes did not match therefore an error occured
+			return false;
+		}
+	}
+	// Data Packet sending was successful
+	return true;
+}
+
 bool CNetwork_Server::ReceivePacket(ClientToServer* _pReceivePacket)
 {
 	// Create some local variables

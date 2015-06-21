@@ -91,7 +91,7 @@ public:
 	* @parameter: _bAlive: The update to the alive status of the avatar
 	* @return: void
 	********************/
-	void SetAliveStatus(bool _bAlive);
+	void SetAliveStatus(bool _bAlive) { m_bAlive = _bAlive; };
 
 	/***********************
 	* SetMaxHealth: Change the avatars maximum health
@@ -99,7 +99,7 @@ public:
 	* @parameter: _iMaxHealth: The update to the maximum health allowed to the avatar
 	* @return: void
 	********************/
-	void SetMaxHealth(UINT _iMaxHealth);
+	void SetMaxHealth(UINT _iMaxHealth) { m_iMaxHealth = _iMaxHealth; };
 
 	/***********************
 	* SetHealth: Change the avatars current health
@@ -107,7 +107,7 @@ public:
 	* @parameter: _iHealth: The update to the current health of the avatar
 	* @return: void
 	********************/
-	void SetHealth(UINT _iHealth);
+	void SetHealth(UINT _iHealth) { m_iCurrentHealth = _iHealth; };
 
 	/***********************
 	* SetScore: Change the avatars current score
@@ -115,7 +115,7 @@ public:
 	* @parameter: _bAlive: The update to the avatars current score
 	* @return: void
 	********************/
-	void SetScore(UINT _iScore);
+	void SetScore(UINT _iScore) { m_iScore = _iScore; };
 
 	// Prototypes
 

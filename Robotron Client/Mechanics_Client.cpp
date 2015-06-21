@@ -88,6 +88,8 @@ CMechanics_Client::~CMechanics_Client()
 	m_pProjectileMesh = 0;
 	delete m_pDemonMesh;
 	m_pDemonMesh = 0;
+	delete m_pSentinelMesh;
+	m_pSentinelMesh = 0;
 	delete m_pHealthMesh;
 	m_pHealthMesh = 0;
 	delete m_pFlareMesh;
@@ -129,6 +131,7 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	CreateAvatarAsset();
 	CreateProjectileAsset();
 	CreateDemonAsset();
+	CreateSentinelAsset();
 	CreateHealthAsset();
 	CreateFlareAsset();
 
@@ -195,6 +198,9 @@ void CMechanics_Client::Draw()
 	{
 		m_pFlare->Draw();
 	}
+
+	// Render the HUD
+	RenderHUD();
 }
 
 CMesh* CMechanics_Client::CreateCubeMesh(float _fSize, int _iTexID)
@@ -286,27 +292,60 @@ void CMechanics_Client::UpdateAvatars()
 		std::string strUserName = (std::string)(avatarInfo.cUserName);
 		iterAvatar = m_pAvatars->find(strUserName);
 
-		iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y, avatarInfo.v3Pos.z });
-		iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
+		if (iterAvatar != m_pAvatars->end())
+		{
+			iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y, avatarInfo.v3Pos.z });
+			iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
+			iterAvatar->second->SetHealth(avatarInfo.iHealth);
+			iterAvatar->second->SetScore(avatarInfo.iScore);
 
-		m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), *(iterAvatar->second->GetPosition()), *(iterAvatar->second->GetDirection()));
+			m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), *(iterAvatar->second->GetPosition()), *(iterAvatar->second->GetDirection()));
+		}
 	}
 }
 
 void CMechanics_Client::UpdateProjectiles()
 {
-	// Iterator to point at the found Projectile
-	std::map<UINT, CProjectile*>::iterator iterProjectile;
-
-	for (int i = 0; i < m_pServerPacket->iCurrentProjectileCount; i++)
+	if (m_pServerPacket->bCommand == false)
 	{
-		// Retrieve the username from the current UserInfo
-		ProjectileInfo projectileInfo = (*m_pServerPacket).Projectiles[i];
-		std::string strUserName = (std::string)(projectileInfo.cUserName);
-		iterProjectile = m_pProjectiles->find(projectileInfo.iID);
+		// Iterator to point at the found Projectile
+		std::map<UINT, CProjectile*>::iterator iterProjectile;
 
-		iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
-		iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
+		int iDifference = m_pProjectiles->size() - m_pServerPacket->iCurrentProjectileCount;
+		if (iDifference > 0)
+		{
+			// Delete any extra Projectiles
+			for (int i = 0; i < iDifference; i++)
+			{
+				delete m_pProjectiles->begin()->second;
+				m_pProjectiles->erase(m_pProjectiles->begin(), ++m_pProjectiles->begin());
+			}
+		}
+
+		for (int i = 0; i < m_pServerPacket->iCurrentProjectileCount; i++)
+		{
+			// Retrieve the username from the current UserInfo
+			ProjectileInfo projectileInfo = (*m_pServerPacket).Projectiles[i];
+			std::string strUserName = (std::string)(projectileInfo.cUserName);
+			iterProjectile = m_pProjectiles->find(projectileInfo.iID);
+
+			if (iterProjectile != m_pProjectiles->end())
+			{
+				//If the Projectile was not updated from the last frame the Projectile should be deleted
+				//if (*(iterProjectile->second->GetPosition()) == projectileInfo.v3Pos)
+				//{
+				//	delete iterProjectile->second;
+				//	m_pProjectiles->erase(projectileInfo.iID);
+				//}
+				//else
+				//{
+					iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
+					iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
+				//}
+			}
+
+			
+		}
 	}
 }
 
@@ -322,8 +361,11 @@ void CMechanics_Client::UpdateEnemies()
 		UINT iID = enemyInfo.iID;
 		iterEnemy = m_pEnemies->find(iID);
 
-		iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y, enemyInfo.v3Pos.z });
-		iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
+		if (iterEnemy != m_pEnemies->end())
+		{
+			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y, enemyInfo.v3Pos.z });
+			iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
+		}
 	}
 }
 
@@ -467,6 +509,22 @@ void CMechanics_Client::CreateDemonAsset()
 	m_pDemonMesh = CreateCubeMesh(kfDemonSize, m_iDemonTexID);
 }
 
+void CMechanics_Client::CreateSentinelAsset()
+{
+	// Create the Material for the Sentinels to use
+	MaterialComposition SentinelMatComp;
+	SentinelMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	SentinelMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	SentinelMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	SentinelMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	SentinelMatComp.power = 0;
+	m_iSentinelMaterialID = m_pRenderer->CreateMaterial(SentinelMatComp);
+
+	// Sentinel Enemy Mesh and Texture
+	m_iSentinelTexID = m_pRenderer->CreateTexture("Assets//Sentinel.bmp");
+	m_pSentinelMesh = CreateCubeMesh(kfSentinelSize, m_iSentinelTexID);
+}
+
 void CMechanics_Client::CreateHealthAsset()
 {
 	// Create the Material for the Demons to use
@@ -524,10 +582,14 @@ void CMechanics_Client::DeleteProjectile(ServerToClient* _pServerPacket)
 
 	// Delete the Projectile using its ID
 	std::map<UINT, CProjectile*>::iterator Projectile = m_pProjectiles->find(iID);
-	delete Projectile->second;
 
-	// Erase the Projectile using its ID
-	m_pProjectiles->erase(iID);
+	if (Projectile != m_pProjectiles->end())
+	{
+		delete Projectile->second;
+
+		// Erase the Projectile using its ID
+		m_pProjectiles->erase(iID);
+	}
 }
 
 void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
@@ -542,6 +604,12 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 	{
 		pMesh = m_pDemonMesh;
 		iMatID = m_iDemonMaterialID;
+		break;
+	}
+	case ET_SENTINEL:
+	{
+		pMesh = m_pSentinelMesh;
+		iMatID = m_iSentinelMaterialID;
 		break;
 	}
 	default:
@@ -562,10 +630,16 @@ void CMechanics_Client::DeleteEnemy(ServerToClient* _pServerPacket)
 
 	// Delete the Enemy using its ID
 	std::map<UINT, CEnemy*>::iterator Enemy = m_pEnemies->find(iID);
-	delete Enemy->second;
 
-	// Erase the Enemy using its ID
-	m_pEnemies->erase(iID);
+	if (Enemy != m_pEnemies->end())
+	{
+		delete Enemy->second;
+
+		// Erase the Enemy using its ID
+		m_pEnemies->erase(iID);
+	}
+
+	
 }
 
 void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
@@ -600,8 +674,24 @@ void CMechanics_Client::DeletePower(ServerToClient* _pServerPacket)
 
 	// Delete the PowerUp using its ID
 	std::map<UINT, CPowerUp*>::iterator PowerUp = m_pPowerUps->find(iID);
-	delete PowerUp->second;
 
-	// Erase the Enemy using its ID
-	m_pPowerUps->erase(iID);
+	if (PowerUp != m_pPowerUps->end())
+	{
+		delete PowerUp->second;
+
+		// Erase the Enemy using its ID
+		m_pPowerUps->erase(iID);
+	}
+}
+
+void CMechanics_Client::RenderHUD()
+{
+	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+
+	int iYpos = 0;
+	D3DXCOLOR textBlue = 0xff0000ff;
+
+	// Render the text to the Top left Corner
+	m_pRenderer->RenderText(false, { 0, 0 }, "Health: " + std::to_string(Avatar->second->GetHealth()), (iYpos += 10), SCREEN_FONT, textBlue, H_LEFT);
+	m_pRenderer->RenderText(false, { 0, 0 }, "Score: " + std::to_string(Avatar->second->GetScore()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
 }

@@ -161,6 +161,7 @@ bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 
 	// Game Variables
 	m_bHost = false;
+	m_bFoundServer = false;
 	m_bGameLoading = false;
 
 	// Set User Information
@@ -390,8 +391,25 @@ void CHub_Client::ProcessPacket(float _fDT)
 		{
 			case HOST_SERVER:
 			{
-				InsertUser(m_strUserName, m_pPacketToProcess->Avatars[0]);
-				m_pMechanics->AddAvatar(m_pPacketToProcess);
+				if (m_bHost == true && m_bFoundServer == false)
+				{
+					std::string strCheckHost = (std::string)(m_pPacketToProcess->cUserName);
+					std::string strCheckServer = (std::string)(m_pPacketToProcess->cServerName);
+
+					if (strCheckHost == m_strServerHost
+						&&	strCheckServer == m_strServerName)
+					{
+						m_bFoundServer = true;
+
+						m_pNetworkClient->SelectServer(m_pPacketToProcess->ServerAddr);
+
+						CreateCommandPacket(QUERY_HOST, m_strServerName);
+						m_pNetworkClient->SendPacket(m_pClientToServer);
+					}
+
+					//InsertUser(m_strUserName, m_pPacketToProcess->Avatars[0]);
+					//m_pMechanics->AddAvatar(m_pPacketToProcess);
+				}
 				break;
 			}
 			// Reply when a server is saying they are available for connection
@@ -464,8 +482,8 @@ void CHub_Client::ProcessPacket(float _fDT)
 			// Add a user that has joined the server
 			case USER_JOINED:
 			{
-				if ((std::string)(m_pPacketToProcess->cUserName) != m_strUserName)
-				{
+				//if ((std::string)(m_pPacketToProcess->cUserName) != m_strUserName)
+				//{
 					int iIndex;
 					// Find the Index of the new user within the UserInfo List
 					for (int i = 0; i < network::MAX_CLIENTS; i++)
@@ -478,7 +496,7 @@ void CHub_Client::ProcessPacket(float _fDT)
 
 					InsertUser(m_pPacketToProcess->cUserName, m_pPacketToProcess->Avatars[iIndex]);
 					m_pMechanics->AddAvatar(m_pPacketToProcess);
-				}
+				//}
 				break;
 			}
 			// Delete users that have left
@@ -1391,11 +1409,6 @@ void CHub_Client::CreateServer()
 	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
 	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
-	// Sleep to give the server time to start up
-	Sleep(500);
-	CreateCommandPacket(QUERY_HOST, m_strServerName);
-	m_pNetworkClient->BroadcastToServers(m_pClientToServer);
-
 	m_strServerHost = m_strUserName;
 	m_eScreenState = STATE_GAMELOADING;
 }
@@ -1423,6 +1436,7 @@ void CHub_Client::InsertUser(std::string _strUser, AvatarInfo _AvatarInfo)
 void CHub_Client::ResetGameData()
 {
 	m_bHost = false;
+	m_bFoundServer = false;
 	m_bAlive = false;
 
 	// remove all users from the map

@@ -128,6 +128,9 @@ bool CHub_Server::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	m_pMechanics = new CMechanics_Server();
 	VALIDATE(m_pMechanics->Initialise(m_strServerName));
 
+	CreateCommandPacket(HOST_SERVER, m_strHostUser);
+	m_pNetworkServer->Broadcast(m_pServerToClient);
+
 	return true;
 }
 
@@ -249,37 +252,18 @@ void CHub_Server::ProcessPacket()
 				}
 				break;
 			}
-			// Host is looking for the Server they just created
+			// Host is has replied to the Server after creation
 			case QUERY_HOST:
 			{
-				// Do not process this command if in gameplay
-				if (m_eServerState != STATE_GAMEPLAY)
-				{
-					std::string strCheckHost = (std::string)(m_pPacketToProcess->cUserName);
-					std::string strCheckServer = (std::string)(m_pPacketToProcess->cAdditionalMessage);
+				InsertUser(m_pPacketToProcess);
 
-					// Ensure the sender of this command is the correct host for only they would know the
-					// host and server names created via the command line
-					if (strCheckHost == m_strHostUser
-						&&	strCheckServer == m_strServerName)
-					{
-						// If for any reason another Host creates a server with the same names
-						// This server will only reply to very first message with this command
-						if (m_bRepliedToHost == false)
-						{
-							InsertUser(m_pPacketToProcess);
-							CreateCommandPacket(HOST_SERVER, m_strHostUser);
-							SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
-							m_bRepliedToHost = true;
-						}
-					}
-					// Else the query is for another server
-					else
-					{
-						CreateCommandPacket(NOT_HOST);
-						SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
-					}
-				}
+				// Send the new user the name of the Host user
+				CreateCommandPacket(YOUR_HOST, m_strHostUser);
+				SendPacket(m_pServerToClient, m_pPacketToProcess->ClientAddr);
+
+				CreateCommandPacket(USER_JOINED, m_strHostUser);
+				SendPacket(m_pServerToClient);
+
 				break;
 			}
 			// Broadcast message to determine what servers if any are online

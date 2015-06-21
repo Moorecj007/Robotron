@@ -33,7 +33,8 @@
 // Constants
 const float kfAvatarSize		= 0.5f;
 const float kfProjectileSize	= 0.1f;
-const float kfDemonSize			= 1.0f;
+const float kfDemonSize			= 0.6f;
+const float kfSentinelSize		= 2.0f;
 const float kfPowerUpSize		= 0.4f;
 const float kfFlareSize			= 0.1f;
 
@@ -146,6 +147,26 @@ struct v3float
 		y = _v3.y;
 		z = _v3.z;
 		return *this;
+	}
+
+	/***********************
+	* operator==: Is equal to Operator for the v3float struct
+	* @author: Callan Moore
+	* @parameter: _v3: v3float to be checked against
+	* @return: bool: True if the v3floats are equal
+	********************/
+	bool operator==(const v3float _v3)
+	{
+		if( x == _v3.x
+		&&	y == _v3.y
+		&&	z == _v3.z )
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	/***********************

@@ -163,6 +163,13 @@ public:
 	void CreateDemonAsset();
 
 	/***********************
+	* CreateSentinelAsset: Create all required assets for the creation of Sentinel Enemies
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateSentinelAsset();
+
+	/***********************
 	* CreateHealthAsset: Create all required assets for the creation of Health PowerUps
 	* @author: Callan Moore
 	* @return: void
@@ -224,6 +231,13 @@ public:
 	********************/
 	void DeletePower(ServerToClient* _pServerPacket);
 
+	/***********************
+	* RenderHUD: Render the Avatars HUD to the screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void RenderHUD();
+
 
 private:
 	// Member Variables
@@ -258,6 +272,9 @@ private:
 	CMesh* m_pDemonMesh;
 	int m_iDemonMaterialID;
 	int m_iDemonTexID;
+	CMesh* m_pSentinelMesh;
+	int m_iSentinelMaterialID;
+	int m_iSentinelTexID;
 
 	// PowerUps
 	std::map<UINT, CPowerUp*>* m_pPowerUps;

@@ -758,7 +758,7 @@ void CD3D9Renderer::UpdateFlareLight(int _iLightID, v3float _v3Pos, float _fRang
 	std::map<int, D3DLIGHT9*>::iterator iterLight = m_pMapLight->find(_iLightID);
 
 	// Create D3DX vectors from the v3Floats
-	D3DXVECTOR3 v3Pos = { _v3Pos.x, _v3Pos.y + 0.5f, _v3Pos.z };
+	D3DXVECTOR3 v3Pos = { _v3Pos.x, _v3Pos.y + 5.0f, _v3Pos.z };
 	iterLight->second->Position = v3Pos;
 
 	iterLight->second->Range = _fRange;

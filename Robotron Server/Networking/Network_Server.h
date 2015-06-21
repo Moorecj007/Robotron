@@ -62,6 +62,14 @@ public:
 	* @return: bool: Successful Sending of the packet (or Not)
 	********************/
 	bool SendPacket(sockaddr_in _clientAddr, ServerToClient* _pSendPacket);
+
+	/***********************
+	* Broadcast: Broadcast top all client Ports
+	* @author: Callan Moore
+	* @parameter: _pSendPacket: Data Packet structure to Send
+	* @return: bool: Successful Sending of the packet (or Not)
+	********************/
+	bool Broadcast(ServerToClient* _pSendPacket);
 	
 	/***********************
 	* ReceivePacket: Receive a Data Packet from the client for processing

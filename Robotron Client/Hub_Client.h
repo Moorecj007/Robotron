@@ -396,6 +396,7 @@ private:
 
 	// Game Variables
 	bool m_bHost;
+	bool m_bFoundServer;
 	CDInput* m_pDInput;
 	Controls m_activatedControls;
 	bool m_bGameLoading;

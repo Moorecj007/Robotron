@@ -93,11 +93,15 @@ struct AvatarInfo
 	UINT iID;
 	char cUserName[network::MAX_USERNAME_LENGTH];
 	bool bAlive;
+	int iHealth;
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
 	float fMaxSpeed;
 	UINT iDamage;
+	UINT iScore;
+	float fRateOfFire;
+	float fFireCountDown;
 
 	BoundingBox BBox;
 };
@@ -106,13 +110,16 @@ struct EnemyInfo
 {
 	UINT iID;
 	eEnemyType eType;
+	int iHealth;
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
 	v3float v3Acceleration;
 	v3float v3Target;
+	char cTargetPlayer[network::MAX_USERNAME_LENGTH];
 	float fMaxSpeed;
 	float fMaxForce;
+	UINT iPoints;
 
 	BoundingBox BBox;
 };

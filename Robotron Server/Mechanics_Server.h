@@ -18,6 +18,7 @@
 #define __SERVER_MECHANICS_H__
 
 // Library Includes
+#include <time.h>
 #include <map>
 #include <queue>
 
@@ -144,6 +145,13 @@ public:
 	void ProcessFlare();
 
 	/***********************
+	* ProcessPowerUps: Process the PowerUps
+	* @author: Callan Moore
+	* @parameter: void
+	********************/
+	void ProcessPowerUps();
+
+	/***********************
 	* ProcessEnemies: Process the enemies
 	* @author: Callan Moore
 	* @parameter: _fDT: The current Delta Tick
@@ -159,6 +167,22 @@ public:
 	* @parameter: void
 	********************/
 	void ProcessDemon(EnemyInfo* _enemyInfo, float _fDT);
+
+	/***********************
+	* ProcessSentinel: Process a Sentinel enemies AI capabilities
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Enemy Info structure of the Sentinel enemy
+	* @parameter: _fDT: The current Delta Tick
+	* @parameter: void
+	********************/
+	void ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT);
+
+	/***********************
+	* SpawnNextWave: Spawn the Next wave of enemies
+	* @author: Callan Moore
+	* @parameter: void
+	********************/
+	void SpawnNextWave();
 
 	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
@@ -214,6 +238,11 @@ private:
 	std::string m_strServerName;
 	CClock* m_pClock;
 	UINT m_iNextObjectID;
+
+	// Game Variables
+	UINT m_iWaveNumber;
+	UINT m_iDemonCount;
+	UINT m_iSentinelCount;
 
 	// Avatar Variables
 	std::map<std::string, AvatarInfo>* m_pAvatars;
