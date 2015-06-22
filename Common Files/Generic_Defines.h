@@ -312,6 +312,7 @@ struct BoundingBox
 
 struct Controls
 {
+	// Avatar Controls
 	bool bAction;
 	bool bFlare;
 	bool bUp;
@@ -320,6 +321,9 @@ struct Controls
 	bool bRight;
 	bool bEsc;
 	POINT ptMouse;
+
+	//Debug Camera Controls
+
 };
 
 // Functions

@@ -202,7 +202,7 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	m_strServerName = _strServerName;
 
 	// Set up the Object ID
-	m_iNextObjectID = 0;
+	m_iNextObjectID = 1;
 
 	// Create the Container for the Avatars
 	m_pAvatars = new std::map<std::string, AvatarInfo>;
@@ -440,6 +440,16 @@ void CMechanics_Server::ProcessProjectiles()
 	while (iterProjectile != m_pProjectiles->end())
 	{
 		// Update the Projectiles Position
+
+		if (fDT == 0.0f)
+		{
+			int i = 0;
+		}
+		if (iterProjectile->second.fMaxSpeed == 0.0f)
+		{
+			int i = 0;
+		}
+
 		iterProjectile->second.v3Vel = iterProjectile->second.v3Dir.Normalise() * (iterProjectile->second.fMaxSpeed * fDT);
 		iterProjectile->second.v3Pos += iterProjectile->second.v3Vel;
 

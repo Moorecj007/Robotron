@@ -39,7 +39,7 @@ C3DObject::~C3DObject()
 {
 }
 
-void C3DObject::Initialise(IRenderer* _pRenderer, CMesh* _pMesh, UINT _iID, int _MaterialID, v3float _v3Pos)
+void C3DObject::Initialise(bool _bToggle, IRenderer* _pRenderer, CMesh* _pMesh, UINT _iID, int _MaterialID, v3float _v3Pos)
 { 
 	// Initialise the Pointers
 	m_pRenderer = _pRenderer;
@@ -56,6 +56,8 @@ void C3DObject::Initialise(IRenderer* _pRenderer, CMesh* _pMesh, UINT _iID, int 
 
 	// Set the Objects ID
 	m_iID = _iID;
+
+	m_bToggle = _bToggle;
 }
 
 bool C3DObject::CreateTexture(std::string strFilePath)

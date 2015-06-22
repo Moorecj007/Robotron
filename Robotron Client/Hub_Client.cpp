@@ -584,7 +584,8 @@ void CHub_Client::ProcessPacket(float _fDT)
 	}
 	else
 	{
-		if (m_eScreenState != STATE_GAMELOADING)
+		if (m_eScreenState == STATE_GAME_PLAY 
+			&& (std::string)m_pPacketToProcess->cServerName == m_strServerName)
 		{
 			m_pMechanics->Process(_fDT, m_pPacketToProcess);
 		}

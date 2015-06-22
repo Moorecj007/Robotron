@@ -159,6 +159,11 @@ bool CDInput::ReadDevice(IDirectInputDevice8* _pDIDevice, void* _pDataBuffer, in
 	HRESULT hr;
 	while (true)
 	{
+		if (_pDIDevice == 0)
+		{
+			return false;
+		}
+
 		// Poll the Device
 		_pDIDevice->Poll();
 

@@ -139,6 +139,7 @@ public:
 	/***********************
 	* Initialise: Initialise the 3D Object for use
 	* @author: Callan Moore
+	* @parameter: The current Toggle State
 	* @parameter: _pRenderer: Pointer to the Renderer for this application
 	* @parameter: _pMesh: Mesh for this 3D Object
 	* @parameter: _iID: ID for this Object
@@ -146,7 +147,7 @@ public:
 	* @parameter: _v3Pos: Starting position for the object
 	* @return: void
 	********************/
-	void Initialise(IRenderer* _pRenderer, CMesh* _pMesh, UINT _iID, int _MaterialID, v3float _v3Pos = { 0, 0, 0 });
+	void Initialise(bool _bToggle, IRenderer* _pRenderer, CMesh* _pMesh, UINT _iID, int _MaterialID, v3float _v3Pos = { 0, 0, 0 });
 
 	/***********************
 	* Draw: Draws the 3D Object
@@ -180,6 +181,10 @@ protected:
 	********************/
 	void CalcWorldMatrix();
 
+
+public:
+	bool m_bToggle;
+
 protected:
 	// Member Variables
 	UINT m_iID;
@@ -191,9 +196,6 @@ protected:
 	v3float m_v3Position;
 	v3float m_v3Direction;
 	v3float m_v3Velocity;
-
-	// Texture
-	// struct Collision Box
 
 	float m_fSize;	// Might not be needed, used only in Collision box
 	float m_fRotation; // Yaw in radians

@@ -249,11 +249,10 @@ private:
 	CTerrain* m_pTerrain;
 	CStaticCamera* m_pCamera;
 
-	// TO DO - Create Blank material and texture
-	// Put safe guard on draw methods if tex or mat ID = -1
-
 	// Blank/Alpha Assets
 	int m_iBlankTextureID;
+
+	bool bToggle;
 
 	// Avatars
 	std::map<std::string, CAvatar*>* m_pAvatars;

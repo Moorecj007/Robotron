@@ -135,6 +135,9 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	CreateHealthAsset();
 	CreateFlareAsset();
 
+	// Create a variable used for checking if objects are deleted
+	bToggle = 0;
+
 	return true;
 }
 
@@ -154,6 +157,8 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	v3float v3Pos = *(Avatar->second->GetPosition());
 	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 50, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
 	m_pCamera->Process(m_pRenderer);
+
+	bToggle = !bToggle;
 }
 
 void CMechanics_Client::Draw()
@@ -298,10 +303,35 @@ void CMechanics_Client::UpdateAvatars()
 			iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
 			iterAvatar->second->SetHealth(avatarInfo.iHealth);
 			iterAvatar->second->SetScore(avatarInfo.iScore);
+			iterAvatar->second->m_bToggle = bToggle;
 
 			m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), *(iterAvatar->second->GetPosition()), *(iterAvatar->second->GetDirection()));
 		}
+		else
+		{
+			StringToStruct(strUserName.c_str(), m_pServerPacket->cUserName, network::MAX_USERNAME_LENGTH);
+			AddAvatar(m_pServerPacket);
+		}
 	}
+
+	// Check if any Avatars was not updated
+	iterAvatar = m_pAvatars->begin();
+	std::string strID = "";
+	while (iterAvatar != m_pAvatars->end())
+	{
+		// If a Avatars was not updated the server has deleted it
+		if (iterAvatar->second->m_bToggle != bToggle)
+		{
+			// Set the ID of the Avatars to Delete
+			strID = iterAvatar->first;
+			delete iterAvatar->second;
+			break;
+		}
+
+		iterAvatar++;
+	}
+	// Delete the Avatars from the map
+	m_pAvatars->erase(strID);
 }
 
 void CMechanics_Client::UpdateProjectiles()
@@ -311,41 +341,46 @@ void CMechanics_Client::UpdateProjectiles()
 		// Iterator to point at the found Projectile
 		std::map<UINT, CProjectile*>::iterator iterProjectile;
 
-		int iDifference = m_pProjectiles->size() - m_pServerPacket->iCurrentProjectileCount;
-		if (iDifference > 0)
-		{
-			// Delete any extra Projectiles
-			for (int i = 0; i < iDifference; i++)
-			{
-				delete m_pProjectiles->begin()->second;
-				m_pProjectiles->erase(m_pProjectiles->begin(), ++m_pProjectiles->begin());
-			}
-		}
-
 		for (int i = 0; i < m_pServerPacket->iCurrentProjectileCount; i++)
 		{
 			// Retrieve the username from the current UserInfo
 			ProjectileInfo projectileInfo = (*m_pServerPacket).Projectiles[i];
-			std::string strUserName = (std::string)(projectileInfo.cUserName);
 			iterProjectile = m_pProjectiles->find(projectileInfo.iID);
 
 			if (iterProjectile != m_pProjectiles->end())
 			{
-				//If the Projectile was not updated from the last frame the Projectile should be deleted
-				//if (*(iterProjectile->second->GetPosition()) == projectileInfo.v3Pos)
-				//{
-				//	delete iterProjectile->second;
-				//	m_pProjectiles->erase(projectileInfo.iID);
-				//}
-				//else
-				//{
-					iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
-					iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
-				//}
+				// Update all projectiles
+				iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
+				iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
+				iterProjectile->second->m_bToggle = bToggle;
+			}
+			else
+			{
+				// Create Packet didn't arrive. Create missed Projectile
+				m_pServerPacket->projectileInfo = projectileInfo;
+				SpawnProjectile(m_pServerPacket);
+			}
+		}
+
+		// Check if any Projectile was not updated
+		iterProjectile = m_pProjectiles->begin();
+		UINT iID = 0;
+		while (iterProjectile != m_pProjectiles->end())
+		{
+			// If a projectile was not updated the server has deleted it
+			if (iterProjectile->second->m_bToggle != bToggle)
+			{
+				// Set the ID of the Projectile to Delete
+				iID = iterProjectile->second->GetID();
+				delete iterProjectile->second;
+				break;
 			}
 
-			
+			iterProjectile++;
 		}
+		// Delete the Projectile from the map
+		m_pProjectiles->erase(iID);
+
 	}
 }
 
@@ -356,34 +391,66 @@ void CMechanics_Client::UpdateEnemies()
 	
 	for (int i = 0; i < m_pServerPacket->iCurrentEnemyCount; i++)
 	{
-		// Retrieve the username from the current UserInfo
+		// Retrieve the Enemy from the current enemyInfo
 		EnemyInfo enemyInfo = (*m_pServerPacket).Enemies[i];
 		UINT iID = enemyInfo.iID;
 		iterEnemy = m_pEnemies->find(iID);
 
 		if (iterEnemy != m_pEnemies->end())
 		{
+			// update the Enemy
 			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y, enemyInfo.v3Pos.z });
 			iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
+			iterEnemy->second->m_bToggle = bToggle;
+		}
+		else
+		{
+			// Create Packet was not processed. Create the missed Enemy
+			m_pServerPacket->enemyInfo = enemyInfo;
+			SpawnEnemy(m_pServerPacket);
 		}
 	}
+
+	// Check if any Enemies was not updated
+	iterEnemy = m_pEnemies->begin();
+	UINT iID = 0;
+	while (iterEnemy != m_pEnemies->end())
+	{
+		// If a Enemies was not updated the server has deleted it
+		if (iterEnemy->second->m_bToggle != bToggle)
+		{
+			// Set the ID of the Enemies to Delete
+			iID = iterEnemy->second->GetID();
+			delete iterEnemy->second;
+			break;
+		}
+
+		iterEnemy++;
+	}
+	// Delete the Enemies from the map
+	m_pEnemies->erase(iID);
 }
 
 void CMechanics_Client::UpdateFlare()
 {
+	// Check if the Server has an active flare
 	if (m_pServerPacket->Flare.bActive == true)
 	{
+		// Check if the flare is the same one as the Flare Object
 		if (m_pServerPacket->Flare.iID != m_pFlare->GetID())
 		{
+			// Reactivate a new flare
 			m_pFlare->ReactivateFlare(m_pServerPacket->Flare.v3Pos, m_pServerPacket->Flare.fRange, m_pServerPacket->Flare.iID);
 		}
 		else
 		{
+			// Update the current flare
 			m_pFlare->UpdateFlareLight(m_pServerPacket->Flare.v3Pos, m_pServerPacket->Flare.fRange, m_fDT);
 		}
 	}
 	else
 	{
+		// Flare light is set to off
 		m_pFlare->SetActive(false);
 	}
 }
@@ -402,11 +469,21 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 
 	// Create a new avatar object
 	CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
-	pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
+	pTempAvatar->Initialise(bToggle, m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
 
-	// Save the avatar in a vector
+	// Save the avatar in a map
+	std::pair < std::map < std::string, CAvatar* > ::iterator, bool> pairCreateCheck;
 	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
-	m_pAvatars->insert(pairAvatar);
+	pairCreateCheck = m_pAvatars->insert(pairAvatar);
+
+	// Check if the New PowerUp was successfully inserted
+	if (pairCreateCheck.second == false)
+	{
+		// Delete the Temp PowerUp if the insertion failed
+		delete pTempAvatar;
+		pTempAvatar = 0;
+		return;
+	}
 
 	if ((std::string)(_pServerPacket->cUserName) == m_strUserName)
 	{
@@ -422,30 +499,40 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 void CMechanics_Client::AddAllAvatars(ServerToClient* _pServerPacket)
 {
 	AvatarInfo currentAvatarInfo;
-	// Temporarily store the user data 
+	//Temporarily store the user data 
 	for (int i = 0; i < _pServerPacket->iCurrentUserCount; i++)
 	{
 		currentAvatarInfo = _pServerPacket->Avatars[i];
-
-		// Create a new avatar object
-		CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
-		v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-		pTempAvatar->Initialise(m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, v3Pos);
-
-		// Save the avatar in a vector
-		std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
-		m_pAvatars->insert(pairAvatar);
-
-		if ((std::string)(currentAvatarInfo.cUserName) == m_strUserName)
-		{
-			// Create and inititalise the Camera for the Game
-			m_pCamera = new CStaticCamera();
-			std::map< std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
-			v3float v3Pos = *(Avatar->second->GetPosition());
-			m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
-			m_pCamera->Process(m_pRenderer);
-		}
+		StringToStruct(currentAvatarInfo.cUserName, _pServerPacket->cUserName, network::MAX_USERNAME_LENGTH);
+		AddAvatar(_pServerPacket);
 	}
+
+
+	//AvatarInfo currentAvatarInfo;
+	//// Temporarily store the user data 
+	//for (int i = 0; i < _pServerPacket->iCurrentUserCount; i++)
+	//{
+	//	currentAvatarInfo = _pServerPacket->Avatars[i];
+	//
+	//	// Create a new avatar object
+	//	CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
+	//	v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
+	//	pTempAvatar->Initialise(bToggle, m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, v3Pos);
+	//
+	//	// Save the avatar in a vector
+	//	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
+	//	m_pAvatars->insert(pairAvatar);
+	//
+	//	if ((std::string)(currentAvatarInfo.cUserName) == m_strUserName)
+	//	{
+	//		// Create and inititalise the Camera for the Game
+	//		m_pCamera = new CStaticCamera();
+	//		std::map< std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+	//		v3float v3Pos = *(Avatar->second->GetPosition());
+	//		m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
+	//		m_pCamera->Process(m_pRenderer);
+	//	}
+	//}
 }
 
 void CMechanics_Client::RemoveAvatar(std::string _strUserName)
@@ -475,6 +562,8 @@ void CMechanics_Client::CreateAvatarAsset()
 	// Avatar Mesh and Texture
 	m_iAvatarTexID = m_pRenderer->CreateTexture("Assets//Crate Side.bmp");
 	m_pAvatarMesh = CreateCubeMesh(kfAvatarSize, m_iAvatarTexID);
+
+	assert(("Avatar Mesh Failed to Create", m_pAvatarMesh != 0));
 }
 
 void CMechanics_Client::CreateProjectileAsset()
@@ -491,6 +580,8 @@ void CMechanics_Client::CreateProjectileAsset()
 	// Avatar Mesh and Texture
 	m_iProjectileTexID = m_pRenderer->CreateTexture("Assets//Projectile.bmp");
 	m_pProjectileMesh = CreateCubeMesh(kfProjectileSize, m_iProjectileTexID);
+
+	assert(("Projectile Mesh Failed to Create", m_pProjectileMesh != 0));
 }
 
 void CMechanics_Client::CreateDemonAsset()
@@ -507,6 +598,8 @@ void CMechanics_Client::CreateDemonAsset()
 	// Demon Enemy Mesh and Texture
 	m_iDemonTexID = m_pRenderer->CreateTexture("Assets//Demon.bmp");
 	m_pDemonMesh = CreateCubeMesh(kfDemonSize, m_iDemonTexID);
+
+	assert(("Demon Enemy Mesh Failed to Create", m_pDemonMesh != 0));
 }
 
 void CMechanics_Client::CreateSentinelAsset()
@@ -523,6 +616,8 @@ void CMechanics_Client::CreateSentinelAsset()
 	// Sentinel Enemy Mesh and Texture
 	m_iSentinelTexID = m_pRenderer->CreateTexture("Assets//Sentinel.bmp");
 	m_pSentinelMesh = CreateCubeMesh(kfSentinelSize, m_iSentinelTexID);
+
+	assert(("Sentinel Enemy Mesh Failed to Create", m_pSentinelMesh != 0));
 }
 
 void CMechanics_Client::CreateHealthAsset()
@@ -539,6 +634,8 @@ void CMechanics_Client::CreateHealthAsset()
 	// Demon Enemy Mesh and Texture
 	m_iHealthTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
 	m_pHealthMesh = CreateCubeMesh(kfPowerUpSize, m_iHealthTexID);
+
+	assert(("Health PowerUp Mesh Failed to Create", m_pHealthMesh != 0));
 }
 
 void CMechanics_Client::CreateFlareAsset()
@@ -557,8 +654,9 @@ void CMechanics_Client::CreateFlareAsset()
 	m_pFlareMesh = CreateCubeMesh(kfFlareSize, m_iFlareTexID);
 
 	m_pFlare = new CFlare(m_pRenderer);
-	m_pFlare->Initialise(m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
+	m_pFlare->Initialise(bToggle, m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
 
+	assert(("Flare Mesh Failed to Create", m_pFlareMesh != 0));
 }
 
 void CMechanics_Client::SpawnProjectile(ServerToClient* _pServerPacket)
@@ -568,12 +666,21 @@ void CMechanics_Client::SpawnProjectile(ServerToClient* _pServerPacket)
 
 	// Create a new Projectile using the information from the Packet
 	CProjectile* tempProjectile = new CProjectile((std::string)projectileInfo.cUserName, projectileInfo.v3Dir, projectileInfo.iDamage);
-	tempProjectile->Initialise(m_pRenderer, m_pProjectileMesh, projectileInfo.iID, m_iProjectileMaterialID, projectileInfo.v3Pos);
+	tempProjectile->Initialise(bToggle, m_pRenderer, m_pProjectileMesh, projectileInfo.iID, m_iProjectileMaterialID, projectileInfo.v3Pos);
 	tempProjectile->SetDirection(projectileInfo.v3Dir);
 
-	// Add the new Porjectile to the Map
+	// Add the new Projectile to the Map
+	std::pair < std::map < UINT, CProjectile* > ::iterator, bool> pairCreateCheck;
 	std::pair<UINT, CProjectile*> newProjectile(projectileInfo.iID, tempProjectile);
-	m_pProjectiles->insert(newProjectile);
+	pairCreateCheck = m_pProjectiles->insert(newProjectile);
+
+	// Check if the New Projectile was successfully inserted
+	if (pairCreateCheck.second == false)
+	{
+		// Delete the Temp Projectile if the insertion failed
+		delete tempProjectile;
+		tempProjectile = 0;
+	}
 }
 
 void CMechanics_Client::DeleteProjectile(ServerToClient* _pServerPacket)
@@ -617,11 +724,20 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 	}
 
 	CEnemy* tempEnemy = new CEnemy(enemyInfo.eType);
-	tempEnemy->Initialise(m_pRenderer, pMesh, enemyInfo.iID, iMatID, enemyInfo.v3Pos);
+	tempEnemy->Initialise(bToggle, m_pRenderer, pMesh, enemyInfo.iID, iMatID, enemyInfo.v3Pos);
 	tempEnemy->SetDirection(enemyInfo.v3Dir);
 
+	std::pair < std::map < UINT, CEnemy* > ::iterator, bool> pairCreateCheck;
 	std::pair<UINT, CEnemy*> newEnemy(enemyInfo.iID, tempEnemy);
-	m_pEnemies->insert(newEnemy);
+	pairCreateCheck = m_pEnemies->insert(newEnemy);
+
+	// Check if the New Enemy was successfully inserted
+	if (pairCreateCheck.second == false)
+	{
+		// Delete the Temp Enemy if the insertion failed
+		delete tempEnemy;
+		tempEnemy = 0;
+	}
 }
 
 void CMechanics_Client::DeleteEnemy(ServerToClient* _pServerPacket)
@@ -661,11 +777,20 @@ void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
 	}
 
 	CPowerUp* tempPower = new CPowerUp(powerInfo.eType);
-	tempPower->Initialise(m_pRenderer, pMesh, powerInfo.iID, iMatID, powerInfo.v3Pos);
+	tempPower->Initialise(bToggle, m_pRenderer, pMesh, powerInfo.iID, iMatID, powerInfo.v3Pos);
 	tempPower->SetDirection(powerInfo.v3Dir);
 
+	std::pair < std::map < UINT, CPowerUp* > ::iterator, bool> pairCreateCheck;
 	std::pair<UINT, CPowerUp*> newPower(powerInfo.iID, tempPower);
-	m_pPowerUps->insert(newPower);
+	pairCreateCheck = m_pPowerUps->insert(newPower);
+
+	// Check if the New PowerUp was successfully inserted
+	if (pairCreateCheck.second == false)
+	{
+		// Delete the Temp PowerUp if the insertion failed
+		delete tempPower;
+		tempPower = 0;
+	}
 }
 
 void CMechanics_Client::DeletePower(ServerToClient* _pServerPacket)
