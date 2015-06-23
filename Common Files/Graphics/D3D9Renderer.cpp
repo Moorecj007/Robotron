@@ -712,13 +712,13 @@ int CD3D9Renderer::CreateTorchLight()
 	pTorchLight->Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	pTorchLight->Position = { 0.0f, 0.0f, 0.0f };
 	pTorchLight->Direction = { 0.0f, -0.1f, 1.0f };
-	pTorchLight->Range = 50.0f;
-	pTorchLight->Attenuation0 = 0.0f;
-	pTorchLight->Attenuation1 = 0.001f;
-	pTorchLight->Attenuation2 = 0.0f;
-	pTorchLight->Phi = D3DXToRadian(60.0f);
-	pTorchLight->Theta = D3DXToRadian(30.0f);
-	pTorchLight->Falloff = 1.0f;
+	pTorchLight->Range = 35.0f;
+	pTorchLight->Attenuation0 = 0.005f;
+	pTorchLight->Attenuation1 = 0.015f;
+	pTorchLight->Attenuation2 = 0.001f;
+	pTorchLight->Phi = D3DXToRadian(100.0f);
+	pTorchLight->Theta = D3DXToRadian(5.0f);
+	pTorchLight->Falloff = 1.2f;
 
 	m_pDevice->SetLight(m_iNextTorchID, pTorchLight);
 	m_pDevice->LightEnable(m_iNextTorchID, true);
@@ -744,7 +744,7 @@ void CD3D9Renderer::UpdateSpotLight(int _iLightID, v3float _v3Pos, v3float _v3Di
 	std::map<int, D3DLIGHT9*>::iterator iterLight = m_pMapLight->find(_iLightID);
 
 	// Create D3DX vectors from the v3Floats
-	D3DXVECTOR3 v3Pos = { _v3Pos.x, _v3Pos.y + 0.5f, _v3Pos.z };
+	D3DXVECTOR3 v3Pos = { _v3Pos.x, _v3Pos.y + 2.5f, _v3Pos.z };
 	D3DXVECTOR3 v3Dir = { _v3Dir.x, _v3Dir.y, _v3Dir.z };
 
 	iterLight->second->Position = v3Pos;

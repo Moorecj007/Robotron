@@ -204,12 +204,18 @@ void CDInput::ProcessInput()
 
 void CDInput::ProcessKeyboard()
 {
+	// Normal Player Input controls
 	(m_keyboardState[DIK_E] & 0x80)		 ? m_activatedControls.bFlare = true : m_activatedControls.bFlare = false;
 	(m_keyboardState[DIK_W] & 0x80)		 ? m_activatedControls.bUp = true : m_activatedControls.bUp = false;
 	(m_keyboardState[DIK_A] & 0x80)		 ? m_activatedControls.bLeft = true : m_activatedControls.bLeft = false;
 	(m_keyboardState[DIK_S] & 0x80)		 ? m_activatedControls.bDown = true : m_activatedControls.bDown = false;
 	(m_keyboardState[DIK_D] & 0x80)		 ? m_activatedControls.bRight = true : m_activatedControls.bRight = false;
 	(m_keyboardState[DIK_ESCAPE] & 0x80) ? m_activatedControls.bEsc = true : m_activatedControls.bEsc = false;
+	(m_keyboardState[DIK_TAB] & 0x80) ? m_activatedControls.bTab = true : m_activatedControls.bTab = false;
+
+	// Debug Camera Controls
+
+
 }
 
 void CDInput::ProcessMouse()

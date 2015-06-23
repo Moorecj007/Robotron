@@ -158,6 +158,7 @@ bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	m_bMenuSelected = false;
 	m_strMenuTempSelection = "";
 	m_iServerIndex = -1;
+	m_bPauseKey = false;
 
 	// Game Variables
 	m_bHost = false;
@@ -181,7 +182,7 @@ bool CHub_Client::RenderOneFrame()
 	m_iFrameTimeStart = (int)timeGetTime();
 	Sleep(1);
 
-	// Shut down the application if the netwoek goes offline
+	// Shut down the application if the network goes offline
 	if (m_bNetworkOnline == false)
 	{
 		return false;
@@ -209,6 +210,11 @@ void CHub_Client::Process()
 	m_activatedControls = m_pDInput->GetControls();
 	m_ptMousePos = m_pDInput->GetMousePos();
 
+	if (m_bPrevPauseKey == true && m_activatedControls.bEsc == false)
+	{
+		m_bPauseKey = !m_bPauseKey;
+	}
+	m_bPrevPauseKey = m_activatedControls.bEsc;
 
 	// Determine if a Menu has been selected
 	if (m_strMenuTempSelection != "")
@@ -219,9 +225,19 @@ void CHub_Client::Process()
 			m_strMenuTempSelection = "";
 		}
 	}
-	
-	// Determine the correct process dependent on the current screen state
-	ProcessScreenState(fDT);
+
+	if (m_bPauseKey == true)
+	{
+		ProcessPausedScreen();
+	}
+	else
+	{
+		// Determine the correct process dependent on the current screen state
+		ProcessScreenState(fDT);
+	}
+
+	// Reset the Menu Selection
+	m_strMenuSelection = "";
 
 	// Process all Packets in the Work Queue
 	while (m_pWorkQueue->empty() == false)
@@ -233,10 +249,7 @@ void CHub_Client::Process()
 
 		// Process the Pulled Packet
 		ProcessPacket(fDT);
-	}
-
-	// Reset the Menu Selection
-	m_strMenuSelection = "";
+	}	
 }
 
 void CHub_Client::ProcessTextInput(WPARAM _wKeyPress)
@@ -603,9 +616,12 @@ void CHub_Client::ProcessScreenState(float _fDT)
 	{
 		m_pMechanics->Process(_fDT, m_pPacketToProcess);
 		
-		// Create Data packet for the user input
-		CreateDataPacket();
-		m_pNetworkClient->SendPacket(m_pClientToServer);
+		if (m_bPauseKey == false)
+		{
+			// Create Data packet for the user input
+			CreateDataPacket();
+			m_pNetworkClient->SendPacket(m_pClientToServer);
+		}
 
 		break;
 	}
@@ -863,6 +879,36 @@ void CHub_Client::ProcessGameLoading()
 	m_eScreenState = STATE_GAME_LOBBY;
 }
 
+void CHub_Client::ProcessPausedScreen()
+{
+	if (m_strMenuSelection == "Resume")
+	{
+		m_bPauseKey = false;
+	}
+	else if (m_strMenuSelection == "Options")
+	{
+
+	}
+	else if (m_strMenuSelection == "Exit Game")
+	{
+		m_eScreenState = STATE_MAIN_MENU;
+
+		if (m_bHost == true)
+		{
+			CreateCommandPacket(TERMINATE_SERVER);
+			m_pNetworkClient->SendPacket(m_pClientToServer);
+		}
+		else
+		{
+			CreateCommandPacket(LEAVE_SERVER);
+			m_pNetworkClient->SendPacket(m_pClientToServer);
+		}
+
+		ResetGameData();
+		m_bPauseKey = false;
+	}
+}
+
 // #Draw
 void CHub_Client::Draw()
 {
@@ -873,6 +919,19 @@ void CHub_Client::Draw()
 		case STATE_GAME_PLAY:
 		{
 			m_pMechanics->Draw();
+
+			if (m_bPauseKey == true)
+			{
+				m_pMechanics->OverlayPauseScreen(&m_strMenuTempSelection, m_activatedControls.ptMouse, m_activatedControls.bAction);
+			}
+			// Render all avatars scores if the player presses the correct input
+			else if (m_activatedControls.bTab == true)
+			{
+				m_pMechanics->OverlayAvatarScores();
+			}
+			// Check to see if the player has opted to pause the game
+			
+
 			break;
 		}
 		case STATE_MAIN_MENU:

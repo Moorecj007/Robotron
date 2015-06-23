@@ -135,7 +135,7 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	CreateHealthAsset();
 	CreateFlareAsset();
 
-	// Create a variable used for checking if objects are deleted
+	// Create game variables
 	bToggle = 0;
 
 	return true;
@@ -198,14 +198,15 @@ void CMechanics_Client::Draw()
 		iterEnemy++;
 	}
 
-	// Draw all the Enemies
+	// Draw the Flare if it is active
 	if (m_pFlare->GetActive() == true)
 	{
 		m_pFlare->Draw();
 	}
 
 	// Render the HUD
-	RenderHUD();
+	OverlayHUD();
+
 }
 
 CMesh* CMechanics_Client::CreateCubeMesh(float _fSize, int _iTexID)
@@ -299,13 +300,16 @@ void CMechanics_Client::UpdateAvatars()
 
 		if (iterAvatar != m_pAvatars->end())
 		{
-			iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y, avatarInfo.v3Pos.z });
+			iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y + kfAvatarSize, avatarInfo.v3Pos.z });
 			iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
 			iterAvatar->second->SetHealth(avatarInfo.iHealth);
 			iterAvatar->second->SetScore(avatarInfo.iScore);
 			iterAvatar->second->m_bToggle = bToggle;
 
-			m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), *(iterAvatar->second->GetPosition()), *(iterAvatar->second->GetDirection()));
+			v3float v3TorchPos = iterAvatar->second->GetDirection()->Normalise();
+			v3TorchPos = *(iterAvatar->second->GetPosition()) - (v3TorchPos * 2.25f);
+
+			m_pRenderer->UpdateSpotLight(iterAvatar->second->GetTorchID(), v3TorchPos, *(iterAvatar->second->GetDirection()));
 		}
 		else
 		{
@@ -350,7 +354,7 @@ void CMechanics_Client::UpdateProjectiles()
 			if (iterProjectile != m_pProjectiles->end())
 			{
 				// Update all projectiles
-				iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
+				iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y + kfProjectileSize, projectileInfo.v3Pos.z });
 				iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
 				iterProjectile->second->m_bToggle = bToggle;
 			}
@@ -399,7 +403,7 @@ void CMechanics_Client::UpdateEnemies()
 		if (iterEnemy != m_pEnemies->end())
 		{
 			// update the Enemy
-			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y, enemyInfo.v3Pos.z });
+			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y + kfProjectileSize, enemyInfo.v3Pos.z });
 			iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
 			iterEnemy->second->m_bToggle = bToggle;
 		}
@@ -506,33 +510,6 @@ void CMechanics_Client::AddAllAvatars(ServerToClient* _pServerPacket)
 		StringToStruct(currentAvatarInfo.cUserName, _pServerPacket->cUserName, network::MAX_USERNAME_LENGTH);
 		AddAvatar(_pServerPacket);
 	}
-
-
-	//AvatarInfo currentAvatarInfo;
-	//// Temporarily store the user data 
-	//for (int i = 0; i < _pServerPacket->iCurrentUserCount; i++)
-	//{
-	//	currentAvatarInfo = _pServerPacket->Avatars[i];
-	//
-	//	// Create a new avatar object
-	//	CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
-	//	v3float v3Pos = { currentAvatarInfo.v3Pos.x, currentAvatarInfo.v3Pos.y, currentAvatarInfo.v3Pos.z };
-	//	pTempAvatar->Initialise(bToggle, m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, v3Pos);
-	//
-	//	// Save the avatar in a vector
-	//	std::pair<std::string, CAvatar*> pairAvatar((std::string)(currentAvatarInfo.cUserName), pTempAvatar);
-	//	m_pAvatars->insert(pairAvatar);
-	//
-	//	if ((std::string)(currentAvatarInfo.cUserName) == m_strUserName)
-	//	{
-	//		// Create and inititalise the Camera for the Game
-	//		m_pCamera = new CStaticCamera();
-	//		std::map< std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
-	//		v3float v3Pos = *(Avatar->second->GetPosition());
-	//		m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
-	//		m_pCamera->Process(m_pRenderer);
-	//	}
-	//}
 }
 
 void CMechanics_Client::RemoveAvatar(std::string _strUserName)
@@ -809,7 +786,7 @@ void CMechanics_Client::DeletePower(ServerToClient* _pServerPacket)
 	}
 }
 
-void CMechanics_Client::RenderHUD()
+void CMechanics_Client::OverlayHUD()
 {
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
 
@@ -819,4 +796,58 @@ void CMechanics_Client::RenderHUD()
 	// Render the text to the Top left Corner
 	m_pRenderer->RenderText(false, { 0, 0 }, "Health: " + std::to_string(Avatar->second->GetHealth()), (iYpos += 10), SCREEN_FONT, textBlue, H_LEFT);
 	m_pRenderer->RenderText(false, { 0, 0 }, "Score: " + std::to_string(Avatar->second->GetScore()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+}
+
+void CMechanics_Client::OverlayAvatarScores()
+{
+	int iYpos = 300;
+	D3DXCOLOR textBlue = 0xff0000ff;
+
+	m_pRenderer->RenderText(false, { 0, 0 }, "Avatar", (iYpos), MENU_FONT, textBlue, H_LEFT);
+	m_pRenderer->RenderText(false, { 0, 0 }, "Health", (iYpos), MENU_FONT, textBlue, H_CENTER);
+	m_pRenderer->RenderText(false, { 0, 0 }, "Score", (iYpos), MENU_FONT, textBlue, H_RIGHT);
+	iYpos += 50;
+
+	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->begin();
+
+	while (Avatar != m_pAvatars->end())
+	{
+		m_pRenderer->RenderText(false, { 0, 0 }, (Avatar->first), (iYpos), MENU_FONT, textBlue, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, std::to_string(Avatar->second->GetHealth()), (iYpos), MENU_FONT, textBlue, H_CENTER);
+		m_pRenderer->RenderText(false, { 0, 0 }, std::to_string(Avatar->second->GetScore()), (iYpos), MENU_FONT, textBlue, H_RIGHT);
+		iYpos += 50;
+
+		Avatar++;
+	}
+}
+
+void CMechanics_Client::OverlayPauseScreen(std::string* _strMenuInput, POINT _ptMouse, bool _bAction)
+{
+	int iYpos = 0;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
+	std::string strSelection = "";
+
+	// Print the Title Text
+	m_pRenderer->RenderText(false, _ptMouse, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, 0xff450000, H_CENTER);
+	m_pRenderer->RenderText(false, _ptMouse, "HORDES", (iYpos += 80), TITLE_FONT, 0xff650000, H_CENTER);
+	m_pRenderer->RenderText(false, _ptMouse, "OF", (iYpos += 100), TITLE_FONT, 0xff7c0000, H_CENTER);
+	m_pRenderer->RenderText(false, _ptMouse, "HELL", (iYpos += 100), TITLE_FONT, 0xffa50000, H_CENTER);
+
+	m_pRenderer->RenderText(false, _ptMouse, "Pause Menu", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+
+	// Print the Menu Options
+	strSelection += m_pRenderer->RenderText(true, _ptMouse, "Resume", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, _ptMouse, "Options", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+	strSelection += m_pRenderer->RenderText(true, _ptMouse, "Exit Game", (iYpos += 60), MENU_FONT, colorWhite, H_CENTER);
+
+	// Change the MenuSelection Variable to the menu enum
+	if (_bAction == true)
+	{
+		*_strMenuInput = strSelection;
+	}
+	else
+	{
+		*_strMenuInput = "";
+	}
 }

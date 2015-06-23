@@ -220,6 +220,13 @@ public:
 	********************/
 	void ProcessGameLoading();
 
+	/***********************
+	* ProcessPausedScreen: Process information for the Pause Screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessPausedScreen();
+
 
 
 	/***********************
@@ -393,6 +400,8 @@ private:
 	bool m_bMenuSelected;
 	std::string m_strMenuTempSelection;
 	int m_iServerIndex;
+	bool m_bPauseKey;
+	bool m_bPrevPauseKey;
 
 	// Game Variables
 	bool m_bHost;

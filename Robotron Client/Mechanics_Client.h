@@ -232,11 +232,28 @@ public:
 	void DeletePower(ServerToClient* _pServerPacket);
 
 	/***********************
-	* RenderHUD: Render the Avatars HUD to the screen
+	* OverlayHUD: Render the Avatars HUD to the screen on top of the game image
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void RenderHUD();
+	void OverlayHUD();
+
+	/***********************
+	* OverlayAvatarScores: Render all Avatars scores to the screen on top of the game image
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void OverlayAvatarScores();
+
+	/***********************
+	* OverlayPauseScreen: Render the Pause game screen over the game image
+	* @author: Callan Moore
+	* @parameter: _strMenuInput: String to contain the selected input
+	* @parameter: _ptMouse: The current mouse cursor position
+	* @parameter: _bAction: The current state of the action key/button
+	* @return: void
+	********************/
+	void OverlayPauseScreen(std::string* strMenuInput, POINT _ptMouse, bool _bAction);
 
 
 private:
@@ -252,6 +269,7 @@ private:
 	// Blank/Alpha Assets
 	int m_iBlankTextureID;
 
+	// Game Variables
 	bool bToggle;
 
 	// Avatars

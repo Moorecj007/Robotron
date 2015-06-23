@@ -315,6 +315,7 @@ struct Controls
 	// Avatar Controls
 	bool bAction;
 	bool bFlare;
+	bool bTab;
 	bool bUp;
 	bool bDown;
 	bool bLeft;
