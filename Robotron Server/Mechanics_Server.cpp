@@ -577,7 +577,8 @@ void CMechanics_Server::ProcessPowerUps()
 				else
 				{
 					iterPowerUp->second.steeringInfo.fMaxForce = 5.0f;
-					Wander(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, fDT);
+					v3float v3Wander = Wander(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, fDT);
+					ApplyForce(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, v3Wander, fDT);
 				}
 			}	
 		}
@@ -585,7 +586,8 @@ void CMechanics_Server::ProcessPowerUps()
 		{
 			// Leaving containment field, steer back towards terrain center
 			iterPowerUp->second.steeringInfo.fMaxForce = 5.0f;
-			Seek(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, fDT);
+			v3float v3Seek = Seek(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, fDT);
+			ApplyForce(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, v3Seek, fDT);
 		}
 
 		// Calculate the Enemies updated Bounding Box
@@ -640,7 +642,7 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 		// Check only if a collision hasn't already been detected
 		if (bCollisionDetected == false)
 		{
-			// Check for collisions with other Enemies
+			//// Check for collisions with other Enemies
 			std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
 			while (iterCollisionEnemy != m_pEnemies->end())
 			{
@@ -674,13 +676,13 @@ void CMechanics_Server::ProcessDemon(EnemyInfo* _enemyInfo, float _fDT)
 {
 	if (m_pAvatars->size() > 0)
 	{
-		// Find Avatar Target
+		//// Find Avatar Target
 		std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->begin();
 		std::map<std::string, AvatarInfo>::iterator closestAvatar = iterAvatar;
-
+		
 		// Calculate the distance from the first avatar
 		float fDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
-
+		
 		while (iterAvatar != m_pAvatars->end())
 		{
 			// Caclulate the distance from the enemy to the current
@@ -695,9 +697,11 @@ void CMechanics_Server::ProcessDemon(EnemyInfo* _enemyInfo, float _fDT)
 		}
 		// Set the demons target to be the position of the closest avatar
 		_enemyInfo->steeringInfo.v3TargetPos = closestAvatar->second.v3Pos;
+		//
+		//// Steerings
+		//Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
 
-		// Steerings
-		Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+		Flock(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, m_pEnemies, _fDT);
 	}
 }
 
@@ -717,7 +721,8 @@ void CMechanics_Server::ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT)
 
 		// Upgrade the sentinels max force to turn quicker when seeking
 		_enemyInfo->steeringInfo.fMaxForce = 3.0f;
-		Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+		v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+		ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
 	}
 	else
 	{
@@ -726,13 +731,16 @@ void CMechanics_Server::ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT)
 		{
 			// Contained, therefore wander as normal
 			_enemyInfo->steeringInfo.fMaxForce = 1.0f;
-			Wander(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			v3float v3Wander = Wander(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Wander, _fDT);
+
 		}
 		else
 		{
 			// Leaving containment field, steer back towards terrain center
 			_enemyInfo->steeringInfo.fMaxForce = 4.0f;
-			Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
 		}
 	}
 }
@@ -764,8 +772,8 @@ void CMechanics_Server::SpawnNextWave()
 		tempEnemyInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
 		tempEnemyInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
 		tempEnemyInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-		tempEnemyInfo.steeringInfo.fMaxSpeed = 3.0f;
-		tempEnemyInfo.steeringInfo.fMaxForce = 30.0f;
+		tempEnemyInfo.steeringInfo.fMaxSpeed = 2.0f;
+		tempEnemyInfo.steeringInfo.fMaxForce = 4.0f;
 		tempEnemyInfo.iPoints = 50;
 		tempEnemyInfo.steeringInfo.fWanderAngle = 0;
 		tempEnemyInfo.steeringInfo.fSize = kfDemonSize;
@@ -920,7 +928,7 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	// Create the starting position based on the current number of users
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.iID = m_iNextObjectID++;
-	tempAvatarInfo.fMaxSpeed = 40.0f;
+	tempAvatarInfo.fMaxSpeed = 10.0f;
 	tempAvatarInfo.fRateOfFire = 0.2f;
 	tempAvatarInfo.fFireCountDown = 0.0f;
 	tempAvatarInfo.iDamage = 50;

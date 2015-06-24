@@ -31,9 +31,9 @@
 #define VALIDATE(a) if (!a) return (false)
 
 // Constants
-const float kfTerrainScalarX	= 0.1f;
+const float kfTerrainScalarX	= 0.5f;
 const float kfTerrainScalarY	= 0.0f;
-const float kfTerrainScalarZ	= 0.1f;
+const float kfTerrainScalarZ	= 0.5f;
 const float kfAvatarSize		= 0.5f;
 const float kfProjectileSize	= 0.1f;
 const float kfDemonSize			= 0.6f;
@@ -258,6 +258,17 @@ struct v3float
 	v3float operator* (const float _f) const
 	{
 		return v3float{ _f * x, _f * y, _f * z };
+	}
+
+	/***********************
+	* operator/: Division Operator for a v3float times a float
+	* @author: Callan Moore
+	* @parameter: _v3: Right hand side of the Division
+	* @return: v3float: The result of the Division
+	********************/
+	v3float operator/ (const float _f) const
+	{
+		return v3float{ x / _f, y / _f, z / _f };
 	}
 
 	/***********************
