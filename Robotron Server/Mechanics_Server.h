@@ -21,6 +21,7 @@
 #include <time.h>
 #include <map>
 #include <queue>
+#include <fstream>
 
 // Local Includes
 #include "../Common Files/Networking/Network_Defines.h"
@@ -247,6 +248,9 @@ private:
 	UINT m_iNextObjectID;
 
 	// Game Variables
+	float m_fTerrainWidth;
+	float m_fTerrainDepth;
+
 	UINT m_iWaveNumber;
 	UINT m_iDemonCount;
 	UINT m_iSentinelCount;

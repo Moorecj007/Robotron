@@ -116,7 +116,7 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 
 	// Create a Terrain for the Game
 	m_pTerrain = new CTerrain();
-	VertexScalar TerrainScalar = { 0.2f, 0.0f, 0.2f };
+	VertexScalar TerrainScalar = { kfTerrainScalarX, kfTerrainScalarY, kfTerrainScalarZ };
 	std::string strImagePath = "Assets\\Basic Terrain.bmp";
 	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
 	m_pTerrain->SetCenter(0, 0, 0);

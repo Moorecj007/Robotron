@@ -109,10 +109,10 @@ struct AvatarInfo
 
 struct SteeringVariables
 {
-	v3float v3Target;
-	v3float v3Pos;
-	v3float v3Dir;
+	v3float v3TargetPos;
 	v3float v3Vel;
+	v3float v3TargetVel;
+	float fTargetSpeed;
 	float fMaxSpeed;
 	float fMaxForce;
 	float fSize;
@@ -128,15 +128,8 @@ struct EnemyInfo
 	int iHealth;
 	v3float v3Pos;
 	v3float v3Dir;
-	v3float v3Vel;
-	v3float v3Acceleration;
-	float fMaxSpeed;
-	float fMaxForce;
-	float fSize;
-	// AI variables
-	v3float v3Target;
 	char cTargetPlayer[network::MAX_USERNAME_LENGTH];
-	float fWanderAngle;
+	SteeringVariables steeringInfo;
 	
 };
 
@@ -147,15 +140,10 @@ struct PowerUpInfo
 	ePowerUpType eType;
 	v3float v3Pos;
 	v3float v3Dir;
-	v3float v3Vel;
-	v3float v3Acceleration;
-	float fMaxSpeed;
-	float fMaxForce;
+	SteeringVariables steeringInfo;
 
 	BoundingBox BBox;
 
-	// AI Variables
-	float fWanderAngle;
 };
 
 struct ProjectileInfo
