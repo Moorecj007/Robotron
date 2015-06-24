@@ -111,6 +111,13 @@ public:
 	void UpdateEnemies();
 
 	/***********************
+	* UpdatePowerUps: Update the PowerUp Objects from the Packet from the server
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void UpdatePowerUps();
+
+	/***********************
 	* UpdateFlare: Update the Flare from the Packet from the server
 	* @author: Callan Moore
 	* @return: void
@@ -221,7 +228,7 @@ public:
 	* @parameter: _pServerPacket: Packet containing the details about the new PowerUp
 	* @return: void
 	********************/
-	void SpawnPower(ServerToClient* _pServerPacket);
+	void SpawnPowerUp(ServerToClient* _pServerPacket);
 
 	/***********************
 	* DeletePower: Delete an existing PowerUp
@@ -229,7 +236,7 @@ public:
 	* @parameter: _pServerPacket: Packet containing the details about the PowerUp to delete
 	* @return: void
 	********************/
-	void DeletePower(ServerToClient* _pServerPacket);
+	void DeletePowerUp(ServerToClient* _pServerPacket);
 
 	/***********************
 	* OverlayHUD: Render the Avatars HUD to the screen on top of the game image

@@ -185,6 +185,13 @@ public:
 	void SpawnNextWave();
 
 	/***********************
+	* SpawnNextPowerUp: Spawn the Next PowerUp
+	* @author: Callan Moore
+	* @parameter: void
+	********************/
+	void SpawnNextPowerUp();
+
+	/***********************
 	* CreateDataPacket: Creates the DataPacket to send with all relevant information
 	* @author: Callan Moore
 	* @parameter: _pServerPacket: Server to client packet to create
@@ -243,6 +250,7 @@ private:
 	UINT m_iWaveNumber;
 	UINT m_iDemonCount;
 	UINT m_iSentinelCount;
+	float m_fLastPowerUpSpawned;
 
 	// Avatar Variables
 	std::map<std::string, AvatarInfo>* m_pAvatars;

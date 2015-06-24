@@ -148,6 +148,7 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	m_pServerPacket = _pServerPacket;
 
 	UpdateAvatars();
+	UpdatePowerUps();
 	UpdateProjectiles();
 	UpdateEnemies();
 	UpdateFlare();
@@ -400,10 +401,25 @@ void CMechanics_Client::UpdateEnemies()
 		UINT iID = enemyInfo.iID;
 		iterEnemy = m_pEnemies->find(iID);
 
+		float fSize = 0.0f;
+		switch (enemyInfo.eType)
+		{
+			case ET_DEMON:
+			{
+				fSize = kfDemonSize;
+				break;
+			}
+			case ET_SENTINEL:
+			{
+				fSize = kfSentinelSize;
+				break;
+			}
+		}	// Ende Switch
+
 		if (iterEnemy != m_pEnemies->end())
 		{
 			// update the Enemy
-			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y + kfProjectileSize, enemyInfo.v3Pos.z });
+			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y + fSize, enemyInfo.v3Pos.z });
 			iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
 			iterEnemy->second->m_bToggle = bToggle;
 		}
@@ -433,6 +449,53 @@ void CMechanics_Client::UpdateEnemies()
 	}
 	// Delete the Enemies from the map
 	m_pEnemies->erase(iID);
+}
+
+void CMechanics_Client::UpdatePowerUps()
+{
+	// Iterator to point at the found Enemy
+	std::map<UINT, CPowerUp*>::iterator iterPowerUp;
+
+	for (int i = 0; i < m_pServerPacket->iCurrentPowerUpCount; i++)
+	{
+		// Retrieve the Enemy from the current enemyInfo
+		PowerUpInfo powerInfo = (*m_pServerPacket).PowerUps[i];
+		UINT iID = powerInfo.iID;
+		iterPowerUp = m_pPowerUps->find(iID);
+
+		if (iterPowerUp != m_pPowerUps->end())
+		{
+			// Update the Enemy
+			iterPowerUp->second->SetPosition({ powerInfo.v3Pos.x, powerInfo.v3Pos.y + kfPowerUpSize, powerInfo.v3Pos.z });
+			iterPowerUp->second->SetDirection({ powerInfo.v3Dir.x, powerInfo.v3Dir.y, powerInfo.v3Dir.z });
+			iterPowerUp->second->m_bToggle = bToggle;
+		}
+		else
+		{
+			// Create Packet was not processed. Create the missed Enemy
+			m_pServerPacket->powerInfo = powerInfo;
+			SpawnPowerUp(m_pServerPacket);
+		}
+	}
+
+	// Check if any Enemies was not updated
+	iterPowerUp = m_pPowerUps->begin();
+	UINT iID = 0;
+	while (iterPowerUp != m_pPowerUps->end())
+	{
+		// If a Enemies was not updated the server has deleted it
+		if (iterPowerUp->second->m_bToggle != bToggle)
+		{
+			// Set the ID of the Enemies to Delete
+			iID = iterPowerUp->second->GetID();
+			delete iterPowerUp->second;
+			break;
+		}
+
+		iterPowerUp++;
+	}
+	// Delete the Enemies from the map
+	m_pPowerUps->erase(iID);
 }
 
 void CMechanics_Client::UpdateFlare()
@@ -735,7 +798,7 @@ void CMechanics_Client::DeleteEnemy(ServerToClient* _pServerPacket)
 	
 }
 
-void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
+void CMechanics_Client::SpawnPowerUp(ServerToClient* _pServerPacket)
 {
 	PowerUpInfo powerInfo = _pServerPacket->powerInfo;
 	CMesh* pMesh = 0;
@@ -770,7 +833,7 @@ void CMechanics_Client::SpawnPower(ServerToClient* _pServerPacket)
 	}
 }
 
-void CMechanics_Client::DeletePower(ServerToClient* _pServerPacket)
+void CMechanics_Client::DeletePowerUp(ServerToClient* _pServerPacket)
 {
 	UINT iID = _pServerPacket->powerInfo.iID;
 

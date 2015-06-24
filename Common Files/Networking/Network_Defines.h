@@ -37,6 +37,7 @@ namespace network
 	unsigned const	MAX_USERNAME_LENGTH		= 13;
 	unsigned const  MAX_SERVERNAME_LENGTH	= 16;
 	unsigned const  MAX_ENEMY_SPAWNED		= 30;	// TO DO - calculate properly using % increase per player
+	unsigned const  MAX_POWERUPS_SPAWNED	= 10;
 	unsigned const  MAX_PROJECTILES			= 100;
 }
 
@@ -106,34 +107,55 @@ struct AvatarInfo
 	BoundingBox BBox;
 };
 
+struct SteeringVariables
+{
+	v3float v3Target;
+	v3float v3Pos;
+	v3float v3Dir;
+	v3float v3Vel;
+	float fMaxSpeed;
+	float fMaxForce;
+	float fSize;
+	float fWanderAngle;
+};
+
 struct EnemyInfo
 {
 	UINT iID;
+	UINT iPoints;
 	eEnemyType eType;
+	BoundingBox BBox;
 	int iHealth;
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
 	v3float v3Acceleration;
-	v3float v3Target;
-	char cTargetPlayer[network::MAX_USERNAME_LENGTH];
 	float fMaxSpeed;
 	float fMaxForce;
-	UINT iPoints;
-
-	BoundingBox BBox;
+	float fSize;
+	// AI variables
+	v3float v3Target;
+	char cTargetPlayer[network::MAX_USERNAME_LENGTH];
+	float fWanderAngle;
+	
 };
 
 struct PowerUpInfo
 {
 	UINT iID;
+	UINT iPoints;
 	ePowerUpType eType;
 	v3float v3Pos;
 	v3float v3Dir;
 	v3float v3Vel;
+	v3float v3Acceleration;
 	float fMaxSpeed;
+	float fMaxForce;
 
 	BoundingBox BBox;
+
+	// AI Variables
+	float fWanderAngle;
 };
 
 struct ProjectileInfo
@@ -189,6 +211,9 @@ struct ServerToClient
 
 	int iCurrentEnemyCount;
 	EnemyInfo Enemies[network::MAX_ENEMY_SPAWNED];
+
+	int iCurrentPowerUpCount;
+	PowerUpInfo PowerUps[network::MAX_POWERUPS_SPAWNED];
 
 	int iCurrentProjectileCount;
 	ProjectileInfo Projectiles[network::MAX_PROJECTILES];

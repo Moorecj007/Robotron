@@ -231,19 +231,8 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// Game Variables
 	m_iWaveNumber = 0;
 
+	// Spawn the first wave of enemies
 	SpawnNextWave();
-
-	// TO DO - remove to wave spawing function
-	PowerUpInfo tempPowerInfo;
-	tempPowerInfo.eType = PT_HEALTH;
-	tempPowerInfo.iID = m_iNextObjectID++;
-	tempPowerInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
-	tempPowerInfo.v3Pos = { -10.0f, 0.0f, 0.0f };
-	tempPowerInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-	tempPowerInfo.BBox.v3Max = tempPowerInfo.v3Pos + kfPowerUpSize;
-	tempPowerInfo.BBox.v3Min = tempPowerInfo.v3Pos - kfPowerUpSize;
-	m_pCreatedPowerUps->push(tempPowerInfo);
-	m_pPowerUps->insert(std::pair<UINT, PowerUpInfo>(tempPowerInfo.iID, tempPowerInfo));
 
 	return true;
 }
@@ -263,6 +252,14 @@ void CMechanics_Server::Process()
 		&&	m_iSentinelCount == 0)
 	{
 		SpawnNextWave();
+	}
+
+	// Spawn a PowerUp every 10 seconds
+	m_fLastPowerUpSpawned += fDT;
+	if (m_fLastPowerUpSpawned > 10.0f)
+	{
+		SpawnNextPowerUp();
+		m_fLastPowerUpSpawned -= 10.0f;
 	}
 }
 
@@ -531,11 +528,14 @@ void CMechanics_Server::ProcessPowerUps()
 	std::map<UINT, PowerUpInfo>::iterator iterPowerUp = m_pPowerUps->begin();
 	while (iterPowerUp != m_pPowerUps->end())
 	{
-		// TO DO - Add WANDER AI
+		Wander(&iterPowerUp->second, fDT);
 
 		// Calculate the Enemies updated Bounding Box
 		iterPowerUp->second.BBox.v3Max = iterPowerUp->second.v3Pos + (1.1f * kfPowerUpSize);
 		iterPowerUp->second.BBox.v3Min = iterPowerUp->second.v3Pos - (1.1f * kfPowerUpSize);
+
+		// TO DO - calculate edge of terrain collision
+
 
 		iterPowerUp++;
 	}
@@ -664,6 +664,7 @@ void CMechanics_Server::ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT)
 	else
 	{
 		// TO DO - WANDER AI
+		Wander(_enemyInfo, _fDT);
 	}
 }
 
@@ -680,18 +681,20 @@ void CMechanics_Server::SpawnNextWave()
 		// TO DO - base on the terrain sizes
 		float fRandomX = float(rand() % 50 - 25);
 		float fRandomZ = float(rand() % 50 - 25);
-
+		
 		EnemyInfo tempEnemyInfo;
 		tempEnemyInfo.eType = ET_DEMON;
 		tempEnemyInfo.iHealth = 100;
 		tempEnemyInfo.iID = m_iNextObjectID++;
-		tempEnemyInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
+		tempEnemyInfo.v3Dir = { fRandomZ, 0.0f, fRandomX };
 		tempEnemyInfo.v3Pos = { fRandomX, 0.0f, fRandomZ };
 		tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
 		tempEnemyInfo.v3Acceleration = { 0.0f, 0.0f, 0.0f };
 		tempEnemyInfo.fMaxSpeed = 3.0f;
 		tempEnemyInfo.fMaxForce = 30.0f;
 		tempEnemyInfo.iPoints = 50;
+		tempEnemyInfo.fWanderAngle = 0;
+		tempEnemyInfo.fSize = kfDemonSize;
 		tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + kfDemonSize;
 		tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - kfDemonSize;
 		m_pCreatedEnemies->push(tempEnemyInfo);
@@ -708,20 +711,47 @@ void CMechanics_Server::SpawnNextWave()
 		tempEnemyInfo.eType = ET_SENTINEL;
 		tempEnemyInfo.iHealth = 500;
 		tempEnemyInfo.iID = m_iNextObjectID++;
-		tempEnemyInfo.v3Dir = { 0.0f, 0.0f, 1.0f };
+		tempEnemyInfo.v3Dir = { fRandomZ, 0.0f, fRandomX };
 		tempEnemyInfo.v3Pos = { fRandomX, 0.0f, fRandomZ };
 		tempEnemyInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
 		tempEnemyInfo.v3Acceleration = { 0.0f, 0.0f, 0.0f };
-		tempEnemyInfo.fMaxSpeed = 10.0f;
-		tempEnemyInfo.fMaxForce = 15.0f;
+		tempEnemyInfo.fMaxSpeed = 5.0f;
+		tempEnemyInfo.fMaxForce = 1.0f;
 		tempEnemyInfo.iPoints = 500;
+		tempEnemyInfo.fWanderAngle = 0;
+		tempEnemyInfo.fSize = kfSentinelSize;
+		StringToStruct("", tempEnemyInfo.cTargetPlayer, network::MAX_USERNAME_LENGTH);
 		tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + kfSentinelSize;
 		tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - kfSentinelSize;
 		m_pCreatedEnemies->push(tempEnemyInfo);
 		m_pEnemies->insert(std::pair<UINT, EnemyInfo>(tempEnemyInfo.iID, tempEnemyInfo));
 	}
+}
 
-
+void CMechanics_Server::SpawnNextPowerUp()
+{
+	if (m_pPowerUps->size() < network::MAX_POWERUPS_SPAWNED)
+	{
+		// TO DO - base on the terrain sizes
+		float fRandomX = float(rand() % 50 - 25);
+		float fRandomZ = float(rand() % 50 - 25);
+	
+		PowerUpInfo tempPowerInfo;
+		tempPowerInfo.eType = PT_HEALTH;
+		tempPowerInfo.iID = m_iNextObjectID++;
+		tempPowerInfo.v3Dir = { fRandomZ, 0.0f, fRandomX };
+		tempPowerInfo.v3Pos = { fRandomX, 0.0f, fRandomZ };
+		tempPowerInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+		tempPowerInfo.v3Acceleration = { 0.0f, 0.0f, 0.0f };
+		tempPowerInfo.fMaxSpeed = 1.0f;
+		tempPowerInfo.fMaxForce = 5.0f;
+		tempPowerInfo.iPoints = 10;
+		tempPowerInfo.fWanderAngle = 0;
+		tempPowerInfo.BBox.v3Max = tempPowerInfo.v3Pos + kfPowerUpSize;
+		tempPowerInfo.BBox.v3Min = tempPowerInfo.v3Pos - kfPowerUpSize;
+		m_pCreatedPowerUps->push(tempPowerInfo);
+		m_pPowerUps->insert(std::pair<UINT, PowerUpInfo>(tempPowerInfo.iID, tempPowerInfo));
+	}
 }
 
 bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
@@ -734,6 +764,7 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 	_pServerPacket->eCommand = ERROR_COMMAND;
 	_pServerPacket->iCurrentUserCount = (int)(m_pAvatars->size());
 	_pServerPacket->iCurrentEnemyCount = (int)(m_pEnemies->size());
+	_pServerPacket->iCurrentPowerUpCount = (int)(m_pPowerUps->size());
 	_pServerPacket->iCurrentProjectileCount = (int)(m_pProjectiles->size());
 
 	// Add the Server as the username to the Packet structure
@@ -762,6 +793,17 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 
 		iIndex++;
 		iterEnemy++;
+	}
+
+	// Add all the PowerUps to the Packet with their information status
+	std::map<UINT, PowerUpInfo>::iterator iterPowerUp = m_pPowerUps->begin();
+	iIndex = 0;
+	while (iterPowerUp != m_pPowerUps->end())
+	{
+		_pServerPacket->PowerUps[iIndex] = iterPowerUp->second;
+
+		iIndex++;
+		iterPowerUp++;
 	}
 
 	// Add all the Projectiles to the Packet with their information status
@@ -794,7 +836,7 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	// Create the starting position based on the current number of users
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.iID = m_iNextObjectID++;
-	tempAvatarInfo.fMaxSpeed = 10.0f;
+	tempAvatarInfo.fMaxSpeed = 40.0f;
 	tempAvatarInfo.fRateOfFire = 0.2f;
 	tempAvatarInfo.fFireCountDown = 0.0f;
 	tempAvatarInfo.iDamage = 50;

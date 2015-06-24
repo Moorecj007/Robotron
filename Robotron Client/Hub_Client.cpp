@@ -585,12 +585,12 @@ void CHub_Client::ProcessPacket(float _fDT)
 			}
 			case CREATE_POWERUP:
 			{
-				m_pMechanics->SpawnPower(m_pPacketToProcess);
+				m_pMechanics->SpawnPowerUp(m_pPacketToProcess);
 				break;
 			}
 			case DELETE_POWERUP:
 			{
-				m_pMechanics->DeletePower(m_pPacketToProcess);
+				m_pMechanics->DeletePowerUp(m_pPacketToProcess);
 				break;
 			}
 		}
