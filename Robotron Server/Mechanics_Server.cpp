@@ -928,7 +928,7 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	// Create the starting position based on the current number of users
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.iID = m_iNextObjectID++;
-	tempAvatarInfo.fMaxSpeed = 10.0f;
+	tempAvatarInfo.fMaxSpeed = 20.0f;
 	tempAvatarInfo.fRateOfFire = 0.2f;
 	tempAvatarInfo.fFireCountDown = 0.0f;
 	tempAvatarInfo.iDamage = 50;
