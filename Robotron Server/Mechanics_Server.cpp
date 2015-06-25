@@ -202,7 +202,7 @@ void CMechanics_Server::SetAvatarAliveState(std::string _strAvatar, bool _bAlive
 	iterAvatar->second.bAlive = _bAlive;
 }
 
-bool CMechanics_Server::Initialise(std::string _strServerName)
+bool CMechanics_Server::Initialise(std::string _strServerName, bool _bSinglePlayer)
 {
 	// Create and initialise the clock
 	m_pClock = new CClock();
@@ -252,9 +252,16 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	m_iWaveNumber = 0;
 	m_fTerrainWidth = (float)iWidth * kfTerrainScalarX;
 	m_fTerrainDepth = (float)iDepth * kfTerrainScalarZ;
+	m_bSinglePlayer = _bSinglePlayer;
 
 	// Spawn the first wave of enemies
 	SpawnNextWave();
+
+	// Spawn 5 powewrups at beginning of game
+	for (int i = 0; i < 5; i++)
+	{
+		SpawnNextPowerUp();
+	}
 
 	
 
@@ -295,64 +302,46 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 	Controls avatarControls = _pClientPacket->activatedControls;
 	std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find(_pClientPacket->cUserName);
 
+	// Update the Fire Countdown
 	if (Avatar->second.fFireCountDown > 0.0f)
 	{
 		Avatar->second.fFireCountDown -= fDT;
 	}
 
-	// Check if the Avatar has activated a Flare
-	if (avatarControls.bFlare == true)
+	// Check if the Avatar has gained enough points for an extra life. Single Player only
+	if (m_bSinglePlayer == true)
 	{
-		if (m_bFlareActive == true)
+		if (Avatar->second.iLifeAddCounter >= 500)
 		{
-			// TO DO: Message on screen to state flare already active
-		}
-		else
-		{
-			// retrieve the AvatarInfo of the Avatar invoking a flare
-			std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find((std::string)_pClientPacket->cUserName);
-
-			m_bFlareActive = true;
-			ZeroMemory(&m_Flare, sizeof(m_Flare));
-
-			m_Flare.iID = m_iNextObjectID++;
-			m_Flare.bActive = true;
-			m_Flare.v3Pos = Avatar->second.v3Pos;
-			m_Flare.fRange = 10.0f;
-			m_Flare.fMaxRange = 100;
-			m_Flare.fMaxSpeed = 20.0f;
-			m_Flare.fTimeLeft = 10.0f;
+			Avatar->second.iLifeAddCounter -= 500;
+			Avatar->second.iLives++;
 		}
 	}
 
-	if (avatarControls.bAction == true)
+	// Check if the player is alive
+	if (Avatar->second.bAlive == true)
 	{
-		if (Avatar->second.fFireCountDown <= 0)
+		if (Avatar->second.iHealth <= 0)
 		{
-			Avatar->second.fFireCountDown = Avatar->second.fRateOfFire;
-
-			// Create a new Projectile
-			ProjectileInfo tempProjectileInfo;
-			tempProjectileInfo.iID = m_iNextObjectID++;
-			StringToStruct(Avatar->second.cUserName, tempProjectileInfo.cUserName, network::MAX_USERNAME_LENGTH);
-			tempProjectileInfo.iDamage = Avatar->second.iDamage;
-			tempProjectileInfo.v3Dir = Avatar->second.v3Dir;
-			tempProjectileInfo.v3Pos = Avatar->second.v3Pos;
-			tempProjectileInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-			tempProjectileInfo.fMaxSpeed = 30.0f;
-			tempProjectileInfo.BBox.v3Max = tempProjectileInfo.v3Pos + kfProjectileSize;
-			tempProjectileInfo.BBox.v3Min = tempProjectileInfo.v3Pos - kfProjectileSize;
-
-			// Add to both the queue of created and to the servers Map of Projectiles
-			m_pCreatedProjectiles->push(tempProjectileInfo);
-
-			if (m_pProjectiles->size() >= network::MAX_PROJECTILES)
+			if (m_bSinglePlayer == true)
 			{
-				// erase the oldest projectile in the Map
-				m_pDeletedProjectiles->push(m_pProjectiles->begin()->second);
-				m_pProjectiles->erase(m_pProjectiles->begin(), ++m_pProjectiles->begin());
+				// Decrement lives if single player
+				if (Avatar->second.iLives <= 0)
+				{
+					Avatar->second.bAlive = false;
+				}
+				else
+				{
+					Avatar->second.iLives--;
+					Avatar->second.iHealth = 100;
+					Avatar->second.v3Pos = { 0.0f, kfAvatarSize, 0.0f };
+				}
 			}
-			m_pProjectiles->insert(std::pair<UINT, ProjectileInfo>(tempProjectileInfo.iID, tempProjectileInfo));
+			else
+			{ 
+				// Player dies in multiplayer
+				Avatar->second.bAlive = false;
+			}
 		}
 	}
 
@@ -391,68 +380,156 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 	Avatar->second.BBox.v3Max = Avatar->second.v3Pos + (1.1f * kfAvatarSize);
 	Avatar->second.BBox.v3Min = Avatar->second.v3Pos - (1.1f * kfAvatarSize);
 
-	bool bCollisionDetected = false;
-	// Check for Collisions with Avatars
-	std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
-	while (iterCollisionAvatar != m_pAvatars->end())
+	// Do only if the player is alive
+	if (Avatar->second.bAlive == true)
 	{
-		if (Avatar->second.iID != iterCollisionAvatar->second.iID)
+		// Check if the Avatar has activated a Flare
+		if (avatarControls.bFlare == true)
 		{
-			if (CollisionCheck(Avatar->second.BBox, iterCollisionAvatar->second.BBox) == true)
+			// Ensure the Avatar has a flare to use
+			if (Avatar->second.iFlareCount > 0)
 			{
-				bCollisionDetected = true;
-				break;
+				if (m_bFlareActive == true)
+				{
+					// TO DO: Message on screen to state flare already active
+				}
+				else
+				{
+					// retrieve the AvatarInfo of the Avatar invoking a flare
+					std::map<std::string, AvatarInfo>::iterator Avatar = m_pAvatars->find((std::string)_pClientPacket->cUserName);
+
+					m_bFlareActive = true;
+					ZeroMemory(&m_Flare, sizeof(m_Flare));
+
+					m_Flare.iID = m_iNextObjectID++;
+					m_Flare.bActive = true;
+					m_Flare.v3Pos = Avatar->second.v3Pos;
+					m_Flare.fRange = 10.0f;
+					m_Flare.fMaxRange = 100;
+					m_Flare.fMaxSpeed = 20.0f;
+					m_Flare.fTimeLeft = 10.0f;
+
+					// Decrease flare count by one
+					Avatar->second.iFlareCount--;
+				}
 			}
 		}
-		iterCollisionAvatar++;
-	}
 
-	// Check only if a collision hasn't already been detected
-	if (bCollisionDetected == false)
-	{
-		// Check for collisions with other Enemies
-		std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
-		while (iterCollisionEnemy != m_pEnemies->end())
+		if (avatarControls.bAction == true)
 		{
-			// Allow players to move through the shadow
-			if (iterCollisionEnemy->second.eType != ET_SHADOW)
+			if (Avatar->second.fFireCountDown <= 0)
 			{
-				if (CollisionCheck(Avatar->second.BBox, iterCollisionEnemy->second.BBox) == true)
+				Avatar->second.fFireCountDown = Avatar->second.fRateOfFire;
+
+				// Create a new Projectile
+				ProjectileInfo tempProjectileInfo;
+				tempProjectileInfo.iID = m_iNextObjectID++;
+				StringToStruct(Avatar->second.cUserName, tempProjectileInfo.cUserName, network::MAX_USERNAME_LENGTH);
+				tempProjectileInfo.iDamage = Avatar->second.iDamage;
+				tempProjectileInfo.v3Dir = Avatar->second.v3Dir;
+				tempProjectileInfo.v3Pos = Avatar->second.v3Pos;
+				tempProjectileInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
+				tempProjectileInfo.fMaxSpeed = 30.0f;
+				tempProjectileInfo.BBox.v3Max = tempProjectileInfo.v3Pos + kfProjectileSize;
+				tempProjectileInfo.BBox.v3Min = tempProjectileInfo.v3Pos - kfProjectileSize;
+
+				// Add to both the queue of created and to the servers Map of Projectiles
+				m_pCreatedProjectiles->push(tempProjectileInfo);
+
+				if (m_pProjectiles->size() >= network::MAX_PROJECTILES)
+				{
+					// erase the oldest projectile in the Map
+					m_pDeletedProjectiles->push(m_pProjectiles->begin()->second);
+					m_pProjectiles->erase(m_pProjectiles->begin(), ++m_pProjectiles->begin());
+				}
+				m_pProjectiles->insert(std::pair<UINT, ProjectileInfo>(tempProjectileInfo.iID, tempProjectileInfo));
+			}
+		}
+
+
+		bool bCollisionDetected = false;
+		// Check for Collisions with Avatars
+		std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
+		while (iterCollisionAvatar != m_pAvatars->end())
+		{
+			if (Avatar->second.iID != iterCollisionAvatar->second.iID)
+			{
+				if (CollisionCheck(Avatar->second.BBox, iterCollisionAvatar->second.BBox) == true)
 				{
 					bCollisionDetected = true;
 					break;
 				}
 			}
-
-			iterCollisionEnemy++;
+			iterCollisionAvatar++;
 		}
-	}
 
-	if (bCollisionDetected == true)
-	{
-		// Revert the Enemy back to their original position before moving
-		Avatar->second.v3Pos -= Avatar->second.v3Vel;
-
-		// Revert the Bounding box to before the move
-		Avatar->second.BBox.v3Max = Avatar->second.v3Pos + (1.1f * kfAvatarSize);
-		Avatar->second.BBox.v3Min = Avatar->second.v3Pos - (1.1f * kfAvatarSize);
-	}
-
-	// Check for collisions with PowerUps
-	std::map<UINT, PowerUpInfo>::iterator iterCollisionPowerUp = m_pPowerUps->begin();
-	while (iterCollisionPowerUp != m_pPowerUps->end())
-	{
-		if (CollisionCheck(Avatar->second.BBox, iterCollisionPowerUp->second.BBox) == true)
+		// Check only if a collision hasn't already been detected
+		if (bCollisionDetected == false)
 		{
-			// TO DO - ADD the powerUp effect
+			// Check for collisions with other Enemies
+			std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
+			while (iterCollisionEnemy != m_pEnemies->end())
+			{
+				// Allow players to move through the shadow
+				if (iterCollisionEnemy->second.eType != ET_SHADOW)
+				{
+					if (CollisionCheck(Avatar->second.BBox, iterCollisionEnemy->second.BBox) == true)
+					{
+						bCollisionDetected = true;
+						break;
+					}
+				}
 
-			//Delete the PowerUp
-			m_pDeletedPowerUps->push(iterCollisionPowerUp->second);
-
-			break;
+				iterCollisionEnemy++;
+			}
 		}
 
-		iterCollisionPowerUp++;
+		if (bCollisionDetected == true)
+		{
+			// Revert the Enemy back to their original position before moving
+			Avatar->second.v3Pos -= Avatar->second.v3Vel;
+
+			// Revert the Bounding box to before the move
+			Avatar->second.BBox.v3Max = Avatar->second.v3Pos + (1.1f * kfAvatarSize);
+			Avatar->second.BBox.v3Min = Avatar->second.v3Pos - (1.1f * kfAvatarSize);
+		}
+
+		// Check for collisions with PowerUps
+		std::map<UINT, PowerUpInfo>::iterator iterCollisionPowerUp = m_pPowerUps->begin();
+		while (iterCollisionPowerUp != m_pPowerUps->end())
+		{
+			if (CollisionCheck(Avatar->second.BBox, iterCollisionPowerUp->second.BBox) == true)
+			{
+				switch (iterCollisionPowerUp->second.eType)
+				{
+				case PT_HEALTH:
+				{
+					Avatar->second.iHealth = 100;
+					
+					break;
+				}
+				case PT_FLARE:
+				{
+					Avatar->second.iFlareCount++;
+					break;
+				}
+				case PT_GOLDEN:
+				{
+					break;
+				}
+				Avatar->second.iScore += iterCollisionPowerUp->second.iPoints;
+				Avatar->second.iLifeAddCounter += iterCollisionPowerUp->second.iPoints;
+
+				}	// End Switch
+
+				//Delete the PowerUp
+				m_pDeletedPowerUps->push(iterCollisionPowerUp->second);
+
+				break;
+			}
+
+			iterCollisionPowerUp++;
+		}
 	}
 
 }
@@ -509,6 +586,7 @@ void CMechanics_Server::ProcessProjectiles()
 					{
 						// Provided the Avatar still exists
 						Avatar->second.iScore += iterCollisionEnemy->second.iPoints;
+						Avatar->second.iLifeAddCounter += iterCollisionEnemy->second.iPoints;
 					}
 
 					// delete the enemy if their health drops to zero
@@ -568,15 +646,20 @@ void CMechanics_Server::ProcessPowerUps()
 				// Calculate the distance from the first avatar
 				float fDistance = abs((iterAvatar->second.v3Pos - iterPowerUp->second.v3Pos).Magnitude());
 
+				bool bAnAvatarAlive = false;
 				while (iterAvatar != m_pAvatars->end())
 				{
-					// Caclulate the distance from the enemy to the current
-					float fNewDistance = abs((iterAvatar->second.v3Pos - iterPowerUp->second.v3Pos).Magnitude());
-					if (fNewDistance < fDistance)
+					if (iterAvatar->second.bAlive == true)
 					{
-						// Set the closest avatar to the current avatar and update the distance for checking
-						closestAvatar = iterAvatar;
-						fDistance = fNewDistance;
+						bAnAvatarAlive = true;
+						// Caclulate the distance from the enemy to the current
+						float fNewDistance = abs((iterAvatar->second.v3Pos - iterPowerUp->second.v3Pos).Magnitude());
+						if (fNewDistance < fDistance)
+						{
+							// Set the closest avatar to the current avatar and update the distance for checking
+							closestAvatar = iterAvatar;
+							fDistance = fNewDistance;
+						}
 					}
 					iterAvatar++;
 				}
@@ -585,7 +668,7 @@ void CMechanics_Server::ProcessPowerUps()
 				iterPowerUp->second.steeringInfo.v3TargetVel = closestAvatar->second.v3Vel;
 				iterPowerUp->second.steeringInfo.fTargetSpeed = closestAvatar->second.fMaxSpeed;
 
-				if ((iterPowerUp->second.steeringInfo.v3TargetPos - iterPowerUp->second.v3Pos).Magnitude() < 15.0f)
+				if ((iterPowerUp->second.steeringInfo.v3TargetPos - iterPowerUp->second.v3Pos).Magnitude() < 15.0f && bAnAvatarAlive == true)
 				{
 					iterPowerUp->second.steeringInfo.fMaxForce = 5.0f;
 					Evade(&iterPowerUp->second.steeringInfo, &iterPowerUp->second.v3Pos, &iterPowerUp->second.v3Dir, fDT);
@@ -620,6 +703,11 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 	std::map<UINT, EnemyInfo>::iterator iterEnemy = m_pEnemies->begin();
 	while (iterEnemy != m_pEnemies->end())
 	{
+		if (iterEnemy->second.fAttackCountDown > 0.0f)
+		{
+			iterEnemy->second.fAttackCountDown -= _fDT;
+		}
+
 		switch (iterEnemy->second.eType)
 		{
 			case ET_DEMON:
@@ -656,10 +744,22 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 			std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
 			while (iterCollisionAvatar != m_pAvatars->end())
 			{
-				if (CollisionCheck(iterEnemy->second.BBox, iterCollisionAvatar->second.BBox) == true)
+				if (iterCollisionAvatar->second.bAlive == true)
 				{
-					bCollisionDetected = true;
-					break;
+					if (CollisionCheck(iterEnemy->second.BBox, iterCollisionAvatar->second.BBox) == true)
+					{
+						bCollisionDetected = true;
+
+						// Check if an enemy can attack
+						if (iterEnemy->second.fAttackCountDown <= 0.0f)
+						{
+							// Damage a player if the Enemy tries to move into the avatar and can attack
+							iterCollisionAvatar->second.iHealth -= iterEnemy->second.iDamage;
+							iterEnemy->second.fAttackCountDown = iterEnemy->second.fRateOfAttack;
+						}
+
+						break;
+					}
 				}
 				iterCollisionAvatar++;
 			}
@@ -693,6 +793,31 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 				iterEnemy->second.BBox.v3Min = iterEnemy->second.v3Pos - (1.1f * fEnemySize);
 			}
 		}
+		else
+		{
+			// Collsion Detection for Shadows
+
+			std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
+			while (iterCollisionAvatar != m_pAvatars->end())
+			{
+				if (iterCollisionAvatar->second.bAlive == true)
+				{
+					if (CollisionCheck(iterEnemy->second.BBox, iterCollisionAvatar->second.BBox) == true)
+					{
+						// Check if the shadow can attack
+						if (iterEnemy->second.fAttackCountDown <= 0.0f)
+						{
+							// Damage a player if the shadow overlaps the avatar and can attack
+							iterCollisionAvatar->second.iHealth -= iterEnemy->second.iDamage;
+							iterEnemy->second.fAttackCountDown = iterEnemy->second.fRateOfAttack;
+						}
+
+						break;
+					}
+				}
+				iterCollisionAvatar++;
+			}
+		}
 
 		iterEnemy++;
 	}
@@ -709,15 +834,20 @@ void CMechanics_Server::ProcessDemon(EnemyInfo* _enemyInfo, float _fDT)
 		// Calculate the distance from the first avatar
 		float fDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
 		
+		bool bAnAvatarAlive = false;
 		while (iterAvatar != m_pAvatars->end())
 		{
-			// Caclulate the distance from the enemy to the current
-			float fNewDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
-			if (fNewDistance < fDistance)
+			if (iterAvatar->second.bAlive == true)
 			{
-				// Set the closest avatar to the current avatar and update the distance for checking
-				closestAvatar = iterAvatar;
-				fDistance = fNewDistance;
+				bAnAvatarAlive = true;
+				// Caclulate the distance from the enemy to the current
+				float fNewDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
+				if (fNewDistance < fDistance)
+				{
+					// Set the closest avatar to the current avatar and update the distance for checking
+					closestAvatar = iterAvatar;
+					fDistance = fNewDistance;
+				}
 			}
 			iterAvatar++;
 		}
@@ -727,8 +857,16 @@ void CMechanics_Server::ProcessDemon(EnemyInfo* _enemyInfo, float _fDT)
 		v2float v2ContainmentField = { m_fTerrainWidth, m_fTerrainDepth };
 		if (Contain(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, v2ContainmentField) == true)
 		{
-			// Contained, therefore Flock as normal
-			Flock(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, m_pEnemies, _fDT);
+			if (bAnAvatarAlive == true)
+			{
+				// Contained, therefore Flock as normal
+				Flock(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, m_pEnemies, _fDT);
+			}
+			else
+			{
+				_enemyInfo->steeringInfo.v3TargetPos = { -1000.0f, -1000.0f, -1000.0f };
+				Flock(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, m_pEnemies, _fDT);
+			}
 		}
 		else
 		{
@@ -748,6 +886,10 @@ void CMechanics_Server::ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT)
 		if (TargetAvatar != m_pAvatars->end())
 		{
 			_enemyInfo->steeringInfo.v3TargetPos = TargetAvatar->second.v3Pos;
+			if (TargetAvatar->second.bAlive == false)
+			{
+				StringToStruct("", _enemyInfo->cTargetPlayer, 1);
+			}
 		}
 		else
 		{
@@ -790,15 +932,21 @@ void CMechanics_Server::ProcessShadow(EnemyInfo* _enemyInfo, float _fDT)
 		// Calculate the distance from the first avatar
 		float fDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
 
+		bool bAnAvatarAlive = false;
 		while (iterAvatar != m_pAvatars->end())
 		{
-			// Caclulate the distance from the enemy to the current
-			float fNewDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
-			if (fNewDistance < fDistance)
+			if (iterAvatar->second.bAlive == true)
 			{
-				// Set the closest avatar to the current avatar and update the distance for checking
-				closestAvatar = iterAvatar;
-				fDistance = fNewDistance;
+				bAnAvatarAlive = true;
+
+				// Caclulate the distance from the enemy to the current
+				float fNewDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
+				if (fNewDistance < fDistance)
+				{
+					// Set the closest avatar to the current avatar and update the distance for checking
+					closestAvatar = iterAvatar;
+					fDistance = fNewDistance;
+				}
 			}
 			iterAvatar++;
 		}
@@ -808,9 +956,17 @@ void CMechanics_Server::ProcessShadow(EnemyInfo* _enemyInfo, float _fDT)
 		v2float v2ContainmentField = { m_fTerrainWidth, m_fTerrainDepth };
 		if (Contain(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, v2ContainmentField) == true)
 		{
-			// Contained, therefore Seek as normal
-			v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
-			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
+			if (bAnAvatarAlive == true)
+			{
+				// Contained, therefore Seek as normal
+				v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+				ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
+			}
+			else
+			{
+				v3float v3Wander = Wander(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+				ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Wander, _fDT);
+			}
 		}
 		else
 		{
@@ -828,9 +984,9 @@ void CMechanics_Server::SpawnNextWave()
 	m_iWaveNumber++;
 
 	// Calculate the new waves enemy counts
-	m_iDemonCount = (m_iWaveNumber * 4) + 50;
+	m_iDemonCount = (m_iWaveNumber * 4) + 40;
 	m_iSentinelCount = m_iWaveNumber + 3;
-	m_iShadowCount = (m_iWaveNumber / 2) + 5;
+	m_iShadowCount = (m_iWaveNumber * 2) + 10;
 	UINT iTotalEnemyCount = m_iDemonCount + m_iSentinelCount + m_iShadowCount;
 
 	// set te created enemy counters to 0
@@ -910,7 +1066,7 @@ void CMechanics_Server::SpawnNextWave()
 				}
 				tempEnemyInfo.eType = ET_SHADOW;
 				tempEnemyInfo.iHealth = 150;
-				tempEnemyInfo.steeringInfo.fMaxSpeed = 25.0f;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 15.0f;
 				tempEnemyInfo.steeringInfo.fMaxForce = 10.0f;
 				tempEnemyInfo.iPoints = 200;
 				tempEnemyInfo.steeringInfo.fSize = kfShadowSize;
@@ -925,6 +1081,7 @@ void CMechanics_Server::SpawnNextWave()
 			}
 		}
 		tempEnemyInfo.iID = m_iNextObjectID++;
+		tempEnemyInfo.fAttackCountDown = 0.0f;
 		tempEnemyInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
 		tempEnemyInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
 		tempEnemyInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
@@ -945,16 +1102,22 @@ void CMechanics_Server::SpawnNextPowerUp()
 		{
 			// 10% chance
 			tempPowerInfo.eType = PT_GOLDEN;
+			tempPowerInfo.iPoints = 1500;
+			tempPowerInfo.steeringInfo.fMaxSpeed = 4.0f;
 		}
 		else if (iType < 50)
 		{
 			// 40% chance
+			tempPowerInfo.iPoints = 25;
 			tempPowerInfo.eType = PT_HEALTH;
+			tempPowerInfo.steeringInfo.fMaxSpeed = 1.0f;
 		}
 		else
 		{
 			// 50% chance
+			tempPowerInfo.iPoints = 25;
 			tempPowerInfo.eType = PT_FLARE;
+			tempPowerInfo.steeringInfo.fMaxSpeed = 1.0f;
 		}
 
 		// Calculate a random starting position within the bounds of the terrain
@@ -972,9 +1135,7 @@ void CMechanics_Server::SpawnNextPowerUp()
 		tempPowerInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
 		tempPowerInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
 		tempPowerInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-		tempPowerInfo.steeringInfo.fMaxSpeed = 1.0f;
 		tempPowerInfo.steeringInfo.fMaxForce = 5.0f; // Reminder this is changed in process
-		tempPowerInfo.iPoints = 10;
 		tempPowerInfo.steeringInfo.fWanderAngle = 0;
 		tempPowerInfo.BBox.v3Max = tempPowerInfo.v3Pos + kfPowerUpSize;
 		tempPowerInfo.BBox.v3Min = tempPowerInfo.v3Pos - kfPowerUpSize;
@@ -1069,7 +1230,10 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	tempAvatarInfo.fFireCountDown = 0.0f;
 	tempAvatarInfo.iDamage = 50;
 	tempAvatarInfo.iHealth = 100;
+	tempAvatarInfo.iLives = 2;
 	tempAvatarInfo.iScore = 0;
+	tempAvatarInfo.iLifeAddCounter = 0;
+	tempAvatarInfo.iFlareCount = 1;
 
 	tempAvatarInfo.BBox.v3Max = tempAvatarInfo.v3Pos + kfAvatarSize;
 	tempAvatarInfo.BBox.v3Min = tempAvatarInfo.v3Pos - kfAvatarSize;

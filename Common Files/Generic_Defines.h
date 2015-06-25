@@ -31,13 +31,13 @@
 #define VALIDATE(a) if (!a) return (false)
 
 // Constants
-const float kfTerrainScalarX	= 0.2f;
+const float kfTerrainScalarX	= 0.5f;
 const float kfTerrainScalarY	= 0.0f;
-const float kfTerrainScalarZ	= 0.2f;
+const float kfTerrainScalarZ	= 0.5f;
 const float kfAvatarSize		= 0.5f;
 const float kfProjectileSize	= 0.1f;
 const float kfDemonSize			= 0.6f;
-const float kfSentinelSize		= 2.0f;
+const float kfSentinelSize		= 3.0f;
 const float kfShadowSize		= 1.2f;
 const float kfPowerUpSize		= 0.4f;
 const float kfFlareSize			= 0.1f;

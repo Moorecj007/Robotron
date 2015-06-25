@@ -60,9 +60,10 @@ public:
 	* @author: Callan Moore
 	* @parameter: _pRenderer: The pointer to the Renderer
 	* @parameter: _strUserName: The Username of the client user
+	* @parameter: _bSinglePlayer: Single player version of the game
 	* @return: void
 	********************/
-	bool Initialise(IRenderer* _pRenderer , std::string _strUserName);
+	bool Initialise(IRenderer* _pRenderer, std::string _strUserName, bool _bSinglePlayer);
 
 	/***********************
 	* CreateCubeMesh: Creates a Cube Mesh with origin in its very center
@@ -285,6 +286,22 @@ public:
 	********************/
 	void OverlayPauseScreen(std::string* strMenuInput, POINT _ptMouse, bool _bAction);
 
+	/***********************
+	* OverlayGameOver: Render the Game Over screen over the game image
+	* @author: Callan Moore
+	* @parameter: _strMenuInput: String to contain the selected input
+	* @parameter: _ptMouse: The current mouse cursor position
+	* @parameter: _bAction: The current state of the action key/button
+	* @return: void
+	********************/
+	void OverlayGameOver(std::string* _strMenuInput, POINT _ptMouse, bool _bAction);
+
+	/***********************
+	* CheckAvatarsAliveStatus: Checks the status of the avatars and returns false if they are all dead
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	bool CheckAvatarsAliveStatus();
 
 private:
 	// Member Variables
@@ -300,7 +317,8 @@ private:
 	int m_iBlankTextureID;
 
 	// Game Variables
-	bool bToggle;
+	bool m_bToggle;
+	bool m_bSinglePlayer;
 
 	// Avatars
 	std::map<std::string, CAvatar*>* m_pAvatars;

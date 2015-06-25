@@ -401,8 +401,15 @@ inline void Flock(SteeringVariables* _pSteeringInfo, v3float* _pv3Pos, v3float* 
 		v3TotalForce += Cohesion(_pSteeringInfo, _pv3Pos, _pv3Dir, _pEnemies, _fDT) * 1.0f;
 
 		// Reassign the target for the seek function
-		_pSteeringInfo->v3TargetPos = v3AvatarTarget;
-		v3TotalForce += Seek(_pSteeringInfo, _pv3Pos, _pv3Dir, _fDT) * 1.25f;
+		if (v3AvatarTarget == v3float{ -1000.0f, -1000.0f, -1000.0f })
+		{
+			v3TotalForce = Wander(_pSteeringInfo, _pv3Pos, _pv3Dir, _fDT) * 0.1f;
+		}
+		else
+		{
+			_pSteeringInfo->v3TargetPos = v3AvatarTarget;
+			v3TotalForce += Seek(_pSteeringInfo, _pv3Pos, _pv3Dir, _fDT) * 1.25f;
+		}
 
 		// Apply the total force to the Object
 		ApplyForce(_pSteeringInfo, _pv3Pos, _pv3Dir, v3TotalForce, _fDT);	

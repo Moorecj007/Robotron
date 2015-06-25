@@ -29,8 +29,9 @@ CAvatar::CAvatar(IRenderer* _pRenderer)
 	m_iMaxHealth = 100;
 	m_iCurrentHealth = m_iMaxHealth;
 
-	// Avatars start with no score
+	// Avatars start with no score and 1 flare
 	m_iScore = 0;
+	m_iFlareCount = 1;
 
 	// Create the Avatars Torch Light
 	m_iTorchID = _pRenderer->CreateTorchLight();

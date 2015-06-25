@@ -227,6 +227,13 @@ public:
 	********************/
 	void ProcessPausedScreen();
 
+	/***********************
+	* ProcessGameOverScreen: Process information for the game over Screen
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ProcessGameOverScreen();
+
 
 
 	/***********************
@@ -404,6 +411,7 @@ private:
 	bool m_bPrevPauseKey;
 
 	// Game Variables
+	bool m_bSinglePlayer;
 	bool m_bHost;
 	bool m_bFoundServer;
 	CDInput* m_pDInput;

@@ -26,7 +26,6 @@
 #include "Mechanics_Server.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/Networking/MySemaphore.h"
-//#include "Graphics/Graphics_Defines"
 
 class CHub_Server
 {
@@ -205,6 +204,7 @@ private:
 	std::string m_strServerName;
 
 	// Host Variable
+	bool m_bSinglePlayer;
 	std::string m_strHostUser;
 	bool m_bRepliedToHost;
 

@@ -185,9 +185,10 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 
 	// Setup the Device to handle lighting
 	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1);
-	//m_pDevice->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50));
 	m_pDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE);
 	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+
+	m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
 
 	// Create and set up a global Material to be used
 	D3DMATERIAL9 material;    
@@ -649,7 +650,7 @@ void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, in
 
 				// Create a Vertex
 
-				v2float v3UV = { ((1.0f / (float)_pImageInfo.Width) * fWidth), ((1.0f / (float)_pImageInfo.Height) * fDepth) };
+				v2float v3UV = { ((10.0f / (float)_pImageInfo.Width) * fWidth), ((10.0f / (float)_pImageInfo.Height) * fDepth) };
 				CVertex pTempVertex({ fWidth, fHeight, fDepth }, { v3Normal.x, v3Normal.y, v3Normal.z }, v3UV);
 				_pVertices->push_back(pTempVertex);
 			}
@@ -699,8 +700,16 @@ int CD3D9Renderer::CreateFlareLight()
 	m_pDevice->SetLight(FlareID, pFlareLight);
 	m_pDevice->LightEnable(FlareID, true);
 
+
+	std::pair<std::map<int, D3DLIGHT9*>::iterator, bool> pairSuccessful;
 	std::pair<int, D3DLIGHT9*> newLight(FlareID, pFlareLight);
-	m_pMapLight->insert(newLight);
+	pairSuccessful = m_pMapLight->insert(newLight);
+
+	if (pairSuccessful.second == false)
+	{
+		delete pFlareLight;
+		pFlareLight = 0;
+	}
 
 	return FlareID;
 }
@@ -897,6 +906,20 @@ void CD3D9Renderer::RenderColor(D3DXCOLOR _color)
 	m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 	m_pDevice->ColorFill(pBackBuffer, 0, _color);
 	pBackBuffer->Release();
+}
+
+void CD3D9Renderer::AlphaBlend(bool _b)
+{
+	if (_b == true)
+	{
+		m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+		m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+		m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_DESTCOLOR);	
+	}
+	else
+	{
+		m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, false); 
+	}
 }
 
 int CD3D9Renderer::CreateTexture(std::string strFilePath)

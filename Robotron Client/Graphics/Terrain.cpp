@@ -94,7 +94,7 @@ bool CTerrain::Initialise(IRenderer* _pRenderer, std::string _strImagePath, Vert
 
 	m_iMaterialID = _pRenderer->CreateMaterial(matComp);
 
-	std::string strTexturePath = "Assets\\Basic Terrain.bmp";
+	std::string strTexturePath = "Assets\\Terrain Texture.bmp";
 	m_iTextureID = _pRenderer->CreateTexture(strTexturePath);
 
 	return true;

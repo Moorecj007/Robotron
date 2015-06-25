@@ -112,9 +112,10 @@ public:
 	* Initialise: Initialise the Server mechanics class for use
 	* @author: Callan Moore
 	* @parameter: _strServerName: Name of the Server
+	* @parameter: _bSinglePlayer: Single player version of the game
 	* @return: bool: Successful initialisation (or not)
 	********************/
-	bool Initialise(std::string _strServerName);
+	bool Initialise(std::string _strServerName, bool _bSinglePlayer);
 
 	/***********************
 	* Process: Process the mechanics of the server
@@ -259,6 +260,7 @@ private:
 	// Game Variables
 	float m_fTerrainWidth;
 	float m_fTerrainDepth;
+	bool m_bSinglePlayer;
 
 	UINT m_iWaveNumber;
 	UINT m_iDemonCount;

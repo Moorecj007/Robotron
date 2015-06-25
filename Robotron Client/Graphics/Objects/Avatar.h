@@ -65,9 +65,9 @@ public:
 	/***********************
 	* GetHealth: Retrieve the avatars current Health
 	* @author: Callan Moore
-	* @return: UINT: Current health value
+	* @return: int: Current health value
 	********************/
-	UINT GetHealth() { return m_iCurrentHealth; };
+	int GetHealth() { return m_iCurrentHealth; };
 
 	/***********************
 	* GetScore: Retrieve the avatars current score
@@ -82,6 +82,20 @@ public:
 	* @return: int: The avatars Torch ID
 	********************/
 	int GetTorchID() { return m_iTorchID; };
+
+	/***********************
+	* GetFlareCount: Retrieve the avatars flare count
+	* @author: Callan Moore
+	* @return: UINT: The avatars current flare count
+	********************/
+	UINT GetFlareCount() { return m_iFlareCount; };
+
+	/***********************
+	* GetLives: Retrieve the avatars Life count
+	* @author: Callan Moore
+	* @return: int: The avatars current Life count
+	********************/
+	int GetLives() { return m_iLives; };
 	
 	// Setters
 
@@ -107,15 +121,31 @@ public:
 	* @parameter: _iHealth: The update to the current health of the avatar
 	* @return: void
 	********************/
-	void SetHealth(UINT _iHealth) { m_iCurrentHealth = _iHealth; };
+	void SetHealth(int _iHealth) { m_iCurrentHealth = _iHealth; };
 
 	/***********************
 	* SetScore: Change the avatars current score
 	* @author: Callan Moore
-	* @parameter: _bAlive: The update to the avatars current score
+	* @parameter: _iScore: The update to the avatars current score
 	* @return: void
 	********************/
 	void SetScore(UINT _iScore) { m_iScore = _iScore; };
+
+	/***********************
+	* SetScore: Change the avatars current score
+	* @author: Callan Moore
+	* @parameter: _iFlareCount: The update to the avatars Flare count
+	* @return: void
+	********************/
+	void SetFlareCount(UINT _iFlareCount) { m_iFlareCount = _iFlareCount; };
+
+	/***********************
+	* SetLives: Set the current life count for the Avatar
+	* @author: Callan Moore
+	* @parameter: _iLives: The update to the avatars Life Count
+	* @return: void
+	********************/
+	void SetLives(UINT _iLives) { m_iLives = _iLives; };
 
 	// Prototypes
 
@@ -124,10 +154,12 @@ private:
 	v3float m_v3Up;
 
 	bool m_bAlive;
+	int m_iLives;
 
 	UINT m_iMaxHealth;
-	UINT m_iCurrentHealth;
+	int m_iCurrentHealth;
 	UINT m_iScore;
+	UINT m_iFlareCount;
 
 	int m_iTorchID;
 };

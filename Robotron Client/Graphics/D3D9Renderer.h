@@ -279,6 +279,14 @@ public:
 	virtual int CreateTexture(std::string strFilePath);
 
 	/***********************
+	* AlphaBlend: Turn Alpha blending on or off
+	* @author: Callan Moore
+	* @parameter: _b: Boolean state to set the alpha blending to
+	* @return: void
+	********************/
+	virtual void AlphaBlend(bool _b);
+
+	/***********************
 	* CheckDevice: Check of the device if still active
 	* @author: Callan Moore
 	* @return: bool: True of the device is ok

@@ -113,7 +113,7 @@ CMechanics_Client::~CMechanics_Client()
 	m_pFlare = 0;
 }
 
-bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserName)
+bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserName, bool _bSinglePlayer)
 {
 	// Store the pointer to the renderer
 	m_pRenderer = _pRenderer;
@@ -149,7 +149,8 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	CreateGoldenPowerAsset();
 
 	// Create game variables
-	bToggle = 0;
+	m_bToggle = 0;
+	m_bSinglePlayer = _bSinglePlayer;
 
 	return true;
 }
@@ -172,7 +173,7 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 50, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
 	m_pCamera->Process(m_pRenderer);
 
-	bToggle = !bToggle;
+	m_bToggle = !m_bToggle;
 }
 
 void CMechanics_Client::Draw()
@@ -192,8 +193,30 @@ void CMechanics_Client::Draw()
 	std::map<std::string, CAvatar*>::iterator iterAvatar = m_pAvatars->begin();
 	while (iterAvatar != m_pAvatars->end())
 	{
-		iterAvatar->second->Draw();
+		if (iterAvatar->second->GetAliveStatus() == true)
+		{
+			// Ensure the torch for the avatar is on
+			m_pRenderer->LightEnable(iterAvatar->second->GetTorchID(), true);
+			iterAvatar->second->Draw();
+		}
+		else
+		{
+			// Turn a dead players torch off
+			m_pRenderer->LightEnable(iterAvatar->second->GetTorchID(), false);
+		}
 		iterAvatar++;
+	}
+
+	iterAvatar = m_pAvatars->find(m_strUserName);
+	if (iterAvatar->second->GetAliveStatus() == true)
+	{
+		// Turn off the directional light
+		m_pRenderer->LightEnable(0, false);
+	}
+	else
+	{
+		// Turn on the directional light
+		m_pRenderer->LightEnable(0, true);
 	}
 
 	// Draw all the Projectiles
@@ -204,19 +227,35 @@ void CMechanics_Client::Draw()
 		iterProjectile++;
 	}
 
-	// Draw all the Enemies
-	std::map<UINT, CEnemy*>::iterator iterEnemy= m_pEnemies->begin();
-	while (iterEnemy != m_pEnemies->end())
-	{
-		iterEnemy->second->Draw();
-		iterEnemy++;
-	}
-
 	// Draw the Flare if it is active
 	if (m_pFlare->GetActive() == true)
 	{
 		m_pFlare->Draw();
 	}
+
+	std::vector<CEnemy*> pShadows;
+	// Draw all the Enemies
+	std::map<UINT, CEnemy*>::iterator iterEnemy = m_pEnemies->begin();
+	while (iterEnemy != m_pEnemies->end())
+	{
+		if (iterEnemy->second->GetEnemyType() == ET_SHADOW)
+		{
+			// Add the Shadows to a separate vector to render last
+			pShadows.push_back(iterEnemy->second);
+			iterEnemy++;
+			continue;
+		}
+		iterEnemy->second->Draw();
+		iterEnemy++;
+	}
+
+	m_pRenderer->AlphaBlend(true);
+	// Draw all the Shadows
+	for (UINT i = 0; i < pShadows.size(); i++)
+	{
+		pShadows[i]->Draw();
+	}
+	m_pRenderer->AlphaBlend(false);
 
 	// Render the HUD
 	OverlayHUD();
@@ -317,8 +356,11 @@ void CMechanics_Client::UpdateAvatars()
 			iterAvatar->second->SetPosition({ avatarInfo.v3Pos.x, avatarInfo.v3Pos.y + kfAvatarSize, avatarInfo.v3Pos.z });
 			iterAvatar->second->SetDirection({ avatarInfo.v3Dir.x, avatarInfo.v3Dir.y, avatarInfo.v3Dir.z });
 			iterAvatar->second->SetHealth(avatarInfo.iHealth);
+			iterAvatar->second->SetAliveStatus(avatarInfo.bAlive);
 			iterAvatar->second->SetScore(avatarInfo.iScore);
-			iterAvatar->second->m_bToggle = bToggle;
+			iterAvatar->second->SetFlareCount(avatarInfo.iFlareCount);
+			iterAvatar->second->SetLives(avatarInfo.iLives);
+			iterAvatar->second->m_bToggle = m_bToggle;
 
 			v3float v3TorchPos = iterAvatar->second->GetDirection()->Normalise();
 			v3TorchPos = *(iterAvatar->second->GetPosition()) - (v3TorchPos * 2.25f);
@@ -338,7 +380,7 @@ void CMechanics_Client::UpdateAvatars()
 	while (iterAvatar != m_pAvatars->end())
 	{
 		// If a Avatars was not updated the server has deleted it
-		if (iterAvatar->second->m_bToggle != bToggle)
+		if (iterAvatar->second->m_bToggle != m_bToggle)
 		{
 			// Set the ID of the Avatars to Delete
 			strID = iterAvatar->first;
@@ -370,7 +412,7 @@ void CMechanics_Client::UpdateProjectiles()
 				// Update all projectiles
 				iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y + kfProjectileSize, projectileInfo.v3Pos.z });
 				iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
-				iterProjectile->second->m_bToggle = bToggle;
+				iterProjectile->second->m_bToggle = m_bToggle;
 			}
 			else
 			{
@@ -386,7 +428,7 @@ void CMechanics_Client::UpdateProjectiles()
 		while (iterProjectile != m_pProjectiles->end())
 		{
 			// If a projectile was not updated the server has deleted it
-			if (iterProjectile->second->m_bToggle != bToggle)
+			if (iterProjectile->second->m_bToggle != m_bToggle)
 			{
 				// Set the ID of the Projectile to Delete
 				iID = iterProjectile->second->GetID();
@@ -439,7 +481,7 @@ void CMechanics_Client::UpdateEnemies()
 			// update the Enemy
 			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y + fSize, enemyInfo.v3Pos.z });
 			iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
-			iterEnemy->second->m_bToggle = bToggle;
+			iterEnemy->second->m_bToggle = m_bToggle;
 		}
 		else
 		{
@@ -455,7 +497,7 @@ void CMechanics_Client::UpdateEnemies()
 	while (iterEnemy != m_pEnemies->end())
 	{
 		// If a Enemies was not updated the server has deleted it
-		if (iterEnemy->second->m_bToggle != bToggle)
+		if (iterEnemy->second->m_bToggle != m_bToggle)
 		{
 			// Set the ID of the Enemies to Delete
 			iID = iterEnemy->second->GetID();
@@ -486,7 +528,7 @@ void CMechanics_Client::UpdatePowerUps()
 			// Update the Enemy
 			iterPowerUp->second->SetPosition({ powerInfo.v3Pos.x, powerInfo.v3Pos.y + kfPowerUpSize, powerInfo.v3Pos.z });
 			iterPowerUp->second->SetDirection({ powerInfo.v3Dir.x, powerInfo.v3Dir.y, powerInfo.v3Dir.z });
-			iterPowerUp->second->m_bToggle = bToggle;
+			iterPowerUp->second->m_bToggle = m_bToggle;
 		}
 		else
 		{
@@ -502,7 +544,7 @@ void CMechanics_Client::UpdatePowerUps()
 	while (iterPowerUp != m_pPowerUps->end())
 	{
 		// If a Enemies was not updated the server has deleted it
-		if (iterPowerUp->second->m_bToggle != bToggle)
+		if (iterPowerUp->second->m_bToggle != m_bToggle)
 		{
 			// Set the ID of the Enemies to Delete
 			iID = iterPowerUp->second->GetID();
@@ -554,7 +596,7 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 
 	// Create a new avatar object
 	CAvatar* pTempAvatar = new  CAvatar(m_pRenderer);
-	pTempAvatar->Initialise(bToggle, m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
+	pTempAvatar->Initialise(m_bToggle, m_pRenderer, m_pAvatarMesh, currentAvatarInfo.iID, m_iAvatarMaterialID, currentAvatarInfo.v3Pos);
 
 	// Save the avatar in a map
 	std::pair < std::map < std::string, CAvatar* > ::iterator, bool> pairCreateCheck;
@@ -618,7 +660,7 @@ void CMechanics_Client::CreateAvatarAsset()
 	m_iAvatarMaterialID = m_pRenderer->CreateMaterial(AvatarMatComp);
 
 	// Avatar Mesh and Texture
-	m_iAvatarTexID = m_pRenderer->CreateTexture("Assets//Crate Side.bmp");
+	m_iAvatarTexID = m_pRenderer->CreateTexture("Assets//Avatar.bmp");
 	m_pAvatarMesh = CreateCubeMesh(kfAvatarSize, m_iAvatarTexID);
 
 	assert(("Avatar Mesh Failed to Create", m_pAvatarMesh != 0));
@@ -658,7 +700,7 @@ void CMechanics_Client::CreateFlareAsset()
 	m_pFlareMesh = CreateCubeMesh(kfFlareSize, m_iFlareTexID);
 
 	m_pFlare = new CFlare(m_pRenderer);
-	m_pFlare->Initialise(bToggle, m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
+	m_pFlare->Initialise(m_bToggle, m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
 
 	assert(("Flare Mesh Failed to Create", m_pFlareMesh != 0));
 }
@@ -701,10 +743,10 @@ void CMechanics_Client::CreateSentinelAsset()
 
 void CMechanics_Client::CreateShadowAsset()
 {
-	// Create the Material for the Sentinels to use
+	// Create the Material for the Shadows to use
 	MaterialComposition ShadowMatComp;
 	ShadowMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
-	ShadowMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	ShadowMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 0.0f };
 	ShadowMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
 	ShadowMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	ShadowMatComp.power = 0;
@@ -712,7 +754,7 @@ void CMechanics_Client::CreateShadowAsset()
 
 	// Shadow Enemy Mesh and Texture
 	m_iShadowTexID = m_pRenderer->CreateTexture("Assets//Shadow.bmp");
-	m_pShadowMesh = CreateCubeMesh(kfSentinelSize, m_iShadowTexID);
+	m_pShadowMesh = CreateCubeMesh(kfShadowSize, m_iShadowTexID);
 
 	assert(("Shadow Enemy Mesh Failed to Create", m_pShadowMesh != 0));
 }
@@ -723,13 +765,13 @@ void CMechanics_Client::CreateHealthPowerAsset()
 	MaterialComposition HealthMatComp;
 	HealthMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HealthMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	HealthMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	HealthMatComp.emissive = { 1.0f, 1.0f, 1.0f, 0.0f };
 	HealthMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HealthMatComp.power = 0;
 	m_iHealthPowerMaterialID = m_pRenderer->CreateMaterial(HealthMatComp);
 
 	// Demon Enemy Mesh and Texture
-	m_iHealthPowerTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
+	m_iHealthPowerTexID = m_pRenderer->CreateTexture("Assets//HealthPower.bmp");
 	m_pHealthPowerMesh = CreateCubeMesh(kfPowerUpSize, m_iHealthPowerTexID);
 
 	assert(("Health PowerUp Mesh Failed to Create", m_pHealthPowerMesh != 0));
@@ -741,7 +783,7 @@ void CMechanics_Client::CreateFlarePowerAsset()
 	MaterialComposition FlareMatComp;
 	FlareMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	FlareMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	FlareMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	FlareMatComp.emissive = { 1.0f, 1.0f, 1.0f, 0.0f };
 	FlareMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	FlareMatComp.power = 0;
 	m_iFlarePowerMaterialID = m_pRenderer->CreateMaterial(FlareMatComp);
@@ -759,13 +801,13 @@ void CMechanics_Client::CreateGoldenPowerAsset()
 	MaterialComposition GoldenMatComp;
 	GoldenMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GoldenMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-	GoldenMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GoldenMatComp.emissive = { 1.0f, 1.0f, 1.0f, 0.0f };
 	GoldenMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GoldenMatComp.power = 0;
 	m_iGoldenPowerMaterialID = m_pRenderer->CreateMaterial(GoldenMatComp);
 
 	// Demon Enemy Mesh and Texture
-	m_iGoldenPowerTexID = m_pRenderer->CreateTexture("Assets//FlarePower.bmp");
+	m_iGoldenPowerTexID = m_pRenderer->CreateTexture("Assets//GoldenPower.bmp");
 	m_pGoldenPowerMesh = CreateCubeMesh(kfPowerUpSize, m_iGoldenPowerTexID);
 
 	assert(("Golden PowerUp Mesh Failed to Create", m_pGoldenPowerMesh != 0));
@@ -780,7 +822,7 @@ void CMechanics_Client::SpawnProjectile(ServerToClient* _pServerPacket)
 
 	// Create a new Projectile using the information from the Packet
 	CProjectile* tempProjectile = new CProjectile((std::string)projectileInfo.cUserName, projectileInfo.v3Dir, projectileInfo.iDamage);
-	tempProjectile->Initialise(bToggle, m_pRenderer, m_pProjectileMesh, projectileInfo.iID, m_iProjectileMaterialID, projectileInfo.v3Pos);
+	tempProjectile->Initialise(m_bToggle, m_pRenderer, m_pProjectileMesh, projectileInfo.iID, m_iProjectileMaterialID, projectileInfo.v3Pos);
 	tempProjectile->SetDirection(projectileInfo.v3Dir);
 
 	// Add the new Projectile to the Map
@@ -844,7 +886,7 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 	}
 
 	CEnemy* tempEnemy = new CEnemy(enemyInfo.eType);
-	tempEnemy->Initialise(bToggle, m_pRenderer, pMesh, enemyInfo.iID, iMatID, enemyInfo.v3Pos);
+	tempEnemy->Initialise(m_bToggle, m_pRenderer, pMesh, enemyInfo.iID, iMatID, enemyInfo.v3Pos);
 	tempEnemy->SetDirection(enemyInfo.v3Dir);
 
 	std::pair < std::map < UINT, CEnemy* > ::iterator, bool> pairCreateCheck;
@@ -909,7 +951,7 @@ void CMechanics_Client::SpawnPowerUp(ServerToClient* _pServerPacket)
 	}
 
 	CPowerUp* tempPower = new CPowerUp(powerInfo.eType);
-	tempPower->Initialise(bToggle, m_pRenderer, pMesh, powerInfo.iID, iMatID, powerInfo.v3Pos);
+	tempPower->Initialise(m_bToggle, m_pRenderer, pMesh, powerInfo.iID, iMatID, powerInfo.v3Pos);
 	tempPower->SetDirection(powerInfo.v3Dir);
 
 	std::pair < std::map < UINT, CPowerUp* > ::iterator, bool> pairCreateCheck;
@@ -945,12 +987,33 @@ void CMechanics_Client::OverlayHUD()
 {
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
 
-	int iYpos = 0;
-	D3DXCOLOR textBlue = 0xff0000ff;
+	if (Avatar != m_pAvatars->end())
+	{
+		int iYpos = 0;
+		D3DXCOLOR textBlue = 0xff0000ff;
 
-	// Render the text to the Top left Corner
-	m_pRenderer->RenderText(false, { 0, 0 }, "Health: " + std::to_string(Avatar->second->GetHealth()), (iYpos += 10), SCREEN_FONT, textBlue, H_LEFT);
-	m_pRenderer->RenderText(false, { 0, 0 }, "Score: " + std::to_string(Avatar->second->GetScore()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+		// Check the health status
+		std::string strHealth;
+		if (Avatar->second->GetHealth() <= 0)
+		{
+			strHealth = "Dead";
+		}
+		else
+		{
+			strHealth = std::to_string(Avatar->second->GetHealth());
+		}
+
+		// Render the text to the Top left Corner
+		m_pRenderer->RenderText(false, { 0, 0 }, "Health: " + strHealth, (iYpos += 10), SCREEN_FONT, textBlue, H_LEFT);
+
+		if (m_bSinglePlayer == true)
+		{
+			m_pRenderer->RenderText(false, { 0, 0 }, "Lives: " + std::to_string(Avatar->second->GetLives()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+		}
+
+		m_pRenderer->RenderText(false, { 0, 0 }, "Score: " + std::to_string(Avatar->second->GetScore()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, "Flares: " + std::to_string(Avatar->second->GetFlareCount()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+	}
 }
 
 void CMechanics_Client::OverlayAvatarScores()
@@ -967,8 +1030,19 @@ void CMechanics_Client::OverlayAvatarScores()
 
 	while (Avatar != m_pAvatars->end())
 	{
+		// Check the health status
+		std::string strHealth;
+		if (Avatar->second->GetHealth() <= 0)
+		{
+			strHealth = "Dead";
+		}
+		else
+		{
+			strHealth = std::to_string(Avatar->second->GetHealth());
+		}
+
 		m_pRenderer->RenderText(false, { 0, 0 }, (Avatar->first), (iYpos), MENU_FONT, textBlue, H_LEFT);
-		m_pRenderer->RenderText(false, { 0, 0 }, std::to_string(Avatar->second->GetHealth()), (iYpos), MENU_FONT, textBlue, H_CENTER);
+		m_pRenderer->RenderText(false, { 0, 0 }, strHealth, (iYpos), MENU_FONT, textBlue, H_CENTER);
 		m_pRenderer->RenderText(false, { 0, 0 }, std::to_string(Avatar->second->GetScore()), (iYpos), MENU_FONT, textBlue, H_RIGHT);
 		iYpos += 50;
 
@@ -1005,4 +1079,51 @@ void CMechanics_Client::OverlayPauseScreen(std::string* _strMenuInput, POINT _pt
 	{
 		*_strMenuInput = "";
 	}
+}
+
+void CMechanics_Client::OverlayGameOver(std::string* _strMenuInput, POINT _ptMouse, bool _bAction)
+{
+	int iYpos = 0;
+	D3DXCOLOR colorRed = 0xffff0000;
+	D3DXCOLOR colorWhite = 0xffffffff;
+	std::string strSelection = "";
+
+	// Print the Title Text
+	m_pRenderer->RenderText(false, _ptMouse, "ROBOTRON", (iYpos += 50), SUBTITLE_FONT, 0xff450000, H_CENTER);
+	m_pRenderer->RenderText(false, _ptMouse, "HORDES", (iYpos += 80), TITLE_FONT, 0xff650000, H_CENTER);
+	m_pRenderer->RenderText(false, _ptMouse, "OF", (iYpos += 100), TITLE_FONT, 0xff7c0000, H_CENTER);
+	m_pRenderer->RenderText(false, _ptMouse, "HELL", (iYpos += 100), TITLE_FONT, 0xffa50000, H_CENTER);
+
+	m_pRenderer->RenderText(false, _ptMouse, "Game Over", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+
+	// Print the Menu Options
+	strSelection += m_pRenderer->RenderText(true, _ptMouse, "Exit To Main Menu", (iYpos += 200), MENU_FONT, colorWhite, H_CENTER);
+	
+	// Change the MenuSelection Variable to the menu enum
+	if (_bAction == true)
+	{
+		*_strMenuInput = strSelection;
+	}
+	else
+	{
+		*_strMenuInput = "";
+	}
+}
+
+bool CMechanics_Client::CheckAvatarsAliveStatus()
+{
+	std::map < std::string, CAvatar* >::iterator iterAvatar = m_pAvatars->begin();
+	while (iterAvatar != m_pAvatars->end())
+	{
+		if (iterAvatar->second->GetAliveStatus() == true)
+		{
+			// return true if one person or more is alive
+			return true;
+		}
+
+		iterAvatar++;
+	}
+
+	// return false if no one is alive
+	return false;
 }

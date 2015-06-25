@@ -97,10 +97,14 @@ bool CHub_Server::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 	// Save the Host Name
 	m_strHostUser = WideStringToString(wstrHostName);
 	m_bRepliedToHost = false;
+	m_bSinglePlayer = false;
 
 	// Save the Server Name
 	m_strServerName = WideStringToString(wstrServerName);
-	m_bRepliedToHost = false;
+	if (m_strServerName == "Single_Player")
+	{
+		m_bSinglePlayer = true;
+	}
 
 	// Create Data Packets
 	m_pClientToServer = new ClientToServer();
@@ -126,7 +130,7 @@ bool CHub_Server::Initialise(HWND _hWnd, int _iScreenWidth, int _iScreenHeight, 
 
 	// Initialise Gameplay variables
 	m_pMechanics = new CMechanics_Server();
-	VALIDATE(m_pMechanics->Initialise(m_strServerName));
+	VALIDATE(m_pMechanics->Initialise(m_strServerName, m_bSinglePlayer));
 
 	CreateCommandPacket(HOST_SERVER, m_strHostUser);
 	m_pNetworkServer->Broadcast(m_pServerToClient);
@@ -163,7 +167,10 @@ void CHub_Server::Process()
 	// Only process if in the Lobby Screen
 	if (m_eServerState == STATE_LOBBY)
 	{
-		if (m_pCurrentUsers->size() > 0)
+		int iMinUsers;
+		(m_bSinglePlayer == true) ? iMinUsers = 1 : iMinUsers = 2;
+
+		if (m_pCurrentUsers->size() >= (UINT)iMinUsers)
 		{
 			if (m_pMechanics->CheckAllAvatarsReady() == true)
 			{

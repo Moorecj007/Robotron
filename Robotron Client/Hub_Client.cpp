@@ -161,6 +161,7 @@ bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	m_bPauseKey = false;
 
 	// Game Variables
+	m_bSinglePlayer = false;
 	m_bHost = false;
 	m_bFoundServer = false;
 	m_bGameLoading = false;
@@ -216,6 +217,7 @@ void CHub_Client::Process()
 	m_activatedControls = m_pDInput->GetControls();
 	m_ptMousePos = m_pDInput->GetMousePos();
 
+	// check if the pause screen has been activated
 	if (m_bPrevPauseKey == true && m_activatedControls.bEsc == false)
 	{
 		m_bPauseKey = !m_bPauseKey;
@@ -232,9 +234,22 @@ void CHub_Client::Process()
 		}
 	}
 
-	if (m_bPauseKey == true)
+
+	if (m_eScreenState == STATE_GAME_PLAY)
 	{
-		ProcessPausedScreen();
+		if (m_pMechanics->CheckAvatarsAliveStatus() == false)
+		{
+			ProcessGameOverScreen();
+		}
+		else if (m_bPauseKey == true)
+		{
+			ProcessPausedScreen();
+		}
+		else
+		{
+			// Determine the correct process dependent on the current screen state
+			ProcessScreenState(fDT);
+		}
 	}
 	else
 	{
@@ -255,7 +270,7 @@ void CHub_Client::Process()
 
 		// Process the Pulled Packet
 		ProcessPacket(fDT);
-	}	
+	}
 }
 
 void CHub_Client::ProcessTextInput(WPARAM _wKeyPress)
@@ -377,7 +392,11 @@ void CHub_Client::ProcessUserNameInput(WPARAM _wKeyPress)
 	{
 		if (m_strUserName.length() != 0)
 		{
-			if (m_bHost == true)
+			if (m_bSinglePlayer == true)
+			{
+				CreateServer();
+			}
+			else if (m_bHost == true)
 			{
 				m_eScreenState = STATE_CREATE_SERVERNAME;
 			}
@@ -697,7 +716,12 @@ void CHub_Client::ProcessCreateUser()
 
 	if (m_strMenuSelection == "Back")
 	{
-		if (m_bHost == true)
+		if (m_bSinglePlayer == true)
+		{
+			ResetGameData();
+			m_eScreenState = STATE_MAIN_MENU;
+		}
+		else if (m_bHost == true)
 		{
 			ResetGameData();
 			m_eScreenState = STATE_MULTIPLAYER_MENU;
@@ -732,7 +756,9 @@ void CHub_Client::ProcessMainMenu()
 
 	if (m_strMenuSelection == "Single Player")
 	{
-		m_eScreenState = STATE_SINGLEPLAYER_MENU;
+		m_bHost = true;
+		m_bSinglePlayer = true;
+		m_eScreenState = STATE_CREATEUSER;
 	}
 	else if (m_strMenuSelection == "Multiplayer")
 	{
@@ -878,10 +904,11 @@ void CHub_Client::ProcessGameLoading()
 
 	// Create the GameMechanics Object for handling the mechanics of the game
 	m_pMechanics = new CMechanics_Client();
-	m_pMechanics->Initialise(m_pRenderer, m_strUserName);
+	m_pMechanics->Initialise(m_pRenderer, m_strUserName, m_bSinglePlayer);
 
 	m_bGameLoading = false;
 	LoadingThread.join();
+
 	m_eScreenState = STATE_GAME_LOBBY;
 }
 
@@ -915,6 +942,21 @@ void CHub_Client::ProcessPausedScreen()
 	}
 }
 
+void CHub_Client::ProcessGameOverScreen()
+{
+	if (m_strMenuSelection == "Exit To Main Menu")
+	{
+		if (m_bHost == true)
+		{
+			// Send a Terminate command to the Server
+			CreateCommandPacket(TERMINATE_SERVER);
+			m_pNetworkClient->SendPacket(m_pClientToServer);
+		}
+		ResetGameData();
+		m_eScreenState = STATE_MAIN_MENU;
+	}
+}
+
 // #Draw
 void CHub_Client::Draw()
 {
@@ -926,7 +968,11 @@ void CHub_Client::Draw()
 		{
 			m_pMechanics->Draw();
 
-			if (m_bPauseKey == true)
+			if (m_pMechanics->CheckAvatarsAliveStatus() == false)
+			{
+				m_pMechanics->OverlayGameOver(&m_strMenuTempSelection, m_activatedControls.ptMouse, m_activatedControls.bAction);
+			}
+			else if (m_bPauseKey == true)
 			{
 				m_pMechanics->OverlayPauseScreen(&m_strMenuTempSelection, m_activatedControls.ptMouse, m_activatedControls.bAction);
 			}
@@ -1472,6 +1518,10 @@ void CHub_Client::CreateServer()
 	#endif // Not _DEBUG
 
 	// Start the Server executable running
+	if (m_bSinglePlayer == true)
+	{
+		m_strServerName = "Single_Player";
+	}
 	std::string strOpenParameters = m_strUserName + " " + m_strServerName;
 	int iError = (int)(ShellExecuteA(m_hWnd, "open", strFilename.c_str(), strOpenParameters.c_str(), NULL, SW_MINIMIZE));
 
@@ -1501,6 +1551,7 @@ void CHub_Client::InsertUser(std::string _strUser, AvatarInfo _AvatarInfo)
 
 void CHub_Client::ResetGameData()
 {
+	m_bSinglePlayer = false;
 	m_bHost = false;
 	m_bFoundServer = false;
 	m_bAlive = false;
