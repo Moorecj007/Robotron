@@ -21,6 +21,7 @@
 #include <d3d9.h>
 #include <vector>
 #include <map>
+#include <D3DX9Effect.h>
 
 // Local Includes
 #include "IRenderer.h"
@@ -278,6 +279,13 @@ public:
 	virtual int CreateTexture(std::string strFilePath);
 
 	/***********************
+	* CheckDevice: Check of the device if still active
+	* @author: Callan Moore
+	* @return: bool: True of the device is ok
+	********************/
+	virtual bool CheckDevice();
+
+	/***********************
 	* SetTexture: Sets the Texture corresponding to the input ID on the device
 	* @author: Callan Moore
 	* @parameter: _iTexID: ID for the the desired texture
@@ -374,11 +382,19 @@ private:
 	********************/
 	RECT RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFont);
 
+	/***********************
+	* RecoverDevice: Attempt to recover the device
+	* @author: Callan Moore
+	* @return: bool: Successful recovery (or not)
+	********************/
+	bool RecoverDevice();
+
 protected:
 	// Member Variables
 	HWND m_hWindow;
 	IDirect3D9* m_pDirect3D;
 	IDirect3DDevice9* m_pDevice;
+	D3DPRESENT_PARAMETERS m_d3dpp;
 	D3DCOLOR m_ClearColor;
 	D3DDEVTYPE m_devType;
 

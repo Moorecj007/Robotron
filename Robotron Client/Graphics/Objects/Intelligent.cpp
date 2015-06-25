@@ -17,10 +17,6 @@
 
 CIntelligent::CIntelligent()
 {
-	m_iPointScore = 10;
-	m_fMaxForce = 5;
-	m_v3Acceleration = { 0.0f, 0.0f, 0.0f };
-	m_v3DesiredVelocity = { 0.0f, 0.0f, 0.0f };
 }
 
 CIntelligent::~CIntelligent()

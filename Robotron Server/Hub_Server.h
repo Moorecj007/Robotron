@@ -26,7 +26,7 @@
 #include "Mechanics_Server.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/Networking/MySemaphore.h"
-#include "../Common Files/Graphics/Graphics_Defines.h"
+//#include "Graphics/Graphics_Defines"
 
 class CHub_Server
 {

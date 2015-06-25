@@ -22,13 +22,13 @@
 
 // Local Includes
 #include "Networking/Network_Client.h"
-#include "../Common Files/Graphics/Mesh.h"
-#include "../Common Files/Graphics/IRenderer.h"
-#include "../Common Files/Graphics/Avatar.h"
-#include "../Common Files/Graphics/Projectile.h"
-#include "../Common Files/Graphics/Enemy.h"
-#include "../Common Files/Graphics/PowerUp.h"
-#include "../Common Files/Graphics/Flare.h"
+#include "Graphics/Mesh.h"
+#include "Graphics/IRenderer.h"
+#include "Graphics/Objects/Avatar.h"
+#include "Graphics/Objects/Projectile.h"
+#include "Graphics/Objects/Enemy.h"
+#include "Graphics/Objects/PowerUp.h"
+#include "Graphics/Objects/Flare.h"
 #include "Graphics/Terrain.h"
 #include "Graphics/StaticCamera.h"
 
@@ -163,6 +163,13 @@ public:
 	void CreateProjectileAsset();
 
 	/***********************
+	* CreateFlareAsset: Create all required assets for the creation of Flares
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateFlareAsset();
+
+	/***********************
 	* CreateDemonAsset: Create all required assets for the creation of Demon Enemies
 	* @author: Callan Moore
 	* @return: void
@@ -177,18 +184,34 @@ public:
 	void CreateSentinelAsset();
 
 	/***********************
-	* CreateHealthAsset: Create all required assets for the creation of Health PowerUps
+	* CreateShadowAsset: Create all required assets for the creation of Shadow Enemies
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void CreateHealthAsset();
+	void CreateShadowAsset();
 
 	/***********************
-	* CreateFlareAsset: Create all required assets for the creation of Flares
+	* CreateHealthPowerAsset: Create all required assets for the creation of Health PowerUps
 	* @author: Callan Moore
 	* @return: void
 	********************/
-	void CreateFlareAsset();
+	void CreateHealthPowerAsset();
+
+	/***********************
+	* CreateFlarePowerAsset: Create all required assets for the creation of Flare PowerUps
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateFlarePowerAsset();
+
+	/***********************
+	* CreateGoldenPowerAsset: Create all required assets for the creation of Golden PowerUps
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void CreateGoldenPowerAsset();
+
+	
 
 	/***********************
 	* SpawnProjectile: Spawn a new projectile
@@ -299,12 +322,21 @@ private:
 	CMesh* m_pSentinelMesh;
 	int m_iSentinelMaterialID;
 	int m_iSentinelTexID;
+	CMesh* m_pShadowMesh;
+	int m_iShadowMaterialID;
+	int m_iShadowTexID;
 
 	// PowerUps
 	std::map<UINT, CPowerUp*>* m_pPowerUps;
-	CMesh* m_pHealthMesh;
-	int m_iHealthMaterialID;
-	int m_iHealthTexID;
+	CMesh* m_pHealthPowerMesh;
+	int m_iHealthPowerMaterialID;
+	int m_iHealthPowerTexID;
+	CMesh* m_pFlarePowerMesh;
+	int m_iFlarePowerMaterialID;
+	int m_iFlarePowerTexID;
+	CMesh* m_pGoldenPowerMesh;
+	int m_iGoldenPowerMaterialID;
+	int m_iGoldenPowerTexID;
 
 	// Flare
 	CFlare* m_pFlare;

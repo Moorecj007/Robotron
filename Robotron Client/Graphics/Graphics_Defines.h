@@ -18,7 +18,7 @@
 #define __GRAPHICSDEFINES_H__
 
 // Local Includes
-#include "../Generic_Defines.h"
+#include "../../Common Files/Generic_Defines.h"
 
 // Library Includes
 #pragma comment(lib, "d3d9.lib")

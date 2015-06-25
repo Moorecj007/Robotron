@@ -19,7 +19,7 @@
 
 // Local Includes
 #include "C3DObject.h"
-#include "ParticleSystem.h"
+#include "../ParticleSystem.h"
 
 class CFlare :
 	public C3DObject
@@ -97,10 +97,6 @@ private:
 
 	// Particle System
 	CParticleSystem* m_pParticleSystem;
-
-	//static const UINT m_iParticleCount = 20;
-	//float m_fParticleLifeSpan;
-	//CParticle* m_pParticles[m_iParticleCount];
 };
 
 #endif // __FLARE_H__

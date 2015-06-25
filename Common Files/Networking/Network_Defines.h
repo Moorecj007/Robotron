@@ -123,6 +123,8 @@ struct EnemyInfo
 {
 	UINT iID;
 	UINT iPoints;
+	UINT iDamage;
+	float fRateOfAttack;
 	eEnemyType eType;
 	BoundingBox BBox;
 	int iHealth;

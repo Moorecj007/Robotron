@@ -179,6 +179,15 @@ public:
 	void ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT);
 
 	/***********************
+	* ProcessShadow: Process a Shadow enemies AI capabilities
+	* @author: Callan Moore
+	* @parameter: _enemyInfo: Enemy Info structure of the Shadow enemy
+	* @parameter: _fDT: The current Delta Tick
+	* @parameter: void
+	********************/
+	void ProcessShadow(EnemyInfo* _enemyInfo, float _fDT);
+
+	/***********************
 	* SpawnNextWave: Spawn the Next wave of enemies
 	* @author: Callan Moore
 	* @parameter: void
@@ -254,6 +263,7 @@ private:
 	UINT m_iWaveNumber;
 	UINT m_iDemonCount;
 	UINT m_iSentinelCount;
+	UINT m_iShadowCount;
 	float m_fLastPowerUpSpawned;
 
 	// Avatar Variables

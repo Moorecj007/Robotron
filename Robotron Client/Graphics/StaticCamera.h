@@ -17,8 +17,8 @@
 #define __CAMERA_H__
 
 // Local Includes
-#include "../../Common Files/Graphics/IRenderer.h"
-#include "../../Common Files/Graphics/Graphics_Defines.h"
+#include "IRenderer.h"
+#include "Graphics_Defines.h"
 
 class CStaticCamera
 {

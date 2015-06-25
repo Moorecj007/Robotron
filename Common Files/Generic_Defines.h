@@ -38,6 +38,7 @@ const float kfAvatarSize		= 0.5f;
 const float kfProjectileSize	= 0.1f;
 const float kfDemonSize			= 0.6f;
 const float kfSentinelSize		= 2.0f;
+const float kfShadowSize		= 1.2f;
 const float kfPowerUpSize		= 0.4f;
 const float kfFlareSize			= 0.1f;
 
@@ -86,16 +87,16 @@ enum eAllignmentH
 
 enum eEnemyType
 {
-	ET_DEMON,		// Classic grunt
-	ET_SENTINEL,	// Big Passive wanderer. Attacks only when hit first
-	ET_DEATHSQUAD	// Leader Following
+	ET_DEMON,		
+	ET_SENTINEL,
+	ET_SHADOW	
 };
 
 enum ePowerUpType
 {
 	PT_HEALTH,		
 	PT_FLARE,	
-	PT_UNKNOWN	// TO DO - figure out another powerup	
+	PT_GOLDEN	
 };
 
 // Structs

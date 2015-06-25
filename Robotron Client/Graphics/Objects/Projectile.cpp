@@ -20,7 +20,6 @@ CProjectile::CProjectile(std::string _strAvatarCreator, v3float _v3Dir, UINT _iD
 {
 	m_strAvatarCreator = _strAvatarCreator;
 	m_v3Direction = _v3Dir;
-	m_iDamage = _iDamage;
 }
 
 CProjectile::~CProjectile()

@@ -22,9 +22,9 @@
 #include <stdlib.h>
 
 // Local Includes
-#include "../../Common Files/Graphics/IRenderer.h"
-#include "../../Common Files/Graphics/StaticBuffer.h"
-#include "../../Common Files/Graphics/Vertex.h"
+#include "IRenderer.h"
+#include "StaticBuffer.h"
+#include "Vertex.h"
 
 class CTerrain
 {

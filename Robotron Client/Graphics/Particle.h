@@ -18,7 +18,7 @@
 #define __PARTICLE_H__
 
 // Local Includes
-#include "../Generic_Defines.h"
+#include "../../Common Files/Generic_Defines.h"
 #include "IRenderer.h"
 #include "Mesh.h"
 

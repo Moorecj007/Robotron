@@ -21,7 +21,7 @@
 #include <d3dx9.h>
 
 // Local Includes
-#include "Mesh.h"
+#include "../Mesh.h"
 
 class C3DObject
 {
@@ -63,27 +63,6 @@ public:
 	********************/
 	v3float* C3DObject::GetDirection() { return &m_v3Direction; };
 
-	/***********************
-	* GetVelocity: Retrieves the Objects Velocity
-	* @author: Callan Moore
-	* @return: v3float*: The Objects Velocity as a vector of 3 floats
-	********************/
-	v3float* C3DObject::GetVelocity() { return &m_v3Velocity; };
-
-	/***********************
-	* GetMaxSpeed: Retrieves the Objects Maximum speed
-	* @author: Callan Moore
-	* @return: float: The maximum speed
-	********************/
-	float GetMaxSpeed() { return m_fMaxSpeed;};
-
-	/***********************
-	* GetDamage: Retrieves this objects Damage capabilities
-	* @author: Callan Moore
-	* @return: UINT: The Damage this objects can inflict
-	********************/
-	UINT GetDamage() { return m_iDamage; };
-
 	// Setters
 
 	/***********************
@@ -103,36 +82,12 @@ public:
 	void SetDirection(v3float _v3Dir) { m_v3Direction = _v3Dir; };
 
 	/***********************
-	* SetVelocity: Sets the Velocity of the Object
-	* @author: Callan Moore
-	* @parameter: _v3Vel: Velocity as a vector of 3 floats
-	* @return: void
-	********************/
-	void SetVelocity(v3float _v3Vel) { m_v3Velocity = _v3Vel; };
-
-	/***********************
 	* SetRotation: Sets the Rotation around the Yaw axis of the object
 	* @author: Callan Moore
 	* @parameter: _fRotation: Rotation around the Yaw in Radians
 	* @return: void
 	********************/
 	void SetRotation(float _fRotation) { m_fRotation = _fRotation;};
-
-	/***********************
-	* SetMaxSpeed: Sets the Maximum Speed for this Object when moving
-	* @author: Callan Moore
-	* @parameter: _fSpeed: The new maximum Speed for this Object
-	* @return: void
-	********************/
-	void C3DObject::SetMaxSpeed(float _fSpeed) { m_fMaxSpeed = _fSpeed;};
-
-	/***********************
-	* SetDamage: Sets the damage of the object
-	* @author: Callan Moore
-	* @parameter: _iDamage: The damage of the object
-	* @return: void
-	********************/
-	void SetDamage(UINT _iDamage) { m_iDamage = _iDamage; };
 
 	// Prototypes
 
@@ -195,12 +150,9 @@ protected:
 
 	v3float m_v3Position;
 	v3float m_v3Direction;
-	v3float m_v3Velocity;
 
-	float m_fSize;	// Might not be needed, used only in Collision box
 	float m_fRotation; // Yaw in radians
-	float m_fMaxSpeed;
-	UINT m_iDamage;
+
 };
 
 #endif // __C3DOBJECT_H__ 

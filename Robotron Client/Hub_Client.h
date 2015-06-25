@@ -23,7 +23,7 @@
 
 // Local Includes
 #include "Mechanics_Client.h"
-#include "../Common Files/Graphics/D3D9Renderer.h"
+#include "Graphics/D3D9Renderer.h"
 #include "Graphics\DInput.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/Networking/MySemaphore.h"

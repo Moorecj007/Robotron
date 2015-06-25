@@ -86,14 +86,22 @@ CMechanics_Client::~CMechanics_Client()
 	m_pAvatarMesh = 0;
 	delete m_pProjectileMesh;
 	m_pProjectileMesh = 0;
+	delete m_pFlareMesh;
+	m_pFlareMesh = 0;
+
 	delete m_pDemonMesh;
 	m_pDemonMesh = 0;
 	delete m_pSentinelMesh;
 	m_pSentinelMesh = 0;
-	delete m_pHealthMesh;
-	m_pHealthMesh = 0;
-	delete m_pFlareMesh;
-	m_pFlareMesh = 0;
+	delete m_pShadowMesh;
+	m_pShadowMesh = 0;
+
+	delete m_pHealthPowerMesh;
+	m_pHealthPowerMesh = 0;
+	delete m_pFlarePowerMesh;
+	m_pFlarePowerMesh = 0;
+	delete m_pGoldenPowerMesh;
+	m_pGoldenPowerMesh = 0;
 
 
 	// Delete the Graphics Objects
@@ -130,10 +138,15 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	// Create the required Assets
 	CreateAvatarAsset();
 	CreateProjectileAsset();
+	CreateFlareAsset();
+
 	CreateDemonAsset();
 	CreateSentinelAsset();
-	CreateHealthAsset();
-	CreateFlareAsset();
+	CreateShadowAsset();
+
+	CreateHealthPowerAsset();
+	CreateFlarePowerAsset();
+	CreateGoldenPowerAsset();
 
 	// Create game variables
 	bToggle = 0;
@@ -414,6 +427,11 @@ void CMechanics_Client::UpdateEnemies()
 				fSize = kfSentinelSize;
 				break;
 			}
+			case ET_SHADOW:
+			{
+				fSize = kfShadowSize;
+				break;
+			}
 		}	// Ende Switch
 
 		if (iterEnemy != m_pEnemies->end())
@@ -624,6 +642,27 @@ void CMechanics_Client::CreateProjectileAsset()
 	assert(("Projectile Mesh Failed to Create", m_pProjectileMesh != 0));
 }
 
+void CMechanics_Client::CreateFlareAsset()
+{
+	// Create the Material for the Demons to use
+	MaterialComposition FlareMatComp;
+	FlareMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	FlareMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 0.0f };
+	FlareMatComp.emissive = { 1.0f, 1.0f, 0.0f, 0.0f };
+	FlareMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
+	FlareMatComp.power = 100.0f;
+	m_iFlareMaterialID = m_pRenderer->CreateMaterial(FlareMatComp);
+
+	// Flare Enemy Mesh and Texture
+	m_iFlareTexID = m_pRenderer->CreateTexture("Assets//Flare.bmp");
+	m_pFlareMesh = CreateCubeMesh(kfFlareSize, m_iFlareTexID);
+
+	m_pFlare = new CFlare(m_pRenderer);
+	m_pFlare->Initialise(bToggle, m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
+
+	assert(("Flare Mesh Failed to Create", m_pFlareMesh != 0));
+}
+
 void CMechanics_Client::CreateDemonAsset()
 {
 	// Create the Material for the Demons to use
@@ -660,7 +699,25 @@ void CMechanics_Client::CreateSentinelAsset()
 	assert(("Sentinel Enemy Mesh Failed to Create", m_pSentinelMesh != 0));
 }
 
-void CMechanics_Client::CreateHealthAsset()
+void CMechanics_Client::CreateShadowAsset()
+{
+	// Create the Material for the Sentinels to use
+	MaterialComposition ShadowMatComp;
+	ShadowMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	ShadowMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	ShadowMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	ShadowMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	ShadowMatComp.power = 0;
+	m_iShadowMaterialID = m_pRenderer->CreateMaterial(ShadowMatComp);
+
+	// Shadow Enemy Mesh and Texture
+	m_iShadowTexID = m_pRenderer->CreateTexture("Assets//Shadow.bmp");
+	m_pShadowMesh = CreateCubeMesh(kfSentinelSize, m_iShadowTexID);
+
+	assert(("Shadow Enemy Mesh Failed to Create", m_pShadowMesh != 0));
+}
+
+void CMechanics_Client::CreateHealthPowerAsset()
 {
 	// Create the Material for the Demons to use
 	MaterialComposition HealthMatComp;
@@ -669,35 +726,52 @@ void CMechanics_Client::CreateHealthAsset()
 	HealthMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HealthMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	HealthMatComp.power = 0;
-	m_iHealthMaterialID = m_pRenderer->CreateMaterial(HealthMatComp);
+	m_iHealthPowerMaterialID = m_pRenderer->CreateMaterial(HealthMatComp);
 
 	// Demon Enemy Mesh and Texture
-	m_iHealthTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
-	m_pHealthMesh = CreateCubeMesh(kfPowerUpSize, m_iHealthTexID);
+	m_iHealthPowerTexID = m_pRenderer->CreateTexture("Assets//Health.bmp");
+	m_pHealthPowerMesh = CreateCubeMesh(kfPowerUpSize, m_iHealthPowerTexID);
 
-	assert(("Health PowerUp Mesh Failed to Create", m_pHealthMesh != 0));
+	assert(("Health PowerUp Mesh Failed to Create", m_pHealthPowerMesh != 0));
 }
 
-void CMechanics_Client::CreateFlareAsset()
+void CMechanics_Client::CreateFlarePowerAsset()
 {
 	// Create the Material for the Demons to use
 	MaterialComposition FlareMatComp;
 	FlareMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
-	FlareMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 0.0f };
-	FlareMatComp.emissive = { 1.0f, 1.0f, 0.0f, 0.0f };
-	FlareMatComp.specular = { 1.0f, 1.0f, 0.0f, 1.0f };
-	FlareMatComp.power = 100.0f;
-	m_iFlareMaterialID = m_pRenderer->CreateMaterial(FlareMatComp);
+	FlareMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	FlareMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	FlareMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	FlareMatComp.power = 0;
+	m_iFlarePowerMaterialID = m_pRenderer->CreateMaterial(FlareMatComp);
 
-	// Flare Enemy Mesh and Texture
-	m_iFlareTexID = m_pRenderer->CreateTexture("Assets//Flare.bmp");
-	m_pFlareMesh = CreateCubeMesh(kfFlareSize, m_iFlareTexID);
+	// Demon Enemy Mesh and Texture
+	m_iFlarePowerTexID = m_pRenderer->CreateTexture("Assets//FlarePower.bmp");
+	m_pFlarePowerMesh = CreateCubeMesh(kfPowerUpSize, m_iFlarePowerTexID);
 
-	m_pFlare = new CFlare(m_pRenderer);
-	m_pFlare->Initialise(bToggle, m_pRenderer, m_pFlareMesh, 0, m_iFlareMaterialID, { 0.0f, 1.0f, 0.0f });
-
-	assert(("Flare Mesh Failed to Create", m_pFlareMesh != 0));
+	assert(("Flare PowerUp Mesh Failed to Create", m_pFlarePowerMesh != 0));
 }
+
+void CMechanics_Client::CreateGoldenPowerAsset()
+{
+	// Create the Material for the Demons to use
+	MaterialComposition GoldenMatComp;
+	GoldenMatComp.ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GoldenMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GoldenMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GoldenMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GoldenMatComp.power = 0;
+	m_iGoldenPowerMaterialID = m_pRenderer->CreateMaterial(GoldenMatComp);
+
+	// Demon Enemy Mesh and Texture
+	m_iGoldenPowerTexID = m_pRenderer->CreateTexture("Assets//FlarePower.bmp");
+	m_pGoldenPowerMesh = CreateCubeMesh(kfPowerUpSize, m_iGoldenPowerTexID);
+
+	assert(("Golden PowerUp Mesh Failed to Create", m_pGoldenPowerMesh != 0));
+}
+
+
 
 void CMechanics_Client::SpawnProjectile(ServerToClient* _pServerPacket)
 {
@@ -759,6 +833,12 @@ void CMechanics_Client::SpawnEnemy(ServerToClient* _pServerPacket)
 		iMatID = m_iSentinelMaterialID;
 		break;
 	}
+	case ET_SHADOW:
+	{
+		pMesh = m_pShadowMesh;
+		iMatID = m_iShadowMaterialID;
+		break;
+	}
 	default:
 		break;
 	}
@@ -808,8 +888,20 @@ void CMechanics_Client::SpawnPowerUp(ServerToClient* _pServerPacket)
 	{
 	case PT_HEALTH:
 	{
-		pMesh = m_pHealthMesh;
-		iMatID = m_iHealthMaterialID;
+		pMesh = m_pHealthPowerMesh;
+		iMatID = m_iHealthPowerMaterialID;
+		break;
+	}
+	case PT_FLARE:
+	{
+		pMesh = m_pFlarePowerMesh;
+		iMatID = m_iFlarePowerMaterialID;
+		break;
+	}
+	case PT_GOLDEN:
+	{
+		pMesh = m_pGoldenPowerMesh;
+		iMatID = m_iGoldenPowerMaterialID;
 		break;
 	}
 	default:

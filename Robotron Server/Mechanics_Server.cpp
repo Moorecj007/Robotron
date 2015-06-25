@@ -137,12 +137,22 @@ bool CMechanics_Server::GetNextCreatedEnemy(EnemyInfo* _enemyInfo)
 	// Check if any enemies are in queue to be created
 	if (m_pCreatedEnemies->empty() == false)
 	{
-		// Find the info of the Created enemy
-		*_enemyInfo = m_pCreatedEnemies->front();
+		// If the Max number of enemies is already spawned. Don't spawn more
+		if (m_pEnemies->size() >= network::MAX_ENEMY_SPAWNED)
+		{
+			return false;
+		}
+		else
+		{
+			// Find the info of the Created enemy
+			*_enemyInfo = m_pCreatedEnemies->front();
 
-		// remove the queued enemy
-		m_pCreatedEnemies->pop();
-		return true;
+			m_pEnemies->insert(std::pair<UINT, EnemyInfo>(_enemyInfo->iID, *_enemyInfo));
+
+			// remove the queued enemy
+			m_pCreatedEnemies->pop();
+			return true;
+		}
 	}
 
 	return false;
@@ -174,6 +184,8 @@ bool CMechanics_Server::GetNextCreatedPower(PowerUpInfo* _powerInfo)
 	{
 		// Find the info of the Created PowerUp
 		*_powerInfo = m_pCreatedPowerUps->front();
+
+		m_pPowerUps->insert(std::pair<UINT, PowerUpInfo>(_powerInfo->iID, *_powerInfo));
 
 		// remove the queued PowerUp
 		m_pCreatedPowerUps->pop();
@@ -231,7 +243,7 @@ bool CMechanics_Server::Initialise(std::string _strServerName)
 	// Get the Terrain size values
 	unsigned int iWidth, iDepth;
 	m_fTerrainDepth = 0;
-	std::ifstream image("..\\Common Files\\Graphics\\Assets\\Basic Terrain.bmp");
+	std::ifstream image("Assets\\Basic Terrain.bmp");
 	image.seekg(18);
 	image.read((char*)&iWidth, 4);
 	image.read((char*)&iDepth, 4);
@@ -402,10 +414,14 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 		std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
 		while (iterCollisionEnemy != m_pEnemies->end())
 		{
-			if (CollisionCheck(Avatar->second.BBox, iterCollisionEnemy->second.BBox) == true)
+			// Allow players to move through the shadow
+			if (iterCollisionEnemy->second.eType != ET_SHADOW)
 			{
-				bCollisionDetected = true;
-				break;
+				if (CollisionCheck(Avatar->second.BBox, iterCollisionEnemy->second.BBox) == true)
+				{
+					bCollisionDetected = true;
+					break;
+				}
 			}
 
 			iterCollisionEnemy++;
@@ -620,52 +636,62 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 
 				break;
 			}
+			case ET_SHADOW:
+			{
+				ProcessShadow(&iterEnemy->second, _fDT);
+				fEnemySize = kfShadowSize;
+
+				break;
+			}
 		}	// End Switch
 
 		// Calculate the Enemies updated Bounding Box
 		iterEnemy->second.BBox.v3Max = iterEnemy->second.v3Pos + (1.1f * fEnemySize);
 		iterEnemy->second.BBox.v3Min = iterEnemy->second.v3Pos - (1.1f * fEnemySize);
 		
-		bool bCollisionDetected = false;
-		// Check for Collisions with Avatars
-		std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
-		while (iterCollisionAvatar != m_pAvatars->end())
+		if (iterEnemy->second.eType != ET_SHADOW)
 		{
-			if (CollisionCheck(iterEnemy->second.BBox, iterCollisionAvatar->second.BBox) == true)
+			bool bCollisionDetected = false;
+			// Check for Collisions with Avatars
+			std::map<std::string, AvatarInfo>::iterator iterCollisionAvatar = m_pAvatars->begin();
+			while (iterCollisionAvatar != m_pAvatars->end())
 			{
-				bCollisionDetected = true;
-				break;
-			}
-			iterCollisionAvatar++;
-		}
-		
-		// Check only if a collision hasn't already been detected
-		if (bCollisionDetected == false)
-		{
-			//// Check for collisions with other Enemies
-			std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
-			while (iterCollisionEnemy != m_pEnemies->end())
-			{
-				if (iterEnemy->second.iID != iterCollisionEnemy->second.iID)
+				if (CollisionCheck(iterEnemy->second.BBox, iterCollisionAvatar->second.BBox) == true)
 				{
-					if (CollisionCheck(iterEnemy->second.BBox, iterCollisionEnemy->second.BBox) == true)
-					{
-						bCollisionDetected = true;
-						break;
-					}
+					bCollisionDetected = true;
+					break;
 				}
-				iterCollisionEnemy++;
+				iterCollisionAvatar++;
 			}
-		}
-		
-		if (bCollisionDetected == true)
-		{
-			// Revert the Enemy back to their original position before moving
-			iterEnemy->second.v3Pos -= iterEnemy->second.steeringInfo.v3Vel;
 
-			// Revert the Bounding box to before the move
-			iterEnemy->second.BBox.v3Max = iterEnemy->second.v3Pos + (1.1f * fEnemySize);
-			iterEnemy->second.BBox.v3Min = iterEnemy->second.v3Pos - (1.1f * fEnemySize);
+			// Check only if a collision hasn't already been detected
+			if (bCollisionDetected == false)
+			{
+				//// Check for collisions with other Enemies
+				std::map<UINT, EnemyInfo>::iterator iterCollisionEnemy = m_pEnemies->begin();
+				while (iterCollisionEnemy != m_pEnemies->end())
+				{
+					if (iterEnemy->second.iID != iterCollisionEnemy->second.iID)
+					{
+						if (CollisionCheck(iterEnemy->second.BBox, iterCollisionEnemy->second.BBox) == true)
+						{
+							bCollisionDetected = true;
+							break;
+						}
+					}
+					iterCollisionEnemy++;
+				}
+			}
+
+			if (bCollisionDetected == true)
+			{
+				// Revert the Enemy back to their original position before moving
+				iterEnemy->second.v3Pos -= iterEnemy->second.steeringInfo.v3Vel;
+
+				// Revert the Bounding box to before the move
+				iterEnemy->second.BBox.v3Max = iterEnemy->second.v3Pos + (1.1f * fEnemySize);
+				iterEnemy->second.BBox.v3Min = iterEnemy->second.v3Pos - (1.1f * fEnemySize);
+			}
 		}
 
 		iterEnemy++;
@@ -697,11 +723,20 @@ void CMechanics_Server::ProcessDemon(EnemyInfo* _enemyInfo, float _fDT)
 		}
 		// Set the demons target to be the position of the closest avatar
 		_enemyInfo->steeringInfo.v3TargetPos = closestAvatar->second.v3Pos;
-		//
-		//// Steerings
-		//Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
-
-		Flock(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, m_pEnemies, _fDT);
+	
+		v2float v2ContainmentField = { m_fTerrainWidth, m_fTerrainDepth };
+		if (Contain(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, v2ContainmentField) == true)
+		{
+			// Contained, therefore Flock as normal
+			Flock(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, m_pEnemies, _fDT);
+		}
+		else
+		{
+			// Leaving containment field, steer back towards terrain center
+			_enemyInfo->steeringInfo.fMaxForce = 4.0f;
+			v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
+		}
 	}
 }
 
@@ -733,7 +768,49 @@ void CMechanics_Server::ProcessSentinel(EnemyInfo* _enemyInfo, float _fDT)
 			_enemyInfo->steeringInfo.fMaxForce = 1.0f;
 			v3float v3Wander = Wander(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
 			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Wander, _fDT);
+		}
+		else
+		{
+			// Leaving containment field, steer back towards terrain center
+			_enemyInfo->steeringInfo.fMaxForce = 4.0f;
+			v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
+		}
+	}
+}
 
+void CMechanics_Server::ProcessShadow(EnemyInfo* _enemyInfo, float _fDT)
+{
+	if (m_pAvatars->size() > 0)
+	{
+		//// Find Avatar Target
+		std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->begin();
+		std::map<std::string, AvatarInfo>::iterator closestAvatar = iterAvatar;
+
+		// Calculate the distance from the first avatar
+		float fDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
+
+		while (iterAvatar != m_pAvatars->end())
+		{
+			// Caclulate the distance from the enemy to the current
+			float fNewDistance = abs((iterAvatar->second.v3Pos - _enemyInfo->v3Pos).Magnitude());
+			if (fNewDistance < fDistance)
+			{
+				// Set the closest avatar to the current avatar and update the distance for checking
+				closestAvatar = iterAvatar;
+				fDistance = fNewDistance;
+			}
+			iterAvatar++;
+		}
+		// Set the Shadow target to be the position of the closest avatar
+		_enemyInfo->steeringInfo.v3TargetPos = closestAvatar->second.v3Pos;
+
+		v2float v2ContainmentField = { m_fTerrainWidth, m_fTerrainDepth };
+		if (Contain(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, v2ContainmentField) == true)
+		{
+			// Contained, therefore Seek as normal
+			v3float v3Seek = Seek(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, _fDT);
+			ApplyForce(&_enemyInfo->steeringInfo, &_enemyInfo->v3Pos, &_enemyInfo->v3Dir, v3Seek, _fDT);
 		}
 		else
 		{
@@ -750,41 +827,22 @@ void CMechanics_Server::SpawnNextWave()
 	// Increment The Wave Count
 	m_iWaveNumber++;
 
-	m_iDemonCount = (m_iWaveNumber * 2) + 10;
-	m_iSentinelCount = m_iWaveNumber;
+	// Calculate the new waves enemy counts
+	m_iDemonCount = (m_iWaveNumber * 4) + 50;
+	m_iSentinelCount = m_iWaveNumber + 3;
+	m_iShadowCount = (m_iWaveNumber / 2) + 5;
+	UINT iTotalEnemyCount = m_iDemonCount + m_iSentinelCount + m_iShadowCount;
 
-	for (UINT i = 0; i < m_iDemonCount; i++)
+	// set te created enemy counters to 0
+	UINT iCreatedDemons = 0;
+	UINT iCreatedSentinels = 0;
+	UINT iCreatedShadows = 0;
+
+	// Created enemy types in a random order as there is a limit to how many can be spawned at once
+	while ((iCreatedDemons + iCreatedSentinels + iCreatedShadows) < iTotalEnemyCount)
 	{
-		// Calculate a random starting position within the bounds of the terrain
-		float fRandomPosX = (float)(rand() / (float)RAND_MAX);
-		float fRandomPosZ = (float)(rand() / (float)RAND_MAX);
-		fRandomPosX = (rand() % (int)m_fTerrainWidth) - ((m_fTerrainWidth - 15) / 2);
-		fRandomPosZ = (rand() % (int)m_fTerrainDepth) - ((m_fTerrainDepth - 15) / 2);
-
-		// Calculate a random starting direction
-		float fRandomDirX = (float)(rand() / (float)RAND_MAX);
-		float fRandomDirZ = (float)(rand() / (float)RAND_MAX);
-		
 		EnemyInfo tempEnemyInfo;
-		tempEnemyInfo.eType = ET_DEMON;
-		tempEnemyInfo.iHealth = 100;
-		tempEnemyInfo.iID = m_iNextObjectID++;
-		tempEnemyInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
-		tempEnemyInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
-		tempEnemyInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-		tempEnemyInfo.steeringInfo.fMaxSpeed = 2.0f;
-		tempEnemyInfo.steeringInfo.fMaxForce = 4.0f;
-		tempEnemyInfo.iPoints = 50;
-		tempEnemyInfo.steeringInfo.fWanderAngle = 0;
-		tempEnemyInfo.steeringInfo.fSize = kfDemonSize;
-		tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + kfDemonSize;
-		tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - kfDemonSize;
-		m_pCreatedEnemies->push(tempEnemyInfo);
-		m_pEnemies->insert(std::pair<UINT, EnemyInfo>(tempEnemyInfo.iID, tempEnemyInfo));
-	}
 
-	for (UINT i = 0; i < m_iSentinelCount; i++)
-	{
 		// Calculate a random starting position within the bounds of the terrain
 		float fRandomPosX = (float)(rand() / (float)RAND_MAX);
 		float fRandomPosZ = (float)(rand() / (float)RAND_MAX);
@@ -795,23 +853,83 @@ void CMechanics_Server::SpawnNextWave()
 		float fRandomDirX = (float)(rand() / (float)RAND_MAX);
 		float fRandomDirZ = (float)(rand() / (float)RAND_MAX);
 
-		EnemyInfo tempEnemyInfo;
-		tempEnemyInfo.eType = ET_SENTINEL;
-		tempEnemyInfo.iHealth = 500;
+		// Random enemy Type
+		int iType = rand() % 3;
+		switch (iType)
+		{
+			case ET_DEMON:
+			{
+				if (iCreatedDemons >= m_iDemonCount)
+				{
+					// Max demons for this wave reached
+					continue;
+				}
+				tempEnemyInfo.eType = ET_DEMON;
+				tempEnemyInfo.iHealth = 100;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 2.0f;
+				tempEnemyInfo.steeringInfo.fMaxForce = 4.0f;
+				tempEnemyInfo.iPoints = 50;
+				tempEnemyInfo.steeringInfo.fSize = kfDemonSize;
+				tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + (1.1f * kfDemonSize);
+				tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - (1.1f * kfDemonSize);
+				tempEnemyInfo.iDamage = 10;
+				tempEnemyInfo.fRateOfAttack = 1.5f;
+
+				iCreatedDemons++;
+
+				break;
+			}
+			case ET_SENTINEL:
+			{
+				if (iCreatedSentinels >= m_iSentinelCount)
+				{
+					// Max Sentinels for this wave reached
+					continue;
+				}
+				tempEnemyInfo.eType = ET_SENTINEL;
+				tempEnemyInfo.iHealth = 500;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 5.0f;
+				tempEnemyInfo.steeringInfo.fMaxForce = 1.0f;
+				tempEnemyInfo.iPoints = 300;
+				tempEnemyInfo.steeringInfo.fSize = kfSentinelSize;
+				tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + (1.1f * kfSentinelSize);
+				tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - (1.1f * kfSentinelSize);
+				tempEnemyInfo.iDamage = 25;
+				tempEnemyInfo.fRateOfAttack = 2.5f;
+
+				iCreatedSentinels++;
+
+				break;
+			}
+			case ET_SHADOW:
+			{
+				if (iCreatedShadows >= m_iShadowCount)
+				{
+					// Max Shadows for this wave reached
+					continue;
+				}
+				tempEnemyInfo.eType = ET_SHADOW;
+				tempEnemyInfo.iHealth = 150;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 25.0f;
+				tempEnemyInfo.steeringInfo.fMaxForce = 10.0f;
+				tempEnemyInfo.iPoints = 200;
+				tempEnemyInfo.steeringInfo.fSize = kfShadowSize;
+				tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + (1.1f * kfShadowSize);
+				tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - (1.1f * kfShadowSize);
+				tempEnemyInfo.iDamage = 1;
+				tempEnemyInfo.fRateOfAttack = 1.0f;
+
+				iCreatedShadows++;
+
+				break;
+			}
+		}
 		tempEnemyInfo.iID = m_iNextObjectID++;
 		tempEnemyInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
 		tempEnemyInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
 		tempEnemyInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
-		tempEnemyInfo.steeringInfo.fMaxSpeed = 5.0f;
-		tempEnemyInfo.steeringInfo.fMaxForce = 1.0f;	// Reminder this is changed in process
-		tempEnemyInfo.iPoints = 500;
 		tempEnemyInfo.steeringInfo.fWanderAngle = 0;
-		tempEnemyInfo.steeringInfo.fSize = kfSentinelSize;
-		StringToStruct("", tempEnemyInfo.cTargetPlayer, network::MAX_USERNAME_LENGTH);
-		tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + kfSentinelSize;
-		tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - kfSentinelSize;
 		m_pCreatedEnemies->push(tempEnemyInfo);
-		m_pEnemies->insert(std::pair<UINT, EnemyInfo>(tempEnemyInfo.iID, tempEnemyInfo));
 	}
 }
 
@@ -819,6 +937,26 @@ void CMechanics_Server::SpawnNextPowerUp()
 {
 	if (m_pPowerUps->size() < network::MAX_POWERUPS_SPAWNED)
 	{
+		PowerUpInfo tempPowerInfo;
+
+		// Random PowerUp Type
+		int iType = rand() % 100;
+		if (iType < 10)
+		{
+			// 10% chance
+			tempPowerInfo.eType = PT_GOLDEN;
+		}
+		else if (iType < 50)
+		{
+			// 40% chance
+			tempPowerInfo.eType = PT_HEALTH;
+		}
+		else
+		{
+			// 50% chance
+			tempPowerInfo.eType = PT_FLARE;
+		}
+
 		// Calculate a random starting position within the bounds of the terrain
 		float fRandomPosX = (float)(rand() / (float)RAND_MAX);
 		float fRandomPosZ = (float)(rand() / (float)RAND_MAX);
@@ -829,8 +967,7 @@ void CMechanics_Server::SpawnNextPowerUp()
 		float fRandomDirX = (float)(rand() / (float)RAND_MAX);
 		float fRandomDirZ = (float)(rand() / (float)RAND_MAX);
 	
-		PowerUpInfo tempPowerInfo;
-		tempPowerInfo.eType = PT_HEALTH;
+		
 		tempPowerInfo.iID = m_iNextObjectID++;
 		tempPowerInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
 		tempPowerInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
@@ -842,7 +979,6 @@ void CMechanics_Server::SpawnNextPowerUp()
 		tempPowerInfo.BBox.v3Max = tempPowerInfo.v3Pos + kfPowerUpSize;
 		tempPowerInfo.BBox.v3Min = tempPowerInfo.v3Pos - kfPowerUpSize;
 		m_pCreatedPowerUps->push(tempPowerInfo);
-		m_pPowerUps->insert(std::pair<UINT, PowerUpInfo>(tempPowerInfo.iID, tempPowerInfo));
 	}
 }
 

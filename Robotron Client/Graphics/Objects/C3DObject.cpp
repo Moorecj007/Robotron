@@ -24,10 +24,8 @@ C3DObject::C3DObject()
 	// Set the Vectors to generic starting values
 	m_v3Position = { 0.0f, 0.0f, 0.0f };
 	m_v3Direction = { 0.0f, 0.0f, 1.0f };
-	m_v3Velocity = { 0.0f, 0.0f, 0.0f };
 
 	// Set the floating point variables top generic starting values
-	m_fSize = 0.0f;
 	m_fRotation = 0.0f;
 	//m_fMaxSpeed = 10.0f;	// TO DO - something
 
@@ -47,9 +45,6 @@ void C3DObject::Initialise(bool _bToggle, IRenderer* _pRenderer, CMesh* _pMesh, 
 
 	// Initialise the Vectors
 	m_v3Position = _v3Pos;
-
-	// Initialise the floating point variables
-	m_fSize = m_pMesh->GetSize();
 
 	// Set the Material
 	m_iMaterialID = _MaterialID;

@@ -21,7 +21,7 @@
 #include <d3d9.h>
 
 // Local Includes
-#include "../Generic_Defines.h"
+#include "../../Common Files/Generic_Defines.h"
 
 class CVertex
 {

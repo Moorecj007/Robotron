@@ -23,31 +23,13 @@ CEnemy::CEnemy(eEnemyType _eType)
 	{
 	case ET_DEMON:
 	{
-		m_iMaxHealth = 100;
-		m_iHealth = m_iMaxHealth;
-		m_iDamage = 20;
-		m_iPointScore = 10;
-
-		// Set a mesh
-		// Set a material
-		// Set a texture
-
-		// Randomise the starting positions
-		// Position
-		// Direction
-		// Velocity
-
-		// Max Force
-		// Acceleration
-		// Desired Velocity
-
 		break;
 	}
 	case ET_SENTINEL:
 	{
 		break;
 	}
-	case ET_DEATHSQUAD:
+	case ET_SHADOW:
 	{
 		break;
 	}

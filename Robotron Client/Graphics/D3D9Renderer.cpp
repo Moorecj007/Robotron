@@ -142,8 +142,7 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	// Declare Variables structs
 	D3DDISPLAYMODE displayMode;
 	D3DCAPS9 caps;
-	D3DPRESENT_PARAMETERS d3dpp;
-	ZeroMemory(&d3dpp, sizeof(d3dpp));
+	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
 
 	// Create the Direct3D
 	m_pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
@@ -160,13 +159,13 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	// Determine the Vertex processing Hardware or software
 	DWORD dwVertProcessing = (caps.VertexProcessingCaps != 0) ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED | D3DCREATE_PUREDEVICE : D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED;
 
-	if (PopulatePresentParams(d3dpp, displayMode) == false)
+	if (PopulatePresentParams(m_d3dpp, displayMode) == false)
 	{
 		return false;	// Device unable to be created
 	}
 
 	// Create the device
-	m_pDirect3D->CreateDevice(iAdapter, m_devType, m_hWindow, dwVertProcessing, &d3dpp, &m_pDevice);
+	m_pDirect3D->CreateDevice(iAdapter, m_devType, m_hWindow, dwVertProcessing, &m_d3dpp, &m_pDevice);
 
 	//Set the Clear Color to Yellow
 	SetClearColour(1, 1, 0);
@@ -199,14 +198,14 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 
 	m_pDevice->SetMaterial(&material);
 
-	// TO DO - put this somewhere else
+	// Create a singlular Directional Light
 	ZeroMemory((&m_DirectionLight), sizeof(m_DirectionLight));
 	m_DirectionLight.Type = D3DLIGHT_DIRECTIONAL;
 	m_DirectionLight.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
 	m_DirectionLight.Direction = D3DXVECTOR3(-1.0f, -1.0f, 0);
 
-	//m_pDevice->SetLight(0, &m_DirectionLight);
-	//m_pDevice->LightEnable(0, TRUE);
+	m_pDevice->SetLight(0, &m_DirectionLight);
+	m_pDevice->LightEnable(0, FALSE);
 
 	// Create the initial index for the torches 
 	//(0 is reserved for directional light)
@@ -473,189 +472,192 @@ void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, in
 
 	// Find the Surface within the Renderers Map of surfaces
 	std::map<int, IDirect3DSurface9*>::iterator iterSurface = m_pMapSurfaces->find(_iSurfaceID);
-	IDirect3DSurface9* pSurface = iterSurface->second;
-
-	pSurface->LockRect(&lockRect, 0, D3DLOCK_READONLY);;
-	int iNumPixels = _pImageInfo.Width * _pImageInfo.Height; // Height becomes Depth
-
-	// Get bits pointer and cast to D3DCOLOR*
-	D3DCOLOR* pPixel = reinterpret_cast<D3DCOLOR*>(lockRect.pBits);
-
-	// Cycle through all the Columns of the Surface image
-	for (int iCol = 0; iCol < (int)_pImageInfo.Height; iCol++)
+	if (iterSurface != m_pMapSurfaces->end())
 	{
-		// Cycle through all the Rows of the Surface Image
-		for (int iRow = 0; iRow < (int)_pImageInfo.Width; iRow++)
+		IDirect3DSurface9* pSurface = iterSurface->second;
+
+		pSurface->LockRect(&lockRect, 0, D3DLOCK_READONLY);;
+		int iNumPixels = _pImageInfo.Width * _pImageInfo.Height; // Height becomes Depth
+
+		// Get bits pointer and cast to D3DCOLOR*
+		D3DCOLOR* pPixel = reinterpret_cast<D3DCOLOR*>(lockRect.pBits);
+
+		// Cycle through all the Columns of the Surface image
+		for (int iCol = 0; iCol < (int)_pImageInfo.Height; iCol++)
 		{
-			
-			int iPixelNum = (iCol * _pImageInfo.Width) + iRow;	// Find the Pixel Number
-			D3DCOLOR PixelColor = pPixel[iPixelNum];			// Retrieve the Color of that Pixel
-			int iRedChannel = ExtractRed(PixelColor);			// Extract the Red Channel
-
-			float fWidth = iCol * _VertexScalar.Depth;			// X
-			float fHeight = iRedChannel * _VertexScalar.Height;	// Y
-			float fDepth = iRow * _VertexScalar.Width;			// Z
-
-			// Create variables to hold values during Normal Calculations
-			std::vector<D3DVECTOR> vecDirections;
-			D3DVECTOR tempDirection;
-			D3DXVECTOR3 tempNormal = { 0, 0, 0 };
-			D3DXVECTOR3 v3Normal = { 0, 0, 0 };
-
-			if (iCol % 2 == 0)	// Even Columns
-			{		
-				// Get the Direction for the Vertex one positive Column over
-				if (iCol != (_pImageInfo.Width - 1))
-				{
-					tempDirection.x = 1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 0 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-
-				// Get the Direction for the Vertex one positive Column over and one positive Row over
-				if (iCol != (_pImageInfo.Width - 1)
-					&& iRow != (_pImageInfo.Width - 1))
-				{
-					tempDirection.x = 1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-
-				// Get the Direction for the Vertex one positive Row over
-				if (iRow != (_pImageInfo.Width - 1))
-				{
-					tempDirection.x = 0 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-					
-				// Get the Direction for the Vertex one positive Column over and one positive Row over
-				if (iCol != 0
-					&& iRow != (_pImageInfo.Width - 1))
-				{
-					tempDirection.x = -1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-					
-				// Get the Direction for the Vertex one negative Column over
-				if (iCol != 0
-					&& iRow != 0)
-				{
-					tempDirection.x = -1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 0 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-					
-				// Get the Direction for the Vertex one negative Row over
-				if (iRow != 0)
-				{
-					tempDirection.x = 0 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = -1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-
-				
-			}
-			else	// Odd Columns
+			// Cycle through all the Rows of the Surface Image
+			for (int iRow = 0; iRow < (int)_pImageInfo.Width; iRow++)
 			{
-				// Get the Direction for the Vertex one positive Column over
-				if (iCol != (_pImageInfo.Width - 1))
+
+				int iPixelNum = (iCol * _pImageInfo.Width) + iRow;	// Find the Pixel Number
+				D3DCOLOR PixelColor = pPixel[iPixelNum];			// Retrieve the Color of that Pixel
+				int iRedChannel = ExtractRed(PixelColor);			// Extract the Red Channel
+
+				float fWidth = iCol * _VertexScalar.Depth;			// X
+				float fHeight = iRedChannel * _VertexScalar.Height;	// Y
+				float fDepth = iRow * _VertexScalar.Width;			// Z
+
+				// Create variables to hold values during Normal Calculations
+				std::vector<D3DVECTOR> vecDirections;
+				D3DVECTOR tempDirection;
+				D3DXVECTOR3 tempNormal = { 0, 0, 0 };
+				D3DXVECTOR3 v3Normal = { 0, 0, 0 };
+
+				if (iCol % 2 == 0)	// Even Columns
 				{
-					tempDirection.x = 1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 0 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-				
-				// Get the Direction for the Vertex one positive Row over
-				if (iRow != (_pImageInfo.Width - 1))
-				{
-					tempDirection.x = 0 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-					
-				// Get the Direction for the Vertex one negative Column over
-				if (iCol != 0
-					&& iRow != 0)
-				{
-					tempDirection.x = -1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = 0 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-					
-				// Get the Direction for the Vertex one negative Column over and one negative Row over
-				if (iCol != 0
-					&& iRow != 0)
-				{
-					tempDirection.x = -1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = -1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-					
-				// Get the Direction for the Vertex one negative Row over
-				if (iRow != 0)
-				{
-					tempDirection.x = 0 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = -1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-			
-				// Get the Direction for the Vertex one positive Column over and one negative Row over
-				if ( iCol != (_pImageInfo.Width - 1)
-					&& iRow != 0)
-				{
-					tempDirection.x = 1 * _VertexScalar.Width;
-					tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
-					tempDirection.z = -1 * _VertexScalar.Depth;
-					vecDirections.push_back(tempDirection);
-				}
-			}
-				
-			// Get the two direction vectors for each polygon and calculate the cross product to get the normal
-			for (int i = (int)(vecDirections.size() - 1); i >= 0; i--)
-			{
-				if (i == 0)	// Need to calculate first vector with last vector
-				{
-					if (vecDirections.size() == 6)	// Vertex is not on the edge so has six polygons
+					// Get the Direction for the Vertex one positive Column over
+					if (iCol != (_pImageInfo.Width - 1))
 					{
-						tempNormal.x += ((vecDirections[i].y * vecDirections[(vecDirections.size() - 1)].z) - (vecDirections[i].z * vecDirections[(vecDirections.size() - 1)].y));
-						tempNormal.y += ((vecDirections[i].z * vecDirections[(vecDirections.size() - 1)].x) - (vecDirections[i].x * vecDirections[(vecDirections.size() - 1)].z));
-						tempNormal.z += ((vecDirections[i].x * vecDirections[(vecDirections.size() - 1)].y) - (vecDirections[i].y * vecDirections[(vecDirections.size() - 1)].x));
+						tempDirection.x = 1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 0 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one positive Column over and one positive Row over
+					if (iCol != (_pImageInfo.Width - 1)
+						&& iRow != (_pImageInfo.Width - 1))
+					{
+						tempDirection.x = 1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one positive Row over
+					if (iRow != (_pImageInfo.Width - 1))
+					{
+						tempDirection.x = 0 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one positive Column over and one positive Row over
+					if (iCol != 0
+						&& iRow != (_pImageInfo.Width - 1))
+					{
+						tempDirection.x = -1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one negative Column over
+					if (iCol != 0
+						&& iRow != 0)
+					{
+						tempDirection.x = -1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 0 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one negative Row over
+					if (iRow != 0)
+					{
+						tempDirection.x = 0 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = -1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+
+				}
+				else	// Odd Columns
+				{
+					// Get the Direction for the Vertex one positive Column over
+					if (iCol != (_pImageInfo.Width - 1))
+					{
+						tempDirection.x = 1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 0 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one positive Row over
+					if (iRow != (_pImageInfo.Width - 1))
+					{
+						tempDirection.x = 0 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow + 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one negative Column over
+					if (iCol != 0
+						&& iRow != 0)
+					{
+						tempDirection.x = -1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[(iRow + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = 0 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one negative Column over and one negative Row over
+					if (iCol != 0
+						&& iRow != 0)
+					{
+						tempDirection.x = -1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + ((iCol - 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = -1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one negative Row over
+					if (iRow != 0)
+					{
+						tempDirection.x = 0 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + (iCol * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = -1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
+					}
+
+					// Get the Direction for the Vertex one positive Column over and one negative Row over
+					if (iCol != (_pImageInfo.Width - 1)
+						&& iRow != 0)
+					{
+						tempDirection.x = 1 * _VertexScalar.Width;
+						tempDirection.y = (ExtractRed(pPixel[((iRow - 1) + ((iCol + 1) * _pImageInfo.Width))]) * _VertexScalar.Height) - fHeight;
+						tempDirection.z = -1 * _VertexScalar.Depth;
+						vecDirections.push_back(tempDirection);
 					}
 				}
-				else
+
+				// Get the two direction vectors for each polygon and calculate the cross product to get the normal
+				for (int i = (int)(vecDirections.size() - 1); i >= 0; i--)
 				{
-					tempNormal.x += ((vecDirections[i].y * vecDirections[i - 1].z) - (vecDirections[i].z * vecDirections[i - 1].y));
-					tempNormal.y += ((vecDirections[i].z * vecDirections[i - 1].x) - (vecDirections[i].x * vecDirections[i - 1].z));
-					tempNormal.z += ((vecDirections[i].x * vecDirections[i - 1].y) - (vecDirections[i].y * vecDirections[i - 1].x));
+					if (i == 0)	// Need to calculate first vector with last vector
+					{
+						if (vecDirections.size() == 6)	// Vertex is not on the edge so has six polygons
+						{
+							tempNormal.x += ((vecDirections[i].y * vecDirections[(vecDirections.size() - 1)].z) - (vecDirections[i].z * vecDirections[(vecDirections.size() - 1)].y));
+							tempNormal.y += ((vecDirections[i].z * vecDirections[(vecDirections.size() - 1)].x) - (vecDirections[i].x * vecDirections[(vecDirections.size() - 1)].z));
+							tempNormal.z += ((vecDirections[i].x * vecDirections[(vecDirections.size() - 1)].y) - (vecDirections[i].y * vecDirections[(vecDirections.size() - 1)].x));
+						}
+					}
+					else
+					{
+						tempNormal.x += ((vecDirections[i].y * vecDirections[i - 1].z) - (vecDirections[i].z * vecDirections[i - 1].y));
+						tempNormal.y += ((vecDirections[i].z * vecDirections[i - 1].x) - (vecDirections[i].x * vecDirections[i - 1].z));
+						tempNormal.z += ((vecDirections[i].x * vecDirections[i - 1].y) - (vecDirections[i].y * vecDirections[i - 1].x));
+					}
 				}
+
+				// Normalise all the added normals together to get the averaged normal for the vertex
+				D3DXVec3Normalize(&v3Normal, &tempNormal);
+
+				// Create a Vertex
+
+				v2float v3UV = { ((1.0f / (float)_pImageInfo.Width) * fWidth), ((1.0f / (float)_pImageInfo.Height) * fDepth) };
+				CVertex pTempVertex({ fWidth, fHeight, fDepth }, { v3Normal.x, v3Normal.y, v3Normal.z }, v3UV);
+				_pVertices->push_back(pTempVertex);
 			}
-
-			// Normalise all the added normals together to get the averaged normal for the vertex
-			D3DXVec3Normalize(&v3Normal, &tempNormal);
-
-			// Create a Vertex
-
-			v2float v3UV = { ((1.0f / (float)_pImageInfo.Width) * fWidth), ((1.0f / (float)_pImageInfo.Height) * fDepth) };
-			CVertex pTempVertex({ fWidth, fHeight, fDepth }, { v3Normal.x, v3Normal.y, v3Normal.z }, v3UV);
-			_pVertices->push_back(pTempVertex);
 		}
-	}
 
-	// unlock the Rect after use
-	pSurface->UnlockRect();
+		// unlock the Rect after use
+		pSurface->UnlockRect();
+	}
 }
 
 void CD3D9Renderer::SetWorldMatrix(D3DXMATRIX& _rWorld)
@@ -717,7 +719,7 @@ int CD3D9Renderer::CreateTorchLight()
 	pTorchLight->Attenuation1 = 0.015f;
 	pTorchLight->Attenuation2 = 0.001f;
 	pTorchLight->Phi = D3DXToRadian(100.0f);
-	pTorchLight->Theta = D3DXToRadian(5.0f);
+	pTorchLight->Theta = D3DXToRadian(30.0f);
 	pTorchLight->Falloff = 1.2f;
 
 	m_pDevice->SetLight(m_iNextTorchID, pTorchLight);
@@ -1024,6 +1026,71 @@ RECT CD3D9Renderer::RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFo
 	rect.left = 0 + iOffset;
 	rect.right = m_iScreenWidth - iOffset;
 
-
 	return rect;
+}
+
+bool CD3D9Renderer::CheckDevice()
+{
+	HRESULT hResult = m_pDevice->Present(NULL, NULL, NULL, NULL);
+
+	bool bLostDevice = false;
+	if (hResult == D3DERR_DEVICELOST)
+	{
+		Sleep(5);
+		return RecoverDevice();
+	}
+
+	return true;
+
+}
+
+bool CD3D9Renderer::RecoverDevice()
+{
+	HRESULT hResult = m_pDevice->TestCooperativeLevel();
+
+	switch (hResult)
+	{
+		case D3D_OK:
+		{
+			return true;
+			break;
+		}
+		case D3DERR_DEVICELOST:
+		{
+			Sleep(20);
+			hResult = m_pDevice->TestCooperativeLevel();
+			if (hResult == D3DERR_DEVICENOTRESET)
+			{
+				m_pDevice->Reset(&m_d3dpp);
+			}
+			break;
+		}
+		case D3DERR_DRIVERINTERNALERROR:
+		{
+			MessageBoxA(m_hWindow, "Internal Driver Error. The Application will now be terminated.", "Error", MB_OK);
+			PostQuitMessage(0);
+			return false;
+		}
+		case D3DERR_DEVICENOTRESET:
+		{
+			m_pDevice->Reset(&m_d3dpp);
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+
+	hResult = m_pDevice->TestCooperativeLevel();
+	
+	if (FAILED(hResult))
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
 }

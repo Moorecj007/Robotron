@@ -178,6 +178,12 @@ bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 
 bool CHub_Client::RenderOneFrame()
 {
+	if (m_pRenderer->CheckDevice() == false)
+	{
+		MessageBoxA(m_hWnd, "Robotron has encountered a critical error. Application will be Terminated", "Error", MB_OK);
+		m_bNetworkOnline = false;
+	}
+
 	// Snapshot Time at the beginning of the frame
 	m_iFrameTimeStart = (int)timeGetTime();
 	Sleep(1);
@@ -1462,7 +1468,7 @@ void CHub_Client::CreateServer()
 	#endif // _DEBUG
 	#ifndef _DEBUG
 		// TO DO - change file path when handing in final build
-		strFilename = "..\\Release\\Robotron Server";
+		strFilename = "Robotron Server";
 	#endif // Not _DEBUG
 
 	// Start the Server executable running

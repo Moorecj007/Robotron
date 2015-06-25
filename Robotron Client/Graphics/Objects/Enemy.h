@@ -48,45 +48,13 @@ public:
 	********************/
 	eEnemyType GetEnemyType() { return m_eType; };
 
-	/***********************
-	* GetHealth: Retrieves this enemies health
-	* @author: Callan Moore
-	* @return: UINT: The Health of this enemy
-	********************/
-	UINT GetHealth() { return m_iHealth; };
-
-	/***********************
-	* GetMaxHealth: Retrieves this enemies maximum health
-	* @author: Callan Moore
-	* @return: UINT: The maximum health of this enemy
-	********************/
-	UINT GetMaxHealth() { return m_iMaxHealth; };
-
 	// Setters
-
-	/***********************
-	* SetHealth: Set the health of the enemy
-	* @author: Callan Moore
-	* @parameter: _iHealth: The Health of the enemy
-	* @return: void
-	********************/
-	void SetHealth(UINT _iHealth) { m_iHealth = _iHealth; };
-
-	/***********************
-	* SetMaxHealth: Set the Maximum health of the enemy
-	* @author: Callan Moore
-	* @parameter: _iHealth: The Maximum Health of the enemy
-	* @return: void
-	********************/
-	void SetMaxHealth(UINT _iMaxHealth) { m_iMaxHealth = m_iMaxHealth; };
 
 	// Prototypes
 
 private:
 	// Member Variables
 	eEnemyType m_eType;
-	UINT m_iHealth;
-	UINT m_iMaxHealth;
 };
 #endif // __ENEMY_H__
 
