@@ -161,6 +161,7 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_pDevice->SetMaterial(&material);
 
 	// Create a singlular Directional Light
+	// LI: Directional Light
 	ZeroMemory((&m_DirectionLight), sizeof(m_DirectionLight));
 	m_DirectionLight.Type = D3DLIGHT_DIRECTIONAL;
 	m_DirectionLight.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f);
@@ -220,6 +221,7 @@ bool CD3D9Renderer::CreateDevice()
 	m_pDirect3D->GetAdapterDisplayMode(iAdapter, &displayMode);
 
 	// Get the Caps for the device
+	// GR: Capability
 	m_pDirect3D->GetDeviceCaps(iAdapter, m_devType, &caps);
 
 	// Determine the Vertex processing Hardware or software
@@ -339,10 +341,13 @@ void CD3D9Renderer::Clear(bool _bTarget, bool _bDepth, bool _bStencil)
 	}
 	if (_bTarget == true)
 	{
+		// GR: Depth / Stencil Buffer
 		dwClearFlags = dwClearFlags | D3DCLEAR_TARGET;
 	}
 	if (_bDepth == true)
 	{
+		// GR: Depth / Stencil Buffer
+		// ZENABLE Renderstate by default
 		dwClearFlags = dwClearFlags | D3DCLEAR_ZBUFFER;
 	}
 
@@ -367,19 +372,23 @@ void CD3D9Renderer::EndRender()
 
 void CD3D9Renderer::CreateViewMatrix(D3DXVECTOR3 _vPosition, D3DXVECTOR3 _vLookAt, D3DXVECTOR3 _vUp)
 {
+	
 	// Populate the View Matrix
 	D3DXMatrixLookAtLH(	&m_matView, &_vPosition, &_vLookAt, &_vUp);			
 
 	// Setting the View Matrix for this Object on the Device
+	// GR: Transformation Pipeline
 	m_pDevice->SetTransform(D3DTS_VIEW, &m_matView);
 }
 
 void CD3D9Renderer::CalculateProjectionMatrix(float _fFOV, float _fNear, float _fFar)
 {
 	// Calculate the Aspect ratio
+	// CS: Aspect Ratio
 	float fAspectRatio = ((float)m_iScreenWidth / (float)m_iScreenHeight);
 
 	// Calculate the Projection Matrix for the Device
+	// MF: D3DX Usage
 	D3DXMatrixPerspectiveFovLH(	&m_matProjection,
 								_fFOV,					// Horizontal Field of View
 								(float)fAspectRatio,	// The Aspect ratio
@@ -387,6 +396,7 @@ void CD3D9Renderer::CalculateProjectionMatrix(float _fFOV, float _fNear, float _
 								_fFar);					// Far view plane
 
 	// Set the Projection Matrix for the D3D Device
+	// GR: Transformation Pipeline
 	m_pDevice->SetTransform(D3DTS_PROJECTION, &m_matProjection);
 }
 
@@ -625,6 +635,7 @@ void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, in
 				}
 
 				// Get the two direction vectors for each polygon and calculate the cross product to get the normal
+				// LI: Normals
 				for (int i = (int)(vecDirections.size() - 1); i >= 0; i--)
 				{
 					if (i == 0)	// Need to calculate first vector with last vector
@@ -645,10 +656,11 @@ void CD3D9Renderer::RetrieveSurfaceVertices(std::vector<CVertex>* _pVertices, in
 				}
 
 				// Normalise all the added normals together to get the averaged normal for the vertex
+				// MF: D3DX Usage
 				D3DXVec3Normalize(&v3Normal, &tempNormal);
 
 				// Create a Vertex
-
+				// TX: Texture Coordinate Transform
 				v2float v3UV = { ((10.0f / (float)_pImageInfo.Width) * fWidth), ((10.0f / (float)_pImageInfo.Height) * fDepth) };
 				CVertex pTempVertex({ fWidth, fHeight, fDepth }, { v3Normal.x, v3Normal.y, v3Normal.z }, v3UV);
 				_pVertices->push_back(pTempVertex);
@@ -688,6 +700,7 @@ int CD3D9Renderer::CreateFlareLight()
 	D3DLIGHT9* pFlareLight = new D3DLIGHT9;
 	ZeroMemory(*(&pFlareLight), sizeof(*pFlareLight));
 
+	// LI: Point Light
 	pFlareLight->Type = D3DLIGHT_POINT;
 	pFlareLight->Diffuse = { 1.0f, 1.0f, 0.5f, 1.0f };
 	pFlareLight->Position = { 0.0f, 0.0f, 0.0f };
@@ -718,6 +731,7 @@ int CD3D9Renderer::CreateTorchLight()
 	D3DLIGHT9* pTorchLight = new D3DLIGHT9;
 	ZeroMemory(*(&pTorchLight), sizeof(*pTorchLight));
 
+	// LI: Spot Light
 	pTorchLight->Type = D3DLIGHT_SPOT;
 	pTorchLight->Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	pTorchLight->Position = { 0.0f, 0.0f, 0.0f };
@@ -778,6 +792,7 @@ void CD3D9Renderer::UpdateFlareLight(int _iLightID, v3float _v3Pos, float _fRang
 
 int CD3D9Renderer::CreateMaterial(MaterialComposition _MatComp)
 {
+	// LI: Material
 	D3DXCOLOR ambient = D3DXCOLOR(	_MatComp.ambient.r,
 									_MatComp.ambient.g,
 									_MatComp.ambient.b,
@@ -912,8 +927,6 @@ void CD3D9Renderer::AlphaBlend(bool _b)
 	if (_b == true)
 	{
 		m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-		m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-		m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_DESTCOLOR);	
 	}
 	else
 	{
@@ -924,9 +937,11 @@ void CD3D9Renderer::AlphaBlend(bool _b)
 int CD3D9Renderer::CreateTexture(std::string strFilePath)
 {
 	IDirect3DTexture9* pTempTexture;
+	// TX: Texture Loading
 	if (FAILED(D3DXCreateTextureFromFileA(m_pDevice, strFilePath.c_str(), &pTempTexture)))
 	{
 		bool UnableToCreateTexture = false;
+		// PP: Assert
 		assert(UnableToCreateTexture);
 		return -1;
 	}
@@ -948,6 +963,7 @@ bool CD3D9Renderer::SetTexture(int _iTexID)
 	}
 
 	IDirect3DTexture9* pTexture = iterTexture->second;
+	// TX: Texture Set For Rendering
 	m_pDevice->SetTexture(0, pTexture);
 
 	//m_pDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
@@ -1108,6 +1124,9 @@ void CD3D9Renderer::InitialiseResources(bool _bResetDevice)
 	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
 	m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
 
+	m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+	m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_DESTCOLOR);
+
 	// Create the initial Projection Matrices and set them on the Renderer
 	CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
 }
@@ -1116,6 +1135,7 @@ void CD3D9Renderer::ToggleWireFrame(bool _bActive)
 {
 	if (_bActive == true)
 	{
+		// GR: Render State // Toggled on and off through options menu
 		m_pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	}
 	else

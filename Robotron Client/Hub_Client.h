@@ -431,6 +431,7 @@ private:
 	bool m_bFirstPersonKeyPrev;
 	bool m_bLostDevice;
 	bool m_bWireFrame;
+	bool m_bOptionsMenu;
 
 	// Game Variables
 	bool m_bSinglePlayer;

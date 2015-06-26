@@ -227,6 +227,10 @@ void CHub_Client::Process()
 	if (m_bPrevPauseKey == true && m_activatedControls.bEsc == false)
 	{
 		m_bPauseKey = !m_bPauseKey;
+		if (m_bPauseKey == false)
+		{
+			m_bOptionsMenu = false;
+		}
 	}
 	m_bPrevPauseKey = m_activatedControls.bEsc;
 
@@ -236,6 +240,7 @@ void CHub_Client::Process()
 		if (m_bDebugKeyPrev == true && m_activatedControls.bDebugToggle == false)
 		{
 			m_bDebugMode = !m_bDebugMode;
+			// CS: Toggle Debug Cam
 			m_pMechanics->ToggleDebugMode();
 		}
 		m_bDebugKeyPrev = m_activatedControls.bDebugToggle;
@@ -248,6 +253,7 @@ void CHub_Client::Process()
 
 	if (m_bFirstPersonKeyPrev == true && m_activatedControls.bCameraViewToggle == false)
 	{
+		//CS: Camera View FirstPerson/ThirdPerson
 		m_bFirstPerson = !m_bFirstPerson;
 		m_pMechanics->ToggleViewMode();
 	}
@@ -298,7 +304,23 @@ void CHub_Client::Process()
 		m_pClientMutex->Signal();
 
 		// Process the Pulled Packet
-		ProcessPacket(fDT);
+		if ((std::string)(m_pPacketToProcess->cServerName) == m_strServerName 
+			|| m_pPacketToProcess->eCommand == HOST_SERVER 
+			|| m_pPacketToProcess->eCommand == QUERY_HOST
+			|| m_pPacketToProcess->eCommand == NOT_HOST
+			|| m_pPacketToProcess->eCommand == CREATEUSER
+			|| m_pPacketToProcess->eCommand == SERVER_CONNECTION_AVAILABLE
+			|| m_pPacketToProcess->eCommand == CREATEUSER_ACCEPTED
+			|| m_pPacketToProcess->eCommand == CREATEUSER_NAMEINUSE
+			|| m_pPacketToProcess->eCommand == CREATEUSER_SERVERFULL)
+		{
+			// Process only if the packet came from your server
+			ProcessPacket(fDT);
+		}
+		else
+		{
+		
+		}
 	}
 }
 
@@ -513,14 +535,11 @@ void CHub_Client::ProcessPacket(float _fDT)
 			// Reply when accepted into a server
 			case CREATEUSER_ACCEPTED:
 			{
-				// TO DO - look if this statement needs to be here
-				//InsertUser(m_strUserName);
 				m_eUserNameFailed = eProcessCommand;
 
 				for (int i = 0; i < m_pPacketToProcess->iCurrentUserCount; i++)
 				{
 					InsertUser(m_pPacketToProcess->Avatars[i].cUserName, m_pPacketToProcess->Avatars[i]);
-					//m_pGameMechanics->AddAvatar(m_pPacketToProcess);
 				}
 
 				m_eScreenState = STATE_GAMELOADING;
@@ -845,7 +864,14 @@ void CHub_Client::ProcessOptionsMenu()
 {
 	if (m_strMenuSelection == "Back")
 	{
-		m_eScreenState = STATE_MAIN_MENU;
+		if (m_bOptionsMenu == false)
+		{
+			m_eScreenState = STATE_MAIN_MENU;
+		}
+		else
+		{
+			m_bOptionsMenu = false;
+		}
 	}
 	else if (m_strMenuSelection == "Active")
 	{
@@ -916,8 +942,7 @@ void CHub_Client::ProcessSelectServer()
 	// Broadcast to check which servers are available
 	CreateCommandPacket(QUERY_CLIENT_CONNECTION);
 	m_pNetworkClient->BroadcastToServers(m_pClientToServer);
-	// TO DO - take this off a sleep function so it can be done less often ( like once every 5 secs or so)
-	// Broadcast only 10 times a second to allow server responce
+
 	Sleep(100);
 }
 
@@ -948,31 +973,38 @@ void CHub_Client::ProcessGameLoading()
 
 void CHub_Client::ProcessPausedScreen()
 {
-	if (m_strMenuSelection == "Resume")
+	if (m_bOptionsMenu == false)
 	{
-		m_bPauseKey = false;
-	}
-	else if (m_strMenuSelection == "Options")
-	{
-
-	}
-	else if (m_strMenuSelection == "Exit Game")
-	{
-		m_eScreenState = STATE_MAIN_MENU;
-
-		if (m_bHost == true)
+		if (m_strMenuSelection == "Resume")
 		{
-			CreateCommandPacket(TERMINATE_SERVER);
-			m_pNetworkClient->SendPacket(m_pClientToServer);
+			m_bPauseKey = false;
 		}
-		else
+		else if (m_strMenuSelection == "Options")
 		{
-			CreateCommandPacket(LEAVE_SERVER);
-			m_pNetworkClient->SendPacket(m_pClientToServer);
+			m_bOptionsMenu = true;
 		}
+		else if (m_strMenuSelection == "Exit Game")
+		{
+			m_eScreenState = STATE_MAIN_MENU;
 
-		ResetGameData();
-		m_bPauseKey = false;
+			if (m_bHost == true)
+			{
+				CreateCommandPacket(TERMINATE_SERVER);
+				m_pNetworkClient->SendPacket(m_pClientToServer);
+			}
+			else
+			{
+				CreateCommandPacket(LEAVE_SERVER);
+				m_pNetworkClient->SendPacket(m_pClientToServer);
+			}
+
+			ResetGameData();
+			m_bPauseKey = false;
+		}
+	}
+	else
+	{
+		ProcessOptionsMenu();
 	}
 }
 
@@ -1009,7 +1041,14 @@ void CHub_Client::Draw()
 			}
 			else if (m_bPauseKey == true)
 			{
-				m_pMechanics->OverlayPauseScreen(&m_strMenuTempSelection, m_activatedControls.ptMouse, m_activatedControls.bAction);
+				if (m_bOptionsMenu == true)
+				{
+					DisplayOptionsMenu();
+				}
+				else
+				{
+					m_pMechanics->OverlayPauseScreen(&m_strMenuTempSelection, m_activatedControls.ptMouse, m_activatedControls.bAction);
+				}
 			}
 			// Render all avatars scores if the player presses the correct input
 			else if (m_activatedControls.bTab == true)
@@ -1283,8 +1322,11 @@ void CHub_Client::DisplayOptionsMenu()
 	D3DXCOLOR WireframeColor;
 	std::string strSelection = "";
 
-	// Render the Backbuffer to Black
-	m_pRenderer->RenderColor(0xff000000);
+	if (m_bOptionsMenu != true)
+	{
+		// Render the Backbuffer to Black
+		m_pRenderer->RenderColor(0xff000000);
+	}
 
 	// Print the Title Text
 	iYpos = PrintFullTitle(iYpos);
@@ -1587,7 +1629,6 @@ void CHub_Client::CreateServer()
 		strFilename = "..\\Debug\\Robotron Server";
 	#endif // _DEBUG
 	#ifndef _DEBUG
-		// TO DO - change file path when handing in final build
 		strFilename = "Robotron Server";
 	#endif // Not _DEBUG
 
@@ -1647,8 +1688,6 @@ void CHub_Client::ResetGameData()
 
 void CHub_Client::FrameLimiter()
 {
-	// TO DO - change this so that sleep isnt used
-
 	// Calculate the Total time taken to complete frame
 	m_iFrameTimeDifference = m_iFrameTimeEnd - m_iFrameTimeStart;
 

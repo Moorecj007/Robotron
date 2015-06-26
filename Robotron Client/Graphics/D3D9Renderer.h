@@ -431,7 +431,6 @@ protected:
 	ID3DXFont* m_pMenuFont;
 	ID3DXFont* m_pSubtitleFont;
 
-	// TO DO - delete
 	D3DLIGHT9 m_DirectionLight;
 
 	std::map<int, D3DLIGHT9*>* m_pMapLight;

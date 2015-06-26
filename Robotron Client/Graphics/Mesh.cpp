@@ -70,6 +70,7 @@ void CMesh::CreateStaticBuffer()
 
 void CMesh::Draw()
 {
+
 	m_pRenderer->SetTexture(m_iTextureID);
 
 

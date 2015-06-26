@@ -27,7 +27,6 @@ C3DObject::C3DObject()
 
 	// Set the floating point variables top generic starting values
 	m_fRotation = 0.0f;
-	//m_fMaxSpeed = 10.0f;	// TO DO - something
 
 	// Set the material ID to -1 ( doesn't exist)
 	m_iMaterialID = -1;
@@ -63,6 +62,7 @@ bool C3DObject::CreateTexture(std::string strFilePath)
 void C3DObject::Draw()
 {
 	// Calculates the World Matrix for this 3D Object
+	// GR: Transformation Pipeline
 	CalcWorldMatrix();
 	m_pRenderer->SetMaterial(m_iMaterialID);
 

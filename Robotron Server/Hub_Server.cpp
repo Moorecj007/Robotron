@@ -144,7 +144,6 @@ bool CHub_Server::ExecuteOneFrame()
 	{
 		return false;
 	}
-
 	Process();
 
 	return true;
@@ -233,7 +232,7 @@ void CHub_Server::Process()
 		// Send the Data packet with the current states
 		m_pMechanics->CreateDataPacket(m_pServerToClient);
 		SendPacket(m_pServerToClient);
-		Sleep(16);	// TO DO - remove sleep add limiter without a sleep function more than 1 ms
+		Sleep(16); // Simulate 60 FPS on server side so as to not bombard client with packets
 	}
 }
 

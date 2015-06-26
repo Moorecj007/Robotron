@@ -41,6 +41,8 @@ CParticleSystem::~CParticleSystem()
 
 bool CParticleSystem::Initialise(IDirect3DDevice9* _pDevice)
 {
+	// PS: Particle Emitter
+
 	// Create a Vertex Buffer for the Particle System
 	_pDevice->CreateVertexBuffer(	(m_uiVertexBufferSize * sizeof(VertexParticle)),
 									D3DUSAGE_DYNAMIC | D3DUSAGE_POINTS | D3DUSAGE_WRITEONLY,

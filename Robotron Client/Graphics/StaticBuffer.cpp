@@ -87,6 +87,7 @@ bool CStaticBuffer::Initialise(	IDirect3DDevice9* _pDevice,
 	}
 	
 	// Create Vertex Buffer
+	// GR: Vertex / Index Buffer
 	_pDevice->CreateVertexBuffer((_uiTotalVerts * _iStride), 0, m_dwFvf, D3DPOOL_MANAGED, &m_pVertexBuffer, NULL);
 	VOID* pVoidVertex; // Creates a void pointer for locking memory
 
@@ -128,6 +129,7 @@ bool CStaticBuffer::Initialise(	IDirect3DDevice9* _pDevice,
 
 	if (_eIndexType != IGIT_NONE)
 	{
+		// GR: Vertex / Index Buffer
 		_pDevice->CreateIndexBuffer((_uiTotalIndices * sizeof(int)), 0, indexType, D3DPOOL_MANAGED, &m_pIndexBuffer, NULL);
 		VOID* pVoidIndex;
 
@@ -165,8 +167,6 @@ bool CStaticBuffer::Initialise(	IDirect3DDevice9* _pDevice,
 ********************/
 void CStaticBuffer::Render(IDirect3DDevice9* _pDevice)
 {
-	// TO DO - fix this
-
 	// Check if the Active Buffer is this Buffer
 	if (s_iActiveStaticBuffer != m_iID)
 	{
@@ -186,11 +186,13 @@ void CStaticBuffer::Render(IDirect3DDevice9* _pDevice)
 		_pDevice->SetIndices(m_pIndexBuffer);
 
 		// Draw the Indexed primitives
+		// GR: Draw Primitive
 		_pDevice->DrawIndexedPrimitive(GetD3DPT(), 0, 0, m_iNumVerts, 0, GetNumPrimitives());
 	}
 	else	// Does not have an Index Buffer
 	{
 		// Draw all Vertex Primitives
+		// GR: Draw Primitive
 		_pDevice->DrawPrimitive(GetD3DPT(), 0, GetNumPrimitives());
 	}
 }

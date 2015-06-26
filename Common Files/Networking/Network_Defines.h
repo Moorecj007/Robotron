@@ -36,8 +36,8 @@ namespace network
 	unsigned const	MAX_CHAR_LENGTH			= 30;
 	unsigned const	MAX_USERNAME_LENGTH		= 13;
 	unsigned const  MAX_SERVERNAME_LENGTH	= 16;
-	unsigned const  MAX_ENEMY_SPAWNED		= 30;	// TO DO - calculate properly using % increase per player
-	unsigned const  MAX_POWERUPS_SPAWNED	= 10;
+	unsigned const  MAX_ENEMY_SPAWNED		= 45;	
+	unsigned const  MAX_POWERUPS_SPAWNED	= 15;
 	unsigned const  MAX_PROJECTILES			= 100;
 }
 

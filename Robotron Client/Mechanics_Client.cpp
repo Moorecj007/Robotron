@@ -175,6 +175,8 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 
 void CMechanics_Client::Draw()
 {
+	// AB: Object Ordering Start
+
 	// Render the Terrain
 	m_pTerrain->Draw(m_pRenderer);
 
@@ -253,7 +255,10 @@ void CMechanics_Client::Draw()
 	{
 		pShadows[i]->Draw();
 	}
+	// AB: Alpha Blending
 	m_pRenderer->AlphaBlend(false);
+
+	// AB: Object Ordering End
 
 	// Render the HUD
 	OverlayHUD();
