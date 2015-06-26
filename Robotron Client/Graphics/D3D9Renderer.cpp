@@ -136,39 +136,13 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_hWindow = _hWindow;
 	m_bFullscreen = _bFullscreen;
 
-	// Decide the Device type
-	m_devType = D3DDEVTYPE_HAL;
-
-	// Declare Variables structs
-	D3DDISPLAYMODE displayMode;
-	D3DCAPS9 caps;
-	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
-
-	// Create the Direct3D
-	m_pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
-
-	// Get the default Adapter
-	int iAdapter = D3DADAPTER_DEFAULT;
-
-	// Get the default adapters display mode
-	m_pDirect3D->GetAdapterDisplayMode(iAdapter, &displayMode);
-
-	// Get the Caps for the device
-	m_pDirect3D->GetDeviceCaps(iAdapter, m_devType, &caps);
-
-	// Determine the Vertex processing Hardware or software
-	DWORD dwVertProcessing = (caps.VertexProcessingCaps != 0) ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED | D3DCREATE_PUREDEVICE : D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED;
-
-	if (PopulatePresentParams(m_d3dpp, displayMode) == false)
+	if (CreateDevice() == false)
 	{
-		return false;	// Device unable to be created
+		return false;
 	}
 
-	// Create the device
-	m_pDirect3D->CreateDevice(iAdapter, m_devType, m_hWindow, dwVertProcessing, &m_d3dpp, &m_pDevice);
-
-	//Set the Clear Color to Yellow
-	SetClearColour(1, 1, 0);
+	//Set the Clear Color to Black
+	SetClearColour(0, 0, 0);
 
 	// Create Containers
 	m_pVecBuffers = new std::vector<CStaticBuffer*>;
@@ -176,19 +150,6 @@ bool CD3D9Renderer::Initialise(int _iWidth, int _iHeight, HWND _hWindow, bool _b
 	m_pMapMaterials = new std::map<int, D3DMATERIAL9*>;
 	m_pMapTextures = new std::map<int, IDirect3DTexture9*>;
 	m_pMapLight = new std::map<int, D3DLIGHT9*>;
-
-	// Create a font
-	CreateScreenFont();
-	CreateTitleFont();
-	CreateMenuFont();
-	CreateSubtitleFont();
-
-	// Setup the Device to handle lighting
-	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1);
-	m_pDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE);
-	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
-
-	m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
 
 	// Create and set up a global Material to be used
 	D3DMATERIAL9 material;    
@@ -235,6 +196,44 @@ bool CD3D9Renderer::Shutdown()
 	// Release the Device and Direct3D
 	m_pDevice->Release();
 	m_pDirect3D->Release();
+
+	return true;
+}
+
+bool CD3D9Renderer::CreateDevice()
+{
+	// Decide the Device type
+	m_devType = D3DDEVTYPE_HAL;
+
+	// Declare Variables structs
+	D3DDISPLAYMODE displayMode;
+	D3DCAPS9 caps;
+	ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
+
+	// Create the Direct3D
+	m_pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
+
+	// Get the default Adapter
+	int iAdapter = D3DADAPTER_DEFAULT;
+
+	// Get the default adapters display mode
+	m_pDirect3D->GetAdapterDisplayMode(iAdapter, &displayMode);
+
+	// Get the Caps for the device
+	m_pDirect3D->GetDeviceCaps(iAdapter, m_devType, &caps);
+
+	// Determine the Vertex processing Hardware or software
+	DWORD dwVertProcessing = (caps.VertexProcessingCaps != 0) ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED | D3DCREATE_PUREDEVICE : D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_MULTITHREADED;
+
+	if (PopulatePresentParams(m_d3dpp, displayMode) == false)
+	{
+		return false;	// Device unable to be created
+	}
+
+	// Create the device
+	m_pDirect3D->CreateDevice(iAdapter, m_devType, m_hWindow, dwVertProcessing, &m_d3dpp, &m_pDevice);
+
+	InitialiseResources(false);
 
 	return true;
 }
@@ -1052,68 +1051,75 @@ RECT CD3D9Renderer::RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFo
 	return rect;
 }
 
-bool CD3D9Renderer::CheckDevice()
+HRESULT CD3D9Renderer::CheckDevice()
 {
-	HRESULT hResult = m_pDevice->Present(NULL, NULL, NULL, NULL);
-
-	bool bLostDevice = false;
-	if (hResult == D3DERR_DEVICELOST)
-	{
-		Sleep(5);
-		return RecoverDevice();
-	}
-
-	return true;
-
+	return  m_pDevice->TestCooperativeLevel();
 }
 
-bool CD3D9Renderer::RecoverDevice()
+void CD3D9Renderer::InvalidateResources()
 {
-	HRESULT hResult = m_pDevice->TestCooperativeLevel();
+	// Release all the Rendering Devices
+	m_pScreenFont->Release();
+	m_pTitleFont->Release();
+	m_pMenuFont->Release();
+	m_pSubtitleFont->Release();
 
-	switch (hResult)
+	// Delete the Map of Textures
+	if (m_pMapTextures != 0)
 	{
-		case D3D_OK:
+		std::map<int, IDirect3DTexture9*>::iterator iterCurrent = m_pMapTextures->begin();
+		while (iterCurrent != m_pMapTextures->end())
 		{
-			return true;
-			break;
-		}
-		case D3DERR_DEVICELOST:
-		{
-			Sleep(20);
-			hResult = m_pDevice->TestCooperativeLevel();
-			if (hResult == D3DERR_DEVICENOTRESET)
-			{
-				m_pDevice->Reset(&m_d3dpp);
-			}
-			break;
-		}
-		case D3DERR_DRIVERINTERNALERROR:
-		{
-			MessageBoxA(m_hWindow, "Internal Driver Error. The Application will now be terminated.", "Error", MB_OK);
-			PostQuitMessage(0);
-			return false;
-		}
-		case D3DERR_DEVICENOTRESET:
-		{
-			m_pDevice->Reset(&m_d3dpp);
-			break;
-		}
-		default:
-		{
-			break;
+			iterCurrent->second->Release();
+			iterCurrent->second = 0;
+			iterCurrent++;
 		}
 	}
 
-	hResult = m_pDevice->TestCooperativeLevel();
-	
-	if (FAILED(hResult))
+	// Delete all surfaces
+	if (m_pMapSurfaces != 0)
 	{
-		return false;
+		std::map<int, IDirect3DSurface9*>::iterator iterCurrent = m_pMapSurfaces->begin();
+		while (iterCurrent != m_pMapSurfaces->end())
+		{
+			iterCurrent->second->Release();
+			iterCurrent->second = 0;
+			iterCurrent++;
+		}
+	}
+}
+
+void CD3D9Renderer::InitialiseResources(bool _bResetDevice)
+{
+	if (_bResetDevice == true)
+	{
+		m_pDevice->Reset(&m_d3dpp);
+	}
+
+	// Create a font
+	CreateScreenFont();
+	CreateTitleFont();
+	CreateMenuFont();
+	CreateSubtitleFont();
+
+	// Setup the Device to handle lighting
+	m_pDevice->SetFVF(D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1);
+	m_pDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE);
+	m_pDevice->SetRenderState(D3DRS_NORMALIZENORMALS, TRUE);
+	m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
+
+	// Create the initial Projection Matrices and set them on the Renderer
+	CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
+}
+
+void CD3D9Renderer::ToggleWireFrame(bool _bActive)
+{
+	if (_bActive == true)
+	{
+		m_pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 	}
 	else
 	{
-		return true;
+		m_pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 	}
-
 }

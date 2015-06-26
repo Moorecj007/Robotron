@@ -213,6 +213,8 @@ struct ServerToClient
 	ProjectileInfo Projectiles[network::MAX_PROJECTILES];
 
 	FlareInfo Flare;
+	int iWaveNumber;
+	int iTotalEnemyCount;
 	
 };
 

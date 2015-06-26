@@ -90,6 +90,8 @@ bool CStaticBuffer::Initialise(	IDirect3DDevice9* _pDevice,
 	_pDevice->CreateVertexBuffer((_uiTotalVerts * _iStride), 0, m_dwFvf, D3DPOOL_MANAGED, &m_pVertexBuffer, NULL);
 	VOID* pVoidVertex; // Creates a void pointer for locking memory
 
+	
+
 	// Cast The void Pointer to the Vertex vector to a usable known vector pointer
 	std::vector<CVertex>* pVertices = static_cast<std::vector<CVertex>*>(_pVertexData);
 

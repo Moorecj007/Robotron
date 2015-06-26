@@ -29,7 +29,7 @@ public:
 
 	// Setters
 	void SetPosition(D3DXVECTOR3 _v3Position);
-	void SetCamera(D3DXVECTOR3 _v3Target, D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3Up, D3DXVECTOR3 _v3Look);
+	void SetCamera(D3DXVECTOR3 _v3Target, D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3Up);
 	void SetMode(bool _bFirstPerson);
 
 	// Getters
@@ -48,7 +48,6 @@ private:
 	D3DXVECTOR3 m_v3Target;
 	D3DXVECTOR3 m_v3Up;
 
-	float m_fDistanceBehindAvatar;
 	float m_fDistanceAboveAvatar;
 
 	bool m_bFirstPerson;

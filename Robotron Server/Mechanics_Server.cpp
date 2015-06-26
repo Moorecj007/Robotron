@@ -120,6 +120,11 @@ bool CMechanics_Server::GetNextDeletedEnemy(EnemyInfo* _enemyInfo)
 				m_iSentinelCount--;
 				break;
 			}
+			case ET_SHADOW:
+			{
+				m_iShadowCount--;
+				break;
+			}
 		default:
 			break;
 		}
@@ -253,6 +258,8 @@ bool CMechanics_Server::Initialise(std::string _strServerName, bool _bSinglePlay
 	m_fTerrainWidth = (float)iWidth * kfTerrainScalarX;
 	m_fTerrainDepth = (float)iDepth * kfTerrainScalarZ;
 	m_bSinglePlayer = _bSinglePlayer;
+	m_fEnemySpeedFactor = 1.0f;
+	m_fEnemySpeedIncease = 0.2f;
 
 	// Spawn the first wave of enemies
 	SpawnNextWave();
@@ -280,8 +287,18 @@ void CMechanics_Server::Process()
 
 	// Check if all enemies are Dead
 	if (	m_iDemonCount == 0 
-		&&	m_iSentinelCount == 0)
+		&&	m_iSentinelCount == 0
+		&&  m_iShadowCount == 0)
 	{
+		// respawn all dead players
+		std::map<std::string, AvatarInfo>::iterator iterAvatar = m_pAvatars->begin();
+		while (iterAvatar != m_pAvatars->end())
+		{
+			iterAvatar->second.bAlive = true;
+			iterAvatar->second.iHealth = 100;
+			iterAvatar++;
+		}
+
 		SpawnNextWave();
 	}
 
@@ -311,9 +328,9 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 	// Check if the Avatar has gained enough points for an extra life. Single Player only
 	if (m_bSinglePlayer == true)
 	{
-		if (Avatar->second.iLifeAddCounter >= 500)
+		if (Avatar->second.iLifeAddCounter >= 5000)
 		{
-			Avatar->second.iLifeAddCounter -= 500;
+			Avatar->second.iLifeAddCounter -= 5000;
 			Avatar->second.iLives++;
 		}
 	}
@@ -366,6 +383,22 @@ void CMechanics_Server::ProcessAvatar(ClientToServer* _pClientPacket)
 	Avatar->second.v3Vel.Normalise();
 	Avatar->second.v3Vel = Avatar->second.v3Vel * (Avatar->second.fMaxSpeed * fDT);
 	Avatar->second.v3Pos += Avatar->second.v3Vel;
+
+	// Calculate a smaller containment field than the terrain requires
+	float fMinX = -(m_fTerrainWidth / 2.0f) + (2 * kfAvatarSize);
+	float fMinZ = -(m_fTerrainDepth / 2.0f) + (2 * kfAvatarSize);
+	float fMaxX = (m_fTerrainWidth / 2.0f) - (2 * kfAvatarSize);
+	float fMaxZ = (m_fTerrainDepth / 2.0f) - (2 * kfAvatarSize);
+
+	// Check if the Avatar is within the borders of the containment field
+	if (	Avatar->second.v3Pos.x < fMinX
+		||	Avatar->second.v3Pos.x > fMaxX
+		||	Avatar->second.v3Pos.z < fMinZ
+		||	Avatar->second.v3Pos.z > fMaxZ)
+	{
+		// Revert the position back to where it was
+		Avatar->second.v3Pos -= Avatar->second.v3Vel;
+	}
 
 	// Calculate the Avatars Look direction
 	POINT pt = _pClientPacket->activatedControls.ptMouse;
@@ -819,7 +852,10 @@ void CMechanics_Server::ProcessEnemies(float _fDT)
 			}
 		}
 
+		iterEnemy->second.v3Dir.y = 0.0f;
+		iterEnemy->second.v3Pos.y = fEnemySize;
 		iterEnemy++;
+		
 	}
 }
 
@@ -982,6 +1018,7 @@ void CMechanics_Server::SpawnNextWave()
 {
 	// Increment The Wave Count
 	m_iWaveNumber++;
+	m_fEnemySpeedFactor += m_fEnemySpeedIncease;
 
 	// Calculate the new waves enemy counts
 	m_iDemonCount = (m_iWaveNumber * 4) + 40;
@@ -1022,10 +1059,11 @@ void CMechanics_Server::SpawnNextWave()
 				}
 				tempEnemyInfo.eType = ET_DEMON;
 				tempEnemyInfo.iHealth = 100;
-				tempEnemyInfo.steeringInfo.fMaxSpeed = 2.0f;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 2.0f * m_fEnemySpeedFactor;
 				tempEnemyInfo.steeringInfo.fMaxForce = 4.0f;
 				tempEnemyInfo.iPoints = 50;
 				tempEnemyInfo.steeringInfo.fSize = kfDemonSize;
+				tempEnemyInfo.v3Pos = { fRandomPosX, kfDemonSize, fRandomPosZ };
 				tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + (1.1f * kfDemonSize);
 				tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - (1.1f * kfDemonSize);
 				tempEnemyInfo.iDamage = 10;
@@ -1044,10 +1082,11 @@ void CMechanics_Server::SpawnNextWave()
 				}
 				tempEnemyInfo.eType = ET_SENTINEL;
 				tempEnemyInfo.iHealth = 500;
-				tempEnemyInfo.steeringInfo.fMaxSpeed = 5.0f;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 5.0f * m_fEnemySpeedFactor;
 				tempEnemyInfo.steeringInfo.fMaxForce = 1.0f;
 				tempEnemyInfo.iPoints = 300;
 				tempEnemyInfo.steeringInfo.fSize = kfSentinelSize;
+				tempEnemyInfo.v3Pos = { fRandomPosX, kfSentinelSize, fRandomPosZ };
 				tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + (1.1f * kfSentinelSize);
 				tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - (1.1f * kfSentinelSize);
 				tempEnemyInfo.iDamage = 25;
@@ -1066,10 +1105,11 @@ void CMechanics_Server::SpawnNextWave()
 				}
 				tempEnemyInfo.eType = ET_SHADOW;
 				tempEnemyInfo.iHealth = 150;
-				tempEnemyInfo.steeringInfo.fMaxSpeed = 15.0f;
+				tempEnemyInfo.steeringInfo.fMaxSpeed = 15.0f * m_fEnemySpeedFactor;
 				tempEnemyInfo.steeringInfo.fMaxForce = 10.0f;
 				tempEnemyInfo.iPoints = 200;
 				tempEnemyInfo.steeringInfo.fSize = kfShadowSize;
+				tempEnemyInfo.v3Pos = { fRandomPosX, kfShadowSize, fRandomPosZ };
 				tempEnemyInfo.BBox.v3Max = tempEnemyInfo.v3Pos + (1.1f * kfShadowSize);
 				tempEnemyInfo.BBox.v3Min = tempEnemyInfo.v3Pos - (1.1f * kfShadowSize);
 				tempEnemyInfo.iDamage = 1;
@@ -1083,7 +1123,6 @@ void CMechanics_Server::SpawnNextWave()
 		tempEnemyInfo.iID = m_iNextObjectID++;
 		tempEnemyInfo.fAttackCountDown = 0.0f;
 		tempEnemyInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
-		tempEnemyInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
 		tempEnemyInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
 		tempEnemyInfo.steeringInfo.fWanderAngle = 0;
 		m_pCreatedEnemies->push(tempEnemyInfo);
@@ -1133,7 +1172,7 @@ void CMechanics_Server::SpawnNextPowerUp()
 		
 		tempPowerInfo.iID = m_iNextObjectID++;
 		tempPowerInfo.v3Dir = { fRandomDirX, 0.0f, fRandomDirZ };
-		tempPowerInfo.v3Pos = { fRandomPosX, 0.0f, fRandomPosZ };
+		tempPowerInfo.v3Pos = { fRandomPosX, kfPowerUpSize, fRandomPosZ };
 		tempPowerInfo.steeringInfo.v3Vel = { 0.0f, 0.0f, 0.0f };
 		tempPowerInfo.steeringInfo.fMaxForce = 5.0f; // Reminder this is changed in process
 		tempPowerInfo.steeringInfo.fWanderAngle = 0;
@@ -1155,6 +1194,8 @@ bool CMechanics_Server::CreateDataPacket(ServerToClient* _pServerPacket)
 	_pServerPacket->iCurrentEnemyCount = (int)(m_pEnemies->size());
 	_pServerPacket->iCurrentPowerUpCount = (int)(m_pPowerUps->size());
 	_pServerPacket->iCurrentProjectileCount = (int)(m_pProjectiles->size());
+	_pServerPacket->iWaveNumber = m_iWaveNumber;
+	_pServerPacket->iTotalEnemyCount = (int)(m_pEnemies->size()) + (int)(m_pCreatedEnemies->size());
 
 	// Add the Server as the username to the Packet structure
 	if (!(StringToStruct(m_strServerName.c_str(), _pServerPacket->cServerName, network::MAX_SERVERNAME_LENGTH)))
@@ -1225,7 +1266,7 @@ void CMechanics_Server::AddAvatar(ClientToServer* _pClientPacket)
 	// Create the starting position based on the current number of users
 	tempAvatarInfo.v3Pos = { (float)iNumber * 5, 0, 5 };
 	tempAvatarInfo.iID = m_iNextObjectID++;
-	tempAvatarInfo.fMaxSpeed = 20.0f;
+	tempAvatarInfo.fMaxSpeed = 8.0f;
 	tempAvatarInfo.fRateOfFire = 0.2f;
 	tempAvatarInfo.fFireCountDown = 0.0f;
 	tempAvatarInfo.iDamage = 50;

@@ -49,14 +49,11 @@ bool CCamera::Initialise(D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3LookAt, bool _b
 {
 	m_v3Position = _v3Position;
 	m_v3Target = _v3LookAt;
-	m_v3Up = { 0.0f, 1.0f, 0.0f };	// Set the Up Vector to be positive up the Y Axis
+	m_v3Up = { 0.0f, 0.0f, 1.0f };	// Set the Up Vector to be positive up the Y Axis
 	m_bFirstPerson = _bFirstPerson;
 
-	// Sets the Distance the Camera will be behind the Avatar in third person mode
-	m_fDistanceBehindAvatar = 15.0f;
-
 	// Sets the Distance the Camera will be Above the Avatar in third person mode
-	m_fDistanceAboveAvatar = 5.0f;
+	m_fDistanceAboveAvatar = 50.0f;
 
 	return true;
 }
@@ -92,31 +89,36 @@ void CCamera::SetPosition(D3DXVECTOR3 _vecPosition)
 * @parameter: _v3Look: The Look vector of the Avatar
 * @return: void
 ********************/
-void CCamera::SetCamera(D3DXVECTOR3 _v3Target, D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3Up, D3DXVECTOR3 _v3Look)
+void CCamera::SetCamera(D3DXVECTOR3 _v3Target, D3DXVECTOR3 _v3Position, D3DXVECTOR3 _v3Up)
 {
 	if (m_bFirstPerson)	// First Person Mode
 	{
-		// Set the Camera to be look at the Avatar
-		m_v3Target = _v3Target;
+		// Set the Camera to look down the z axis from the avatars position
+		m_v3Target = _v3Position;
+		m_v3Target.z = _v3Target.z + 5.0f ;
 
 		// Set the Camera to be at the same Position as the Avatar
 		m_v3Position = _v3Position;
+
+		// Set the Cameras Up vector to mimic the Avatar
+		m_v3Up = { 0.0f, 1.0f, 0.0f };
 	}
 	else	// Third Person Mode
 	{
 		// Set the Cameras Target to be the Postion of the Avatar
 		m_v3Target = _v3Position;
 
-		// Set the Cameras Postion to the Avatar then Move it back using teh inverted Look Vector
+		// Set the Cameras Postion to the Avatar then Move it back using the inverted Look Vector
 		m_v3Position = _v3Position;
-		m_v3Position += (-_v3Look) * m_fDistanceBehindAvatar;
 
 		// Set the Camera to be Above the Avatar by the set ammount 
-		m_v3Position += _v3Up * m_fDistanceAboveAvatar;
+		m_v3Position += D3DXVECTOR3{ 0.0f, 1.0f, 0.0f } * m_fDistanceAboveAvatar;
+
+		// Set the Cameras Up vector to mimic the Avatar
+		m_v3Up = { 0.0f, 0.0f, 1.0f };
 	}
 
-	// Set the Cameras Up vector to mimic the Avatar
-	m_v3Up = _v3Up;
+	
 }
 
 /***********************

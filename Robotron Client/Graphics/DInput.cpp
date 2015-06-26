@@ -211,10 +211,18 @@ void CDInput::ProcessKeyboard()
 	(m_keyboardState[DIK_S] & 0x80)		 ? m_activatedControls.bDown = true : m_activatedControls.bDown = false;
 	(m_keyboardState[DIK_D] & 0x80)		 ? m_activatedControls.bRight = true : m_activatedControls.bRight = false;
 	(m_keyboardState[DIK_ESCAPE] & 0x80) ? m_activatedControls.bEsc = true : m_activatedControls.bEsc = false;
-	(m_keyboardState[DIK_TAB] & 0x80) ? m_activatedControls.bTab = true : m_activatedControls.bTab = false;
+	(m_keyboardState[DIK_TAB] & 0x80)	 ? m_activatedControls.bTab = true : m_activatedControls.bTab = false;
 
 	// Debug Camera Controls
+	(m_keyboardState[DIK_NUMPAD5] & 0x80) ? m_activatedControls.bDebugForward = true : m_activatedControls.bDebugForward = false;
+	(m_keyboardState[DIK_NUMPAD0] & 0x80) ? m_activatedControls.bDebugBackwards = true : m_activatedControls.bDebugBackwards = false;
+	(m_keyboardState[DIK_NUMPAD4] & 0x80) ? m_activatedControls.bDebugLeft = true : m_activatedControls.bDebugLeft = false;
+	(m_keyboardState[DIK_NUMPAD6] & 0x80) ? m_activatedControls.bDebugRight = true : m_activatedControls.bDebugRight = false;
+	(m_keyboardState[DIK_NUMPAD8] & 0x80) ? m_activatedControls.bDebugUp = true : m_activatedControls.bDebugUp = false;
+	(m_keyboardState[DIK_NUMPAD2] & 0x80) ? m_activatedControls.bDebugDown = true : m_activatedControls.bDebugDown = false;
 
+	(m_keyboardState[DIK_F1] & 0x80) ? m_activatedControls.bCameraViewToggle = true : m_activatedControls.bCameraViewToggle = false;
+	(m_keyboardState[DIK_F4] & 0x80) ? m_activatedControls.bDebugToggle = true : m_activatedControls.bDebugToggle = false;
 
 }
 

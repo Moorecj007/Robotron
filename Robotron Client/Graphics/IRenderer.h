@@ -84,7 +84,11 @@ public:
 	virtual int CreateTexture(std::string strFilePath) = 0;
 	virtual bool SetTexture(int _iTexID) = 0;
 
-	virtual bool CheckDevice() = 0;
+	virtual HRESULT CheckDevice() = 0;
+	virtual void InvalidateResources() = 0;
+	virtual void InitialiseResources(bool _bResetDevice) = 0;
+
+	virtual void ToggleWireFrame(bool _bActive) = 0;
 
 	// Setters
 	virtual void SetWorldMatrix(D3DXMATRIX& _rWorld) = 0;

@@ -30,7 +30,8 @@
 #include "Graphics/Objects/PowerUp.h"
 #include "Graphics/Objects/Flare.h"
 #include "Graphics/Terrain.h"
-#include "Graphics/StaticCamera.h"
+#include "Graphics/Camera.h"
+#include "Graphics/DebugCamera.h"
 
 class CMechanics_Client
 {
@@ -51,9 +52,12 @@ public:
 
 	// Getters
 
-	// Setters
-
-	// Prototypes
+	/***********************
+	* GetDebugCam: Retrieve the Debug Camera
+	* @author: Callan Moore
+	* @return: CDebugCamera*: Pointer to the Debug Camera
+	********************/
+	CDebugCamera* GetDebugCam() { return m_pDebugCam; };
 
 	/***********************
 	* Initialise: Initialise the GameMechanics for use
@@ -272,9 +276,10 @@ public:
 	/***********************
 	* OverlayAvatarScores: Render all Avatars scores to the screen on top of the game image
 	* @author: Callan Moore
+	* @parameter: _fFPS: The frames per second
 	* @return: void
 	********************/
-	void OverlayAvatarScores();
+	void OverlayAvatarScores(int _iFPS);
 
 	/***********************
 	* OverlayPauseScreen: Render the Pause game screen over the game image
@@ -303,6 +308,28 @@ public:
 	********************/
 	bool CheckAvatarsAliveStatus();
 
+	/***********************
+	* ToggleDebugMode: Toggle Debug Mode on and off
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ToggleDebugMode();
+
+	/***********************
+	* ToggleViewMode: Toggle between first and third person camera mode
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	void ToggleViewMode();
+
+	/***********************
+	* InitialiseGraphicsResources: Initialise Graphics resources on the renderer
+	* @author: Callan Moore
+	* @parameters: _bResetDevice: Is the Device in need of reset?
+	* @return: void
+	********************/
+	void InitialiseGraphicsResources(bool _bResetDevice);
+
 private:
 	// Member Variables
 	IRenderer* m_pRenderer;
@@ -311,7 +338,10 @@ private:
 
 	std::string m_strUserName;
 	CTerrain* m_pTerrain;
-	CStaticCamera* m_pCamera;
+	CCamera* m_pCamera;
+	CDebugCamera* m_pDebugCam;
+	bool m_bDebugMode;
+	bool m_bFirstPerson;
 
 	// Blank/Alpha Assets
 	int m_iBlankTextureID;

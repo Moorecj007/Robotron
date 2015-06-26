@@ -12,7 +12,7 @@
 * Mail :	Callan.Moore@mediadesign.school.nz
 */
 
-// Local Include
+// Local Includes
 #include "Mechanics_Client.h"
 
 CMechanics_Client::CMechanics_Client()
@@ -111,6 +111,8 @@ CMechanics_Client::~CMechanics_Client()
 	m_pTerrain = 0;
 	delete m_pFlare;
 	m_pFlare = 0;
+	delete m_pDebugCam;
+	m_pDebugCam = 0;
 }
 
 bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserName, bool _bSinglePlayer)
@@ -119,38 +121,25 @@ bool CMechanics_Client::Initialise(IRenderer* _pRenderer, std::string _strUserNa
 	m_pRenderer = _pRenderer;
 	m_strUserName = _strUserName;
 
-	// Create the initial Projection Matrices and set them on the Renderer
-	m_pRenderer->CalculateProjectionMatrix(D3DXToRadian(45), 0.1f, 10000.0f);
-
-	// Create a Terrain for the Game
-	m_pTerrain = new CTerrain();
-	VertexScalar TerrainScalar = { kfTerrainScalarX, kfTerrainScalarY, kfTerrainScalarZ };
-	std::string strImagePath = "Assets\\Basic Terrain.bmp";
-	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
-	m_pTerrain->SetCenter(0, 0, 0);
-
 	// Create the the containers for assets
 	m_pAvatars = new std::map < std::string, CAvatar*>;
 	m_pProjectiles = new std::map < UINT, CProjectile*>;
 	m_pEnemies = new std::map < UINT, CEnemy*>;
 	m_pPowerUps = new std::map < UINT, CPowerUp*>;
 
-	// Create the required Assets
-	CreateAvatarAsset();
-	CreateProjectileAsset();
-	CreateFlareAsset();
-
-	CreateDemonAsset();
-	CreateSentinelAsset();
-	CreateShadowAsset();
-
-	CreateHealthPowerAsset();
-	CreateFlarePowerAsset();
-	CreateGoldenPowerAsset();
-
 	// Create game variables
 	m_bToggle = 0;
 	m_bSinglePlayer = _bSinglePlayer;
+
+	// Create a Debug Camera
+	m_pDebugCam = new CDebugCamera();
+	m_pDebugCam->Initialise(m_pRenderer);
+	m_bDebugMode = false;
+	m_bFirstPerson = false;
+
+	
+
+	InitialiseGraphicsResources(false);
 
 	return true;
 }
@@ -167,11 +156,19 @@ void CMechanics_Client::Process( float _fDT, ServerToClient* _pServerPacket)
 	UpdateEnemies();
 	UpdateFlare();
 
-	// Process the camera to keep it following the Avatar
-	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
-	v3float v3Pos = *(Avatar->second->GetPosition());
-	m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, 50, v3Pos.z}, { 0, 0, 1 }, { 0, -1, 0 });
-	m_pCamera->Process(m_pRenderer);
+	if (m_bDebugMode == true)
+	{
+		// Process the Debug Camera
+		m_pDebugCam->Process();
+	}
+	else
+	{
+		// Process the camera to keep it following the Avatar
+		std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
+		v3float v3Pos = *(Avatar->second->GetPosition());
+		m_pCamera->SetCamera({ v3Pos.x, v3Pos.y, v3Pos.z }, { v3Pos.x, v3Pos.y, v3Pos.z }, { 0, 0, 1 });
+		m_pCamera->Process(m_pRenderer);
+	}
 
 	m_bToggle = !m_bToggle;
 }
@@ -208,15 +205,16 @@ void CMechanics_Client::Draw()
 	}
 
 	iterAvatar = m_pAvatars->find(m_strUserName);
-	if (iterAvatar->second->GetAliveStatus() == true)
+	if (iterAvatar->second->GetAliveStatus() == false || m_bDebugMode == true || m_bFirstPerson == true)
 	{
-		// Turn off the directional light
-		m_pRenderer->LightEnable(0, false);
+		// Turn on the directional light for spectating purposes.
+		// Also on for debug mode and first person where the torch light cannot be relied upon
+		m_pRenderer->LightEnable(0, true);
 	}
 	else
 	{
-		// Turn on the directional light
-		m_pRenderer->LightEnable(0, true);
+		// Turn off the directional light
+		m_pRenderer->LightEnable(0, false);
 	}
 
 	// Draw all the Projectiles
@@ -410,7 +408,7 @@ void CMechanics_Client::UpdateProjectiles()
 			if (iterProjectile != m_pProjectiles->end())
 			{
 				// Update all projectiles
-				iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y + kfProjectileSize, projectileInfo.v3Pos.z });
+				iterProjectile->second->SetPosition({ projectileInfo.v3Pos.x, projectileInfo.v3Pos.y, projectileInfo.v3Pos.z });
 				iterProjectile->second->SetDirection({ projectileInfo.v3Dir.x, projectileInfo.v3Dir.y, projectileInfo.v3Dir.z });
 				iterProjectile->second->m_bToggle = m_bToggle;
 			}
@@ -479,7 +477,7 @@ void CMechanics_Client::UpdateEnemies()
 		if (iterEnemy != m_pEnemies->end())
 		{
 			// update the Enemy
-			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y + fSize, enemyInfo.v3Pos.z });
+			iterEnemy->second->SetPosition({ enemyInfo.v3Pos.x, enemyInfo.v3Pos.y, enemyInfo.v3Pos.z });
 			iterEnemy->second->SetDirection({ enemyInfo.v3Dir.x, enemyInfo.v3Dir.y, enemyInfo.v3Dir.z });
 			iterEnemy->second->m_bToggle = m_bToggle;
 		}
@@ -526,7 +524,7 @@ void CMechanics_Client::UpdatePowerUps()
 		if (iterPowerUp != m_pPowerUps->end())
 		{
 			// Update the Enemy
-			iterPowerUp->second->SetPosition({ powerInfo.v3Pos.x, powerInfo.v3Pos.y + kfPowerUpSize, powerInfo.v3Pos.z });
+			iterPowerUp->second->SetPosition({ powerInfo.v3Pos.x, powerInfo.v3Pos.y, powerInfo.v3Pos.z });
 			iterPowerUp->second->SetDirection({ powerInfo.v3Dir.x, powerInfo.v3Dir.y, powerInfo.v3Dir.z });
 			iterPowerUp->second->m_bToggle = m_bToggle;
 		}
@@ -615,10 +613,10 @@ void CMechanics_Client::AddAvatar(ServerToClient* _pServerPacket)
 	if ((std::string)(_pServerPacket->cUserName) == m_strUserName)
 	{
 		// Create and inititalise the Camera for the Game
-		m_pCamera = new CStaticCamera();
+		m_pCamera = new CCamera();
 		std::map< std::string, CAvatar*>::iterator Avatar = m_pAvatars->find(m_strUserName);
 		v3float v3Pos = *(Avatar->second->GetPosition());
-		m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, true);
+		m_pCamera->Initialise({ v3Pos.x, 100, v3Pos.z }, { 0, -1, 0 }, false);
 		m_pCamera->Process(m_pRenderer);
 	}
 }
@@ -671,7 +669,7 @@ void CMechanics_Client::CreateProjectileAsset()
 	// Create a material for the avatars to be made from
 	MaterialComposition ProjectileMatComp;
 	ProjectileMatComp.ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
-	ProjectileMatComp.diffuse = { 0.0f, 0.0f, 1.0f, 1.0f };
+	ProjectileMatComp.diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
 	ProjectileMatComp.emissive = { 0.0f, 0.0f, 0.0f, 0.0f };
 	ProjectileMatComp.specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	ProjectileMatComp.power = 0;
@@ -812,8 +810,6 @@ void CMechanics_Client::CreateGoldenPowerAsset()
 
 	assert(("Golden PowerUp Mesh Failed to Create", m_pGoldenPowerMesh != 0));
 }
-
-
 
 void CMechanics_Client::SpawnProjectile(ServerToClient* _pServerPacket)
 {
@@ -990,7 +986,7 @@ void CMechanics_Client::OverlayHUD()
 	if (Avatar != m_pAvatars->end())
 	{
 		int iYpos = 0;
-		D3DXCOLOR textBlue = 0xff0000ff;
+		D3DXCOLOR textWhite = 0xffffffff;
 
 		// Check the health status
 		std::string strHealth;
@@ -1004,26 +1000,32 @@ void CMechanics_Client::OverlayHUD()
 		}
 
 		// Render the text to the Top left Corner
-		m_pRenderer->RenderText(false, { 0, 0 }, "Health: " + strHealth, (iYpos += 10), SCREEN_FONT, textBlue, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, "Health: " + strHealth, (iYpos += 10), SCREEN_FONT, textWhite, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, "Wave: " + std::to_string(m_pServerPacket->iWaveNumber), (iYpos), SCREEN_FONT, textWhite, H_RIGHT);
+		m_pRenderer->RenderText(false, { 0, 0 }, "Enemies Remaining: " + std::to_string(m_pServerPacket->iTotalEnemyCount), (iYpos += 14), SCREEN_FONT, textWhite, H_RIGHT);
+		iYpos -= 14;
 
 		if (m_bSinglePlayer == true)
 		{
-			m_pRenderer->RenderText(false, { 0, 0 }, "Lives: " + std::to_string(Avatar->second->GetLives()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+			m_pRenderer->RenderText(false, { 0, 0 }, "Lives: " + std::to_string(Avatar->second->GetLives()), (iYpos += 14), SCREEN_FONT, textWhite, H_LEFT);
 		}
 
-		m_pRenderer->RenderText(false, { 0, 0 }, "Score: " + std::to_string(Avatar->second->GetScore()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
-		m_pRenderer->RenderText(false, { 0, 0 }, "Flares: " + std::to_string(Avatar->second->GetFlareCount()), (iYpos += 14), SCREEN_FONT, textBlue, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, "Score: " + std::to_string(Avatar->second->GetScore()), (iYpos += 14), SCREEN_FONT, textWhite, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, "Flares: " + std::to_string(Avatar->second->GetFlareCount()), (iYpos += 14), SCREEN_FONT, textWhite, H_LEFT);
 	}
 }
 
-void CMechanics_Client::OverlayAvatarScores()
+void CMechanics_Client::OverlayAvatarScores(int _iFPS)
 {
-	int iYpos = 300;
-	D3DXCOLOR textBlue = 0xff0000ff;
+	int iYpos = 0;
+	D3DXCOLOR textWhite = 0xffffffff;
 
-	m_pRenderer->RenderText(false, { 0, 0 }, "Avatar", (iYpos), MENU_FONT, textBlue, H_LEFT);
-	m_pRenderer->RenderText(false, { 0, 0 }, "Health", (iYpos), MENU_FONT, textBlue, H_CENTER);
-	m_pRenderer->RenderText(false, { 0, 0 }, "Score", (iYpos), MENU_FONT, textBlue, H_RIGHT);
+	m_pRenderer->RenderText(false, { 0, 0 }, "FPS: " + std::to_string(_iFPS), (iYpos), MENU_FONT, textWhite, H_CENTER);
+
+	iYpos = 300;
+	m_pRenderer->RenderText(false, { 0, 0 }, "Avatar", (iYpos), MENU_FONT, textWhite, H_LEFT);
+	m_pRenderer->RenderText(false, { 0, 0 }, "Health", (iYpos), MENU_FONT, textWhite, H_CENTER);
+	m_pRenderer->RenderText(false, { 0, 0 }, "Score", (iYpos), MENU_FONT, textWhite, H_RIGHT);
 	iYpos += 50;
 
 	std::map<std::string, CAvatar*>::iterator Avatar = m_pAvatars->begin();
@@ -1041,9 +1043,9 @@ void CMechanics_Client::OverlayAvatarScores()
 			strHealth = std::to_string(Avatar->second->GetHealth());
 		}
 
-		m_pRenderer->RenderText(false, { 0, 0 }, (Avatar->first), (iYpos), MENU_FONT, textBlue, H_LEFT);
-		m_pRenderer->RenderText(false, { 0, 0 }, strHealth, (iYpos), MENU_FONT, textBlue, H_CENTER);
-		m_pRenderer->RenderText(false, { 0, 0 }, std::to_string(Avatar->second->GetScore()), (iYpos), MENU_FONT, textBlue, H_RIGHT);
+		m_pRenderer->RenderText(false, { 0, 0 }, (Avatar->first), (iYpos), MENU_FONT, textWhite, H_LEFT);
+		m_pRenderer->RenderText(false, { 0, 0 }, strHealth, (iYpos), MENU_FONT, textWhite, H_CENTER);
+		m_pRenderer->RenderText(false, { 0, 0 }, std::to_string(Avatar->second->GetScore()), (iYpos), MENU_FONT, textWhite, H_RIGHT);
 		iYpos += 50;
 
 		Avatar++;
@@ -1127,3 +1129,41 @@ bool CMechanics_Client::CheckAvatarsAliveStatus()
 	// return false if no one is alive
 	return false;
 }
+
+void CMechanics_Client::ToggleDebugMode()
+{
+	m_bDebugMode = !m_bDebugMode;
+}
+
+void CMechanics_Client::ToggleViewMode()
+{
+	m_bFirstPerson = !m_bFirstPerson;
+	m_pCamera->SetMode(m_bFirstPerson);
+}
+
+void CMechanics_Client::InitialiseGraphicsResources(bool _bResetDevice)
+{
+	// Create a Terrain for the Game
+	m_pTerrain = new CTerrain();
+	VertexScalar TerrainScalar = { kfTerrainScalarX, kfTerrainScalarY, kfTerrainScalarZ };
+	std::string strImagePath = "Assets\\Basic Terrain.bmp";
+	m_pTerrain->Initialise(m_pRenderer, strImagePath, TerrainScalar);
+	m_pTerrain->SetCenter(0, 0, 0);
+
+	// Create the required Assets
+	CreateAvatarAsset();
+	CreateProjectileAsset();
+	CreateFlareAsset();
+
+	CreateDemonAsset();
+	CreateSentinelAsset();
+	CreateShadowAsset();
+
+	CreateHealthPowerAsset();
+	CreateFlarePowerAsset();
+	CreateGoldenPowerAsset();
+
+	m_pRenderer->InitialiseResources(_bResetDevice);
+}
+
+

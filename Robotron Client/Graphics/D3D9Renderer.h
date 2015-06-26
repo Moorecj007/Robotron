@@ -21,7 +21,6 @@
 #include <d3d9.h>
 #include <vector>
 #include <map>
-#include <D3DX9Effect.h>
 
 // Local Includes
 #include "IRenderer.h"
@@ -64,6 +63,13 @@ public:
 	virtual bool Shutdown();
 
 	// Prototypes
+
+	/***********************
+	* CreateDevice: Create the Device
+	* @author: Callan Moore
+	* @return: void
+	********************/
+	virtual bool CreateDevice();
 
 	/***********************
 	* PopulatePresentParams: Populates the Present Parameters struct for thew device
@@ -287,13 +293,6 @@ public:
 	virtual void AlphaBlend(bool _b);
 
 	/***********************
-	* CheckDevice: Check of the device if still active
-	* @author: Callan Moore
-	* @return: bool: True of the device is ok
-	********************/
-	virtual bool CheckDevice();
-
-	/***********************
 	* SetTexture: Sets the Texture corresponding to the input ID on the device
 	* @author: Callan Moore
 	* @parameter: _iTexID: ID for the the desired texture
@@ -342,6 +341,12 @@ public:
 	********************/
 	virtual D3DXMATRIX& GetWorldMatrix();
 
+	// TO DO
+	virtual HRESULT CheckDevice();
+	virtual void InvalidateResources();
+	virtual void InitialiseResources(bool _bResetDevice);
+	virtual void ToggleWireFrame(bool _bActive);
+
 private:
 
 	/***********************
@@ -389,13 +394,6 @@ private:
 	* @return: RECT: Rect structure that can contain the string
 	********************/
 	RECT RectfromString(int _iYPos, std::string _str, ID3DXFont* _pFont);
-
-	/***********************
-	* RecoverDevice: Attempt to recover the device
-	* @author: Callan Moore
-	* @return: bool: Successful recovery (or not)
-	********************/
-	bool RecoverDevice();
 
 protected:
 	// Member Variables

@@ -339,7 +339,15 @@ struct Controls
 	POINT ptMouse;
 
 	//Debug Camera Controls
+	bool bDebugUp;
+	bool bDebugDown;
+	bool bDebugLeft;
+	bool bDebugRight;
+	bool bDebugForward;
+	bool bDebugBackwards;
 
+	bool bDebugToggle;
+	bool bCameraViewToggle;
 };
 
 // Functions

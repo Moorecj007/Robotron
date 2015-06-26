@@ -124,8 +124,7 @@ LRESULT CALLBACK WindowProc(HWND _hWnd, UINT _uiMsg, WPARAM _wParam, LPARAM _lPa
 * @Parameter: _iCmdshow: Integer passed in during launch, indicating how the application window is opened
 * @return: int: Program ends here
 ********************/
-int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdLine, int _nCmdShow)
-{
+int WINAPI WinMain(HINSTANCE _hInstance, HINSTANCE _hPrevInstance, LPSTR _lpCmdLine, int _nCmdShow){
 	WNDCLASSEX winClass;	// This will hold the class we create.
 	HWND hWnd;				// Generic window handle.
 	MSG uiMsg;				// Generic message.

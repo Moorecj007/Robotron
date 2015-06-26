@@ -159,12 +159,19 @@ bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 	m_strMenuTempSelection = "";
 	m_iServerIndex = -1;
 	m_bPauseKey = false;
+	m_bPrevPauseKey = false;
+	m_bDebugMode = false;
+	m_bDebugKeyPrev = false;
+	m_bFirstPerson = false;
+	m_bFirstPersonKeyPrev = false;
+	m_bWireFrame = false;
 
 	// Game Variables
 	m_bSinglePlayer = false;
 	m_bHost = false;
 	m_bFoundServer = false;
 	m_bGameLoading = false;
+	m_bLostDevice = false;
 
 	// Set User Information
 	m_pCurrentUsers = new std::map<std::string, AvatarInfo>;
@@ -179,30 +186,29 @@ bool CHub_Client::Initialise(HINSTANCE _hInstance, HWND _hWnd, int _iScreenWidth
 
 bool CHub_Client::RenderOneFrame()
 {
-	if (m_pRenderer->CheckDevice() == false)
-	{
-		MessageBoxA(m_hWnd, "Robotron has encountered a critical error. Application will be Terminated", "Error", MB_OK);
-		m_bNetworkOnline = false;
-	}
-
-	// Snapshot Time at the beginning of the frame
-	m_iFrameTimeStart = (int)timeGetTime();
-	Sleep(1);
-
 	// Shut down the application if the network goes offline
 	if (m_bNetworkOnline == false)
 	{
 		return false;
 	}
 
-	Process();
-	Draw();
+	//if (CheckRenderer() == true)
+	//{
+		m_bLostDevice = false;
+		// Snapshot Time at the beginning of the frame
+		m_iFrameTimeStart = (int)timeGetTime();
+		Sleep(1);
 
-	// Snapshot Time at the end of the frame
-	m_iFrameTimeEnd = (int)timeGetTime();
-	FrameLimiter();
+		Process();
+		Draw();
 
+		// Snapshot Time at the end of the frame
+		m_iFrameTimeEnd = (int)timeGetTime();
+		FrameLimiter();
+
+	//}
 	return true;
+
 }
 
 // #Processes
@@ -224,6 +230,29 @@ void CHub_Client::Process()
 	}
 	m_bPrevPauseKey = m_activatedControls.bEsc;
 
+	if (m_bSinglePlayer == true)
+	{
+		// Check if the Debug Camera Mode has been toggle on/off
+		if (m_bDebugKeyPrev == true && m_activatedControls.bDebugToggle == false)
+		{
+			m_bDebugMode = !m_bDebugMode;
+			m_pMechanics->ToggleDebugMode();
+		}
+		m_bDebugKeyPrev = m_activatedControls.bDebugToggle;
+
+		if (m_bDebugMode == true)
+		{
+			DebugCameraInput(&m_activatedControls);
+		}
+	}
+
+	if (m_bFirstPersonKeyPrev == true && m_activatedControls.bCameraViewToggle == false)
+	{
+		m_bFirstPerson = !m_bFirstPerson;
+		m_pMechanics->ToggleViewMode();
+	}
+	m_bFirstPersonKeyPrev = m_activatedControls.bCameraViewToggle;
+
 	// Determine if a Menu has been selected
 	if (m_strMenuTempSelection != "")
 	{
@@ -234,7 +263,7 @@ void CHub_Client::Process()
 		}
 	}
 
-
+	// Check if the the user in is the game or not
 	if (m_eScreenState == STATE_GAME_PLAY)
 	{
 		if (m_pMechanics->CheckAvatarsAliveStatus() == false)
@@ -818,6 +847,11 @@ void CHub_Client::ProcessOptionsMenu()
 	{
 		m_eScreenState = STATE_MAIN_MENU;
 	}
+	else if (m_strMenuSelection == "Active")
+	{
+		m_bWireFrame = !m_bWireFrame;
+		m_pRenderer->ToggleWireFrame(m_bWireFrame);
+	}
 }
 
 void CHub_Client::ProcessGameLobby()
@@ -960,6 +994,7 @@ void CHub_Client::ProcessGameOverScreen()
 // #Draw
 void CHub_Client::Draw()
 {
+	
 	m_pRenderer->StartRender(true, true, false);
 
 	switch (m_eScreenState)
@@ -979,10 +1014,10 @@ void CHub_Client::Draw()
 			// Render all avatars scores if the player presses the correct input
 			else if (m_activatedControls.bTab == true)
 			{
-				m_pMechanics->OverlayAvatarScores();
+				m_pMechanics->OverlayAvatarScores(m_iFPS);
 			}
 			// Check to see if the player has opted to pause the game
-			
+
 
 			break;
 		}
@@ -1041,9 +1076,9 @@ void CHub_Client::Draw()
 			m_pRenderer->RenderColor(0xff000000);
 			break;
 		}
-		
+
 		default: break;
-		
+
 	}	// End Switch(m_eScreenState)
 
 	m_pRenderer->EndRender();
@@ -1195,13 +1230,38 @@ void CHub_Client::DisplayInstructionsMenu()
 	// Render the Backbuffer to Black
 	m_pRenderer->RenderColor(0xff000000);
 
-	// Print the Title Text
-	iYpos = PrintFullTitle(iYpos);
-	m_pRenderer->RenderText(false, m_ptMousePos, "Instructions", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Instructions", (iYpos += 60), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_ptMousePos, "Input Instructions Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Survive as long as you can against the hordes of hell with endless waves.", (iYpos += 120), SCREEN_FONT, colorWhite, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Utilise the PowerUps to your advantage and score the highest points.", (iYpos += 30), SCREEN_FONT, colorWhite, H_CENTER);
+
+	m_pRenderer->RenderText(false, m_ptMousePos, "Controls", (iYpos += 80), MENU_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "WASD", (iYpos += 60), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Avatar Movement", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Left Click", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Shoot", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Mouse Cursor", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Targeting System", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "E", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Deploy Flare", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Esc", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Pause Menu", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "F1", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Toggle Camera Mode", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "F4", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Toggle Free Camera", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+
+	m_pRenderer->RenderText(false, m_ptMousePos, "PowerUps", (iYpos += 80), MENU_FONT, colorRed, H_CENTER);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Heart", (iYpos += 60), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Replenish Your Health", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Flare", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Receive one Flare", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "Gold", (iYpos += 40), MENU_FONT, colorWhite, H_LEFT);
+	m_pRenderer->RenderText(false, m_ptMousePos, "1500 Points", (iYpos), MENU_FONT, colorWhite, H_RIGHT);
+	
+	iYpos = m_iScreenHeight;
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos -= 100), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_activatedControls.bAction == true)
@@ -1219,6 +1279,8 @@ void CHub_Client::DisplayOptionsMenu()
 	int iYpos = 0;
 	D3DXCOLOR colorRed = 0xffff0000;
 	D3DXCOLOR colorWhite = 0xffffffff;
+	D3DXCOLOR colorRedUnSelected = 0xff440000;
+	D3DXCOLOR WireframeColor;
 	std::string strSelection = "";
 
 	// Render the Backbuffer to Black
@@ -1229,8 +1291,19 @@ void CHub_Client::DisplayOptionsMenu()
 	m_pRenderer->RenderText(false, m_ptMousePos, "Options", (iYpos += 150), SUBTITLE_FONT, colorRed, H_CENTER);
 
 	// Print the Menu Options
-	m_pRenderer->RenderText(false, m_ptMousePos, "Input Options Here", (iYpos += 120), MENU_FONT, colorWhite, H_CENTER);
-	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos += 100), MENU_FONT, colorWhite, H_CENTER);
+	if (m_bWireFrame == true)
+	{
+		WireframeColor = colorRed;
+	}
+	else
+	{
+		WireframeColor = colorRedUnSelected;
+	}
+	m_pRenderer->RenderText(false, m_ptMousePos, "Wireframe Mode", (iYpos += 150), MENU_FONT, colorWhite, H_LEFT);
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Active", (iYpos), MENU_FONT, WireframeColor, H_RIGHT);
+
+	iYpos = m_iScreenHeight - 100;
+	strSelection += m_pRenderer->RenderText(true, m_ptMousePos, "Back", (iYpos), MENU_FONT, colorWhite, H_CENTER);
 
 	// Change the MenuSelection Variable to the menu enum
 	if (m_activatedControls.bAction == true)
@@ -1241,6 +1314,7 @@ void CHub_Client::DisplayOptionsMenu()
 	{
 		m_strMenuTempSelection = "";
 	}
+
 }
 
 void CHub_Client::DisplayGameLobby()
@@ -1608,5 +1682,89 @@ void CHub_Client::FrameLimiter()
 		m_iSecondCounter -= 1000;	// Remove one second of time from counter. Prevents integer wrap around
 		m_iFPS = m_iFrameCounter;	// FPS for this second is set to the number of frames rendered this second
 		m_iFrameCounter = 0;		// Reset the Frame counter
+	}
+}
+
+void CHub_Client::DebugCameraInput(Controls* _controls)
+{
+	float fDT = m_pClock->GetDeltaTick();
+	CDebugCamera* pDebugCam = m_pMechanics->GetDebugCam();
+
+	if ((_controls->bDebugLeft) 
+		&&(!(_controls->bDebugRight)))
+	{
+		// Turn Left
+		pDebugCam->Yaw(-fDT);
+	}
+	if ((_controls->bDebugRight)
+		&& (!(_controls->bDebugLeft)))
+	{
+		//Turn Right
+		pDebugCam->Yaw(fDT);
+	}
+	if ((_controls->bDebugUp)
+		&& (!(_controls->bDebugDown)))
+	{
+		// Pitch Up
+		pDebugCam->Pitch(fDT);
+	}
+	if ((_controls->bDebugDown)
+		&& (!(_controls->bDebugUp)))
+	{
+		// Pitch Down
+		pDebugCam->Pitch(-fDT);
+	}
+	if ((_controls->bDebugForward)
+		&& (!(_controls->bDebugBackwards)))
+	{
+		// Move Forwards
+		pDebugCam->Move(fDT);
+	}
+	if ((_controls->bDebugBackwards)
+		&& (!(_controls->bDebugForward)))
+	{
+		// Move Backwards
+		pDebugCam->Move(-fDT);
+	}
+}
+
+bool CHub_Client::CheckRenderer()
+{
+	HRESULT hResult = m_pRenderer->CheckDevice();
+
+	switch (hResult)
+	{
+	case D3D_OK:
+	{
+		return true;
+		break;
+	}
+	case D3DERR_DEVICELOST:
+	{
+		Sleep(50);
+		return false;
+		break;
+	}
+	case D3DERR_DEVICENOTRESET:
+	{
+		m_pRenderer->InvalidateResources();
+		m_pMechanics->InitialiseGraphicsResources(true);
+
+		if (m_pRenderer->CheckDevice() != D3D_OK)
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+
+		break;
+	}
+	default:
+	{
+		return false;
+		break;
+	}
 	}
 }

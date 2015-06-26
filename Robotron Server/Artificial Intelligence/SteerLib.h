@@ -30,6 +30,7 @@ inline void ApplyForce(SteeringVariables* _pSteeringInfo, v3float* _pv3Pos, v3fl
 	_pSteeringInfo->v3Vel += _v3Force;
 	_pSteeringInfo->v3Vel = _pSteeringInfo->v3Vel.Limit(_pSteeringInfo->fMaxSpeed * _fDT);
 
+	_pSteeringInfo->v3Vel.y = 0;
 	*_pv3Pos += _pSteeringInfo->v3Vel;
 	*_pv3Dir = _pSteeringInfo->v3Vel;
 	(*_pv3Dir).Normalise();
@@ -170,6 +171,7 @@ inline void Flee(SteeringVariables* _pSteeringInfo, v3float* _pv3Pos, v3float* _
 		_pSteeringInfo->v3Vel = _pSteeringInfo->v3Vel.Limit(_pSteeringInfo->fMaxSpeed * _fDT);
 
 		// Update the new position and direction
+		_pSteeringInfo->v3Vel.y = 0;
 		*_pv3Pos += _pSteeringInfo->v3Vel;
 		*_pv3Dir = _pSteeringInfo->v3Vel;
 		(*_pv3Dir).Normalise();

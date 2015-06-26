@@ -27,6 +27,7 @@
 #include "Graphics\DInput.h"
 #include "../Common Files/Clock.h"
 #include "../Common Files/Networking/MySemaphore.h"
+#include "Graphics/DebugCamera.h"
 
 class CHub_Client
 {
@@ -385,6 +386,21 @@ public:
 	********************/
 	void FrameLimiter();
 
+	/***********************
+	* DebugCameraInput: Process the Debug Camera Inputs
+	* @author: Callan Moore
+	* @parameter: _controls: Current State of the user controls
+	* @return: void:
+	********************/
+	void DebugCameraInput(Controls* _controls);
+
+	/***********************
+	* CheckRenderer: Check that the renderers device is ready
+	* @author: Callan Moore
+	* @return: bool: Device Ready (or not)
+	********************/
+	bool CheckRenderer();
+
 private:
 	//Disallowing copies and extra constructions
 	CHub_Client();
@@ -409,6 +425,12 @@ private:
 	int m_iServerIndex;
 	bool m_bPauseKey;
 	bool m_bPrevPauseKey;
+	bool m_bDebugMode;
+	bool m_bDebugKeyPrev;
+	bool m_bFirstPerson;
+	bool m_bFirstPersonKeyPrev;
+	bool m_bLostDevice;
+	bool m_bWireFrame;
 
 	// Game Variables
 	bool m_bSinglePlayer;

@@ -280,6 +280,8 @@ private:
 	std::map<UINT, EnemyInfo>* m_pEnemies;
 	std::queue<EnemyInfo>* m_pDeletedEnemies;
 	std::queue<EnemyInfo>* m_pCreatedEnemies;
+	float m_fEnemySpeedFactor;
+	float m_fEnemySpeedIncease;
 
 	// PowerUp Variables
 	std::map<UINT, PowerUpInfo>* m_pPowerUps;
